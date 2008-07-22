@@ -1,13 +1,14 @@
 jQuery(document).ready(function() {
+  // Uncomment one at a time to see the examples
   //var chess1 = jQuery('#board1').chess();
   //var chess2 = jQuery('#board2').chess({fen : "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"});
   var chess3 = jQuery('#board3').chess({pgn : jQuery('#justdoeet').html()});
-
 
   jQuery('#back').click(function() {
     chess3.transitionBackward();
     return false;
   });
+  
   jQuery('#next').click(function() {
     chess3.transitionForward();
     return false;
