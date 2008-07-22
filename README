@@ -1,6 +1,0 @@
-== Chess ==
-A jQuery based javascript library for parsing and displaying chess games. Currently takes FEN and PGN as inputs.
-
-== Usage ==
-
-See index.html for example usage
