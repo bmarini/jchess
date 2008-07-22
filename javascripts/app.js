@@ -14,6 +14,11 @@ jQuery(document).ready(function() {
     return false;
   });
   
+  jQuery('#flip').click(function() {
+    chess3.flipBoard();
+    return false;
+  });
+  
   // jQuery.each(chess3.game.transitions, function() {
   //   console.log(this.forward.join('|'));
   //   console.log(this.backward.join('|'));

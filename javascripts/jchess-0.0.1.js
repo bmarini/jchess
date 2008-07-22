@@ -50,7 +50,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
     
     prototype : {
       init : function() {
+        // Load a fresh board position
         this.setUpBoard( this.parseFEN( this.settings.fen ) );
+        
+        // If pgn was passed in, parse it
         if (this.settings.pgn) this.parsePGN(this.settings.pgn);
 
         this.setUpBoard( this.parseFEN( this.settings.fen ) );
@@ -104,6 +107,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       
       addDomPiece : function(id, piece, algebriac) {
         var square   = this.algebriac2Coord(algebriac);
+        if (this.game.board_direction < 0) square[0] = 7 - square[0];
+        
         var pos_top  = this.settings.square_size * square[0];
         var pos_left = this.settings.square_size * square[1];
         
@@ -115,7 +120,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var from = this.algebriac2Coord(move.from);
         var to   = this.algebriac2Coord(move.to);
         
-        var top  = (parseInt(to[0]) - parseInt(from[0])) * this.settings.square_size;
+        var top  = (parseInt(to[0]) - parseInt(from[0])) * this.settings.square_size * this.game.board_direction;
 		    var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size;
 	      
         $('#piece_' + id).animate({
@@ -128,8 +133,6 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       },
       
       transitionForward : function() {
-        console.log(this.game.transitions.length);
-        console.log(this.game.halfmove_number);
         if (this.game.halfmove_number < this.game.transitions.length) {
           this.runTransitions(this.game.transitions[this.game.halfmove_number].forward);
           this.game.halfmove_number++;          
@@ -179,7 +182,9 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         this.boardElement().children().each(function() {
           var top_val      = parseInt($(this).css('top'));
           $(this).css('top', total_height - top_val);
-        })
+        });
+        
+        this.game.board_direction *= -1;
       },
 
       parseFEN : function(fen) {
@@ -497,7 +502,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         annotations : [],
         
         next_piece_id : 64,
-        transitions : []
+        transitions : [],
+        board_direction : 1
       },
 
       /* Patterns used for parsing */

@@ -37,8 +37,9 @@ And a PGN game:
 ### Load a chess game via PGN and play through it:
     var chess = jQuery('#chess-board').chess({pgn : jQuery('#pgn-fischer-spassky').html()});
     
-    chess.transitionForward(); // Moves the game forward one move
+    chess.transitionForward();  // Moves the game forward one move
     chess.transitionBackward(); // Moves the game backward one move
-
+    chess.flipBoard();          // You guessed it, flips the board
+    
 
 See index.html for example usage
