@@ -5,13 +5,10 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-	<title>Chess Widget</title>
+	<title>jChess Examples</title>
 	<link rel="stylesheet" href="stylesheets/main.css" type="text/css" media="screen" title="no title" charset="utf-8">
 	<link rel="stylesheet" href="stylesheets/chess.css" type="text/css" media="screen" title="no title" charset="utf-8">
-  <script src="javascripts/jquery-1.2.1.js"></script>
-  <script src="javascripts/jquery.ui-1.0/ui.mouse.js"></script>
-  <script src="javascripts/jquery.ui-1.0/ui.draggable.js"></script>
-  <script src="javascripts/jquery.ui-1.0/ui.draggable.ext.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js"></script>
   <script src="javascripts/jchess-0.0.1.js"></script>
   <script src="javascripts/app.js"></script>
 </head>
@@ -19,22 +16,18 @@
 <body>
 <div id="wrapper">
   <h1>Chess Board Demo</h1>
-  <div id="board1">
-  </div>
+  <div id="board1"></div>
   
 	<h1>Chess Board Demo 2: FEN</h1>
-  <div id="board2">
-  </div>
+  <div id="board2"></div>
   
   <h1>Chess Board Demo 3: PGN</h1>
   <div>
-    <a id="back" href="#">Back</a>
-    <a id="next" href="#">Next</a>
-    <a id="flip" href="#">Flip</a>
+    <a id="board3-back" href="#">Back</a>
+    <a id="board3-next" href="#">Next</a>
+    <a id="board3-flip" href="#">Flip</a>
   </div>
-  <div id="board3">
-    
-  </div>
+  <div id="board3"></div>
   <p id="pgn-fischer-spassky">      
     [Event "F/S Return Match"]
     [Site "Belgrade, Serbia JUG"]
@@ -53,6 +46,13 @@
     35.Ra7 g6 36.Ra6+ Kc5 37.Ke1 Nf4 38.g3 Nxh3 39.Kd2 Kb5 40.Rd6 Kc5 41.Ra6
     Nf2 42.g4 Bd3 43.Re6 1/2-1/2
   </p>
+  <h1>Chess Board Demo 4: More PGN</h1>
+  <div>
+    <a id="board4-back" href="#">Back</a>
+    <a id="board4-next" href="#">Next</a>
+    <a id="board4-flip" href="#">Flip</a>
+  </div>
+  <div id="board4"></div>
   <p id="justdoeet">
     [Event "rated standard game"]
     [Site "Free Internet Chess Server"]

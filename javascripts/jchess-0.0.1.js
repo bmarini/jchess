@@ -31,6 +31,25 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
   $.chess = function(options, wrapper) {
     this.settings = $.extend( {}, $.chess.defaults, options );
     this.wrapper  = wrapper;
+
+    this.game     = {
+      active_color : 'w',
+      castling_availability : 'KQkq',
+      en_passant_square : '-',
+      halfmove_clock : 0,
+      fullmove_number : 1,
+      halfmove_number : 0,
+
+      header : [],
+      body : '',
+      moves : [],
+      annotations : [],
+      
+      next_piece_id : 64,
+      transitions : [],
+      board_direction : 1
+    };
+    
   }
   
   /* Add chess() to the jQuery namespace */
@@ -47,7 +66,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       square_size : 43,
       board_element_selector : '.chess-board'
     },
-    
+  
     prototype : {
       init : function() {
         // Load a fresh board position
@@ -105,6 +124,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         })
       },
       
+      getDomPieceId : function(id) {
+        return this.wrapper.id + "_piece_" + id;
+      },
+      
       addDomPiece : function(id, piece, algebriac) {
         var square   = this.algebriac2Coord(algebriac);
         if (this.game.board_direction < 0) square[0] = 7 - square[0];
@@ -112,8 +135,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var pos_top  = this.settings.square_size * square[0];
         var pos_left = this.settings.square_size * square[1];
         
-        this.boardElement().append('<div id="piece_' + id + '" class="' + piece + '"></div>');
-        $('#piece_' + id).css({ position: 'absolute', top:pos_top, left:pos_left });
+        this.boardElement().append('<div id="' + this.getDomPieceId(id) + '" class="' + piece + '"></div>');
+        $('#' + this.getDomPieceId(id)).css({ position: 'absolute', top:pos_top, left:pos_left });
       },
       
       moveDomPiece : function(id, move) {
@@ -123,13 +146,13 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var top  = (parseInt(to[0]) - parseInt(from[0])) * this.settings.square_size * this.game.board_direction;
 		    var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size;
 	      
-        $('#piece_' + id).animate({
+        $('#' + this.getDomPieceId(id)).animate({
           'top' : '+=' + top + 'px', 'left' : '+=' + left + 'px'
         }, 'fast');
       },
       
       removeDomPiece : function(id) {
-        $('#piece_' + id).remove();
+        $('#' + this.getDomPieceId(id)).remove();
       },
       
       transitionForward : function() {
@@ -444,7 +467,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       },
       
       getNextPieceId : function() {
-        return this.game.nex_piece_id++;
+        return this.game.next_piece_id++;
       },
 
       /* Utility Functions */
@@ -485,25 +508,6 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
             console.log('[' + j + ',' + k + '] = { id: ' + this.boardData()[j][k].id + ', piece: ' + this.boardData()[j][k].piece + ' }');
           })
         })
-      },
-      
-      /* Game Attributes */
-      game : {
-        active_color : 'w',
-        castling_availability : 'KQkq',
-        en_passant_square : '-',
-        halfmove_clock : 0,
-        fullmove_number : 1,
-        halfmove_number : 0,
-
-        header : [],
-        body : '',
-        moves : [],
-        annotations : [],
-        
-        next_piece_id : 64,
-        transitions : [],
-        board_direction : 1
       },
 
       /* Patterns used for parsing */
