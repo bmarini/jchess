@@ -1,5 +1,5 @@
 /*
- * jChess 0.0.1 - Chess Library Built From jQuery
+ * jChess 0.1.0 - Chess Library Built From jQuery
  *
  * Copyright (c) 2008 Ben Marini
  * 
@@ -44,6 +44,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       body : '',
       moves : [],
       annotations : [],
+      raw_annotations : [],
       
       next_piece_id : 64,
       transitions : [],
@@ -234,7 +235,9 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         // Do a little clean up on the string
         pgn = $.trim(pgn).replace(/\n|\r/g, ' ').replace(/\s+/g, ' ');
         // Remove annotations for now...
-        pgn = pgn.replace(/\{[^}]+}/g, '');
+        //pgn = pgn.replace(/\{[^}]+}/g, '');
+        var instance = this;
+        pgn = pgn.replace(/\{[^}]+}/g, function(){ return instance.pluckAnnotation.apply(instance, arguments) });
   
         this.game.header['Event']  = /\[Event "([^"]*)"]/.exec(pgn)[1];
         this.game.header['Site']   = /\[Site "([^"]*)"]/.exec(pgn)[1];
@@ -254,23 +257,29 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         
         var moves = $.trim(this.game.body).split(/\s+/);
   
-        var instance = this;
+        var instance    = this;
+        var move_number = 0;
         $.each(moves, function(i, move) {
-          instance.game.moves[i] = move;
+          if ( /annotation-\d+/.test(move) ) {
+            instance.game.annotations[move_number] = instance.game.raw_annotations.shift();
+            return;
+          }
           
-          //console.log("Processing: " + move);
-          var player = (i % 2 == 0) ? 'w' : 'b';
+          instance.game.moves[move_number] = move;
+          
+          //console.log("Processing move: " + move_number + '.' + move);
+          var player = (move_number % 2 == 0) ? 'w' : 'b';
           
           // If the move was to castle
           if ( instance.patterns.castle_queenside.test(move) ) {
             var rank = (player == 'w') ? 1 : 8;
-            instance.movePiece(i, {from : "e" + rank, to : "c" + rank} );
-            instance.movePiece(i, {from : "a" + rank, to : "d" + rank} );
+            instance.movePiece(move_number, {from : "e" + rank, to : "c" + rank} );
+            instance.movePiece(move_number, {from : "a" + rank, to : "d" + rank} );
 
           } else if ( instance.patterns.castle_kingside.test(move) ) {
             var rank = (player == 'w') ? 1 : 8;
-            instance.movePiece(i, {from : "e" + rank, to : "g" + rank} );
-            instance.movePiece(i, {from : "h" + rank, to : "f" + rank} ); 
+            instance.movePiece(move_number, {from : "e" + rank, to : "g" + rank} );
+            instance.movePiece(move_number, {from : "h" + rank, to : "f" + rank} ); 
           
           // If the move was a piece
           } else if ( instance.patterns.piece_move.test(move) ) {
@@ -304,7 +313,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
             }
             
             var src = instance.findMoveSource(piece, src_file, src_rank, dst_file, dst_rank, player);
-            instance.movePiece(i, {from : src, to : dst_file + dst_rank} );
+            instance.movePiece(move_number, {from : src, to : dst_file + dst_rank} );
             
             // If the move was a pawn
           } else {
@@ -317,7 +326,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
               dst_rank = m[2];
               var src  = instance.findPawnMoveSource(dst_file, dst_rank, player);
               var dst  = dst_file + dst_rank;
-              instance.movePiece(i, {from : src, to : dst} );
+              instance.movePiece(move_number, {from : src, to : dst} );
               
               // Pawn capture
             } else if ( instance.patterns.pawn_capture.test(move) ) {
@@ -329,8 +338,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
               
               // En passent
               var result = instance.pieceAt(dst_file + dst_rank);
-              if (result == '-') instance.removePiece(i, dst_file + src_rank);
-              instance.movePiece(i, {from : src_file + src_rank, to : dst_file + dst_rank });
+              if (result == '-') instance.removePiece(move_number, dst_file + src_rank);
+              instance.movePiece(move_number, {from : src_file + src_rank, to : dst_file + dst_rank });
             }
             
             // Queening
@@ -338,10 +347,11 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
               var m = instance.patterns.pawn_queen.exec(move);
               var queening_piece = m[1];
               queening_piece = (player == 'w') ? queening_piece : queening_piece.toLowerCase();
-              instance.addPiece(i, queening_piece, dst_file + dst_rank); 
+              instance.addPiece(move_number, queening_piece, dst_file + dst_rank); 
             }
           }
-  
+          
+          move_number++;
         });
       },
       
@@ -500,6 +510,17 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var new_str = '';
         for (var i = 0; i < num_spaces; i++) { new_str += '-'; }
         return new_str;
+      },
+      
+      pluckAnnotation : function(str) {
+        this.game.raw_annotations = this.game.raw_annotations || [];
+        var ann_num = this.game.raw_annotations.length;
+        this.game.raw_annotations.push(str.substring(1,str.length-1));
+        return "annotation-" + ann_num;
+      },
+      
+      annotation : function() {
+        return this.game.annotations[this.game.halfmove_number] || '';
       },
       
       debugBoard : function() {

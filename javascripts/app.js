@@ -9,11 +9,13 @@ jQuery(document).ready(function() {
 
   jQuery('#board3-back').click(function() {
     chess3.transitionBackward();
+    jQuery("#board3-annot").text( chess3.annotation() );
     return false;
   });
   
   jQuery('#board3-next').click(function() {
     chess3.transitionForward();
+    jQuery("#board3-annot").text( chess3.annotation() );
     return false;
   });
   
@@ -36,6 +38,6 @@ jQuery(document).ready(function() {
   jQuery('#board4-flip').click(function() {
     chess4.flipBoard();
     return false;
-  });  
-
+  }); 
+  
 })
