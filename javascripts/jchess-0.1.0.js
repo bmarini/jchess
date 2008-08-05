@@ -131,7 +131,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       
       addDomPiece : function(id, piece, algebriac) {
         var square   = this.algebriac2Coord(algebriac);
-        if (this.game.board_direction < 0) square[0] = 7 - square[0];
+        if (this.game.board_direction < 0) {
+          square[0] = 7 - square[0];
+          square[1] = 7 - square[1];
+        }
         
         var pos_top  = this.settings.square_size * square[0];
         var pos_left = this.settings.square_size * square[1];
@@ -145,7 +148,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var to   = this.algebriac2Coord(move.to);
         
         var top  = (parseInt(to[0]) - parseInt(from[0])) * this.settings.square_size * this.game.board_direction;
-		    var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size;
+		    var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size * this.game.board_direction;
 	      
         $('#' + this.getDomPieceId(id)).animate({
           'top' : '+=' + top + 'px', 'left' : '+=' + left + 'px'
@@ -201,11 +204,13 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       },
 
       flipBoard : function() {
-        var total_height = this.settings.square_size * 7;
+        var board_length = this.settings.square_size * 7;
 
         this.boardElement().children().each(function() {
           var top_val      = parseInt($(this).css('top'));
-          $(this).css('top', total_height - top_val);
+          var left_val     = parseInt($(this).css('left'));
+          $(this).css('top', board_length - top_val);
+          $(this).css('left', board_length - left_val);
         });
         
         this.game.board_direction *= -1;
