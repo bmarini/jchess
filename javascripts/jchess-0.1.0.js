@@ -224,8 +224,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         for (var j = 0;j < 8; j++) {
           new_board[j] = [];
           var row = fen_parts[j].replace(/\d/g, this.replaceNumberWithDashes)
-          for (var k in row) {
-            new_board[j][k] = row[k];
+          for (var k=0;k<8;k++) {
+            new_board[j][k] = row.substr(k, 1);
           }
         }
         return new_board;
@@ -377,7 +377,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
 
             if (result[0].piece == target_piece) {
               if (src_file) {
-                if (result[1][0].toString() == src_file) {
+                if (result[1].substr(0,1).toString() == src_file) {
                   return result[1];
                 }
               } else if (src_rank) {
@@ -414,7 +414,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var col = source_coords[1] - (vector.x * limit);   
 
         if ( row >= 8 || row < 0 || col >= 8 || col < 0 ) return null;
-        return [this._board[row][col], this.coord2Algebriac(row, col)];        
+        piece = [this._board[row][col], this.coord2Algebriac(row, col)];       
+        return piece;
       },
       
       pieceAt : function(algebriac) {
@@ -487,7 +488,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
 
       /* Utility Functions */
       algebriac2Coord : function(algebriac) {
-        return [this.rank2Row(algebriac[1]), this.file2Col(algebriac[0])];
+        return [this.rank2Row(algebriac.substr(1, 1)), this.file2Col(algebriac.substr(0, 1))];
       },
       
       coord2Algebriac : function(row, col) {
@@ -549,7 +550,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
 
         pawn_move           : /^([a-h])([1-8])/,
         pawn_capture        : /^([a-h])x([a-h])([1-8])/,
-        pawn_queen          : /=([BNQR])/,
+        pawn_queen          : /=([BNQR])/
       },
       
       /* Definitions of pieces */
