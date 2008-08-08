@@ -349,6 +349,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
             
             // Queening
             if ( instance.patterns.pawn_queen.test(move) ) {
+              instance.removePiece(move_number, dst_file + dst_rank);
+              
               var m = instance.patterns.pawn_queen.exec(move);
               var queening_piece = m[1];
               queening_piece = (player == 'w') ? queening_piece : queening_piece.toLowerCase();
@@ -477,8 +479,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         if (this.game.transitions[num] == null) {
           this.game.transitions[num] = { forward : forward, backward : backward };
         } else {
-          this.game.transitions[num].forward = this.game.transitions[num].forward.concat(forward);
-          this.game.transitions[num].backward = this.game.transitions[num].backward.concat(backward);
+          this.game.transitions[num].forward  = this.game.transitions[num].forward.concat(forward);
+          this.game.transitions[num].backward = backward.concat(this.game.transitions[num].backward);
         }
       },
       
