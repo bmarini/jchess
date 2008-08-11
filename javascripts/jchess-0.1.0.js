@@ -383,7 +383,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
                   return result[1];
                 }
               } else if (src_rank) {
-                if (result[1][1].toString() == src_rank) {
+                if (result[1].substr(1,1).toString() == src_rank) {
                   return result[1];
                 }
               } else {
