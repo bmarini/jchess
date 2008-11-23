@@ -361,10 +361,90 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         });
       },
       
-      pinnedAbsolutely : function(piece, algebraic) {
+      // src_square = square the piece is currently on
+      // dst_square = square the piece will move to
+      cantMoveFromAbsolutePin : function(piece, src_square, dst_square) {
+        // Look for an open vector from piece to the king.
+        var piece_char = piece.piece;
+        var player     = ( piece_char == piece_char.toLowerCase() ) ? 'b' : 'w';
+        
+        var result = this.findAbsolutePin(player, this.pieces['R'].vectors, src_square, ['R','Q']);        
+        if (result == null) result = this.findAbsolutePin(player, this.pieces['B'].vectors, src_square, ['B','Q']);          
+        
+        if (result != null) {
+          var vector = result[0];
+          var kings_square = result[1];
+          var pinning_pieces_square = result[2];
+          if (!this.inSquaresArray(dst_square, this.squaresBetweenEndPoints(kings_square, pinning_pieces_square))) {
+            return true;
+          }
+        }
+                
         return false;
       },
       
+      inSquaresArray : function(square, squares) {
+        for (var i=0; i < squares.length; i++) {
+          if (squares[i] == square) return true;
+        };
+        
+        return false;
+      },
+      
+      squaresBetweenEndPoints : function(s,e) {
+        var start   = this.algebriac2Coord(s);
+        var end     = this.algebriac2Coord(e);
+        var tmp     = start;
+        var squares = [];
+        squares.push(this.coord2Algebriac(start[0],start[1]));
+        
+        while (tmp[0] != end[0] || tmp[1] != end[1]) {
+          if (tmp[0] < end[0]) tmp[0] += 1;
+          if (tmp[0] > end[0]) tmp[0] -= 1;
+          if (tmp[1] < end[1]) tmp[1] += 1;
+          if (tmp[1] > end[1]) tmp[1] -= 1;
+          squares.push(this.coord2Algebriac(tmp[0],tmp[1]));
+        }
+        
+        return squares;
+      },
+      
+      findAbsolutePin : function(player, vectors, src_square, pieces_that_can_pin_on_this_vector) {
+        // Look at vectors
+        var result = this.findVectorToKing(player, vectors, src_square);
+        if (result != null) {
+          var vector       = result[0];
+          var kings_square = result[1];
+
+          // Find the first piece in opposite direction
+          var flipped_vector = this.flipVector(vector);
+          var result = this.firstPieceFromSourceAndVector(src_square, flipped_vector, flipped_vector.limit);
+          if (result != null) {
+            var pinning_pieces_square = result[1];
+            for (var i=0; i < pieces_that_can_pin_on_this_vector.length; i++) {
+              var pinning_piece = (player == 'w') ?
+                pieces_that_can_pin_on_this_vector[i].toLowerCase() : 
+                pieces_that_can_pin_on_this_vector[i].toUpperCase();
+                
+              if (result[0].piece == pinning_piece) {
+                return [vector, kings_square, pinning_pieces_square];
+              }
+            };
+          }
+        }
+        return null;
+      },
+      
+      findVectorToKing : function(player, vectors, src_square) {
+        var king = (player == 'w') ? 'K' : 'k';
+        for (var i = 0; i < vectors.length; i++) {
+          var vector = vectors[i];
+          var result = this.firstPieceFromSourceAndVector(src_square, vector, vector.limit);
+          if (result != null && result[0].piece == king) return [vector, result[1]];
+        }
+        return null;
+      },
+            
       findMoveSource : function(piece, src_file, src_rank, dst_file, dst_rank, player) {
         if ( src_file && src_rank ) return src_file + src_rank;
         
@@ -382,7 +462,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
 
             if (result[0].piece == target_piece) {
               // Check for absolute pin on the piece in question
-              if (this.pinnedAbsolutely(result[0], result[1])) break;
+              if (this.cantMoveFromAbsolutePin(result[0], result[1], dst_square)) break;
               
               if (src_file) {
                 if (result[1].substr(0,1).toString() == src_file) {
@@ -425,6 +505,16 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         piece = [this._board[row][col], this.coord2Algebriac(row, col)];       
         return piece;
       },
+      
+      firstPieceFromSourceAndVector : function(source, vector, limit) {
+        for (var i=1; i <= limit; i++) {
+          piece = this.pieceFromSourceAndVector(source, vector, i);
+          if (piece == null) return null; // End of the board reached
+          if (piece[0] == '-') continue; // Square is blank
+          return piece;
+        };
+        return null;
+     },
       
       pieceAt : function(algebriac) {
         var square = this.algebriac2Coord(algebriac);
@@ -517,6 +607,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       
       col2File : function(col) {
         return String.fromCharCode( col + ('a').charCodeAt(0) );
+      },
+      
+      flipVector : function(v) {
+        return { x: (v.x * -1), y : (v.y * -1), limit : v.limit };
       },
       
       replaceNumberWithDashes : function(str) {
