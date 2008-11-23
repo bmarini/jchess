@@ -244,14 +244,13 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var instance = this;
         pgn = pgn.replace(/\{[^}]+}/g, function(){ return instance.pluckAnnotation.apply(instance, arguments) });
   
-        this.game.header['Event']  = /\[Event "([^"]*)"]/.exec(pgn)[1];
-        this.game.header['Site']   = /\[Site "([^"]*)"]/.exec(pgn)[1];
-        this.game.header['Date']   = /\[Date "([^"]*)"]/.exec(pgn)[1];
-        this.game.header['Round']  = /\[Round "([^"]*)"]/.exec(pgn)[1];
-        this.game.header['White']  = /\[White "([^"]*)"]/.exec(pgn)[1];
-        this.game.header['Black']  = /\[Black "([^"]*)"]/.exec(pgn)[1];
-        this.game.header['Result'] = /\[Result "([^"]*)"]/.exec(pgn)[1];
-  
+        var headers = ['Event','Site','Date','Round','White','Black','Result'];
+        for (var i=0; i < headers.length; i++) {
+          var re      = new RegExp(headers[i] + ' "([^"]*)"]');
+          var result  = re.exec(pgn);
+          this.game.header[headers[i]] = (result == null) ? "" : result[1];
+         };
+ 
         // Find the body
         this.game.body = /(1\. ?(N[acfh]3|[abcdefgh][34]).*)/m.exec(pgn)[1];
   
@@ -362,6 +361,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         });
       },
       
+      pinnedAbsolutely : function(piece, algebraic) {
+        return false;
+      },
+      
       findMoveSource : function(piece, src_file, src_rank, dst_file, dst_rank, player) {
         if ( src_file && src_rank ) return src_file + src_rank;
         
@@ -378,6 +381,9 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
             if (result[0] == '-') continue;
 
             if (result[0].piece == target_piece) {
+              // Check for absolute pin on the piece in question
+              if (this.pinnedAbsolutely(result[0], result[1])) break;
+              
               if (src_file) {
                 if (result[1].substr(0,1).toString() == src_file) {
                   return result[1];
