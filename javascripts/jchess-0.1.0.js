@@ -581,7 +581,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       },
       
       getNextPieceId : function() {
-        return this.game.next_piece_id++;
+        return ++this.game.next_piece_id;
       },
 
       /* Utility Functions */
