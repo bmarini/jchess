@@ -151,8 +151,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var to   = this.algebriac2Coord(move.to);
         
         var top  = (parseInt(to[0]) - parseInt(from[0])) * this.settings.square_size * this.game.board_direction;
-		    var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size * this.game.board_direction;
-	      
+        var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size * this.game.board_direction;
+        
         $('#' + this.getDomPieceId(id)).animate({
           'top' : '+=' + top + 'px', 'left' : '+=' + left + 'px'
         }, 'fast');
@@ -163,15 +163,15 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       },
       
       transitionTo : function(halfmove_number) {
-    		while (halfmove_number < this.game.halfmove_number) {
-    			this.transitionBackward();
-    		}
+        while (halfmove_number < this.game.halfmove_number) {
+          this.transitionBackward();
+        }
 
-    		while (halfmove_number > this.game.halfmove_number) {
-    			this.transitionForward();
-    		}
-    	},
-    	
+        while (halfmove_number > this.game.halfmove_number) {
+          this.transitionForward();
+        }
+      },
+      
       transitionForward : function() {
         if (this.game.halfmove_number < this.game.transitions.length) {
           this.runTransitions(this.game.transitions[this.game.halfmove_number].forward);
@@ -194,21 +194,21 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var instance = this;
         $.each(transitions, function() {
           var pieces          = this.split(':');
-    			var transition_type = pieces[0];
-    			var id              = pieces[1];
-    			
-    			switch(transition_type) {
-    			  case 'r':
-    			    instance.removeDomPiece(id);
-    			    break;
-    			  case 'm':
-    			    instance.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
-    			    break;
-    			  case 'a':
-    			    instance.addDomPiece(id, pieces[2], pieces[3]);
-    			    break;
-    			}
-    			
+          var transition_type = pieces[0];
+          var id              = pieces[1];
+          
+          switch(transition_type) {
+            case 'r':
+              instance.removeDomPiece(id);
+              break;
+            case 'm':
+              instance.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
+              break;
+            case 'a':
+              instance.addDomPiece(id, pieces[2], pieces[3]);
+              break;
+          }
+          
         });
       },
 
