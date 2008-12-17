@@ -138,9 +138,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         
         var pos_top  = this.settings.square_size * square[0];
         var pos_left = this.settings.square_size * square[1];
-        var color = 'b'
-        if (piece.toUpperCase() == piece) { color = 'w'; }
         
+        var color = 'b';
+        if (piece.toUpperCase() == piece) { color = 'w'; }
+
         this.boardElement().append('<div id="' + this.getDomPieceId(id) + '" class="' + color + piece + '"></div>');
         $('#' + this.getDomPieceId(id)).css({ position: 'absolute', top:pos_top, left:pos_left });
       },
@@ -161,6 +162,16 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         $('#' + this.getDomPieceId(id)).remove();
       },
       
+      transitionTo : function(halfmove_number) {
+    		while (halfmove_number < this.game.halfmove_number) {
+    			this.transitionBackward();
+    		}
+
+    		while (halfmove_number > this.game.halfmove_number) {
+    			this.transitionForward();
+    		}
+    	},
+    	
       transitionForward : function() {
         if (this.game.halfmove_number < this.game.transitions.length) {
           this.runTransitions(this.game.transitions[this.game.halfmove_number].forward);
@@ -584,6 +595,18 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       
       getNextPieceId : function() {
         return this.game.next_piece_id++;
+      },
+      
+      getMove : function(n) {
+        var n = (typeof n == "undefined") ? this.game.halfmove_number : n;
+        return this.game.moves[n -1];
+      },
+      
+      getFormattedMove : function(n) {
+        var n      = (typeof n == "undefined") ? this.game.halfmove_number : n;
+        var f      = Math.ceil(n / 2.0);
+        var hellip = (n % 2 == 0) ? '... ' : '';
+        return f + ". " + hellip + this.getMove(n);
       },
 
       /* Utility Functions */
