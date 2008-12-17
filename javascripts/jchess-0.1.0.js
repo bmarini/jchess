@@ -138,8 +138,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         
         var pos_top  = this.settings.square_size * square[0];
         var pos_left = this.settings.square_size * square[1];
+        var color = 'b'
+        if (piece.toUpperCase() == piece) { color = 'w'; }
         
-        this.boardElement().append('<div id="' + this.getDomPieceId(id) + '" class="' + piece + '"></div>');
+        this.boardElement().append('<div id="' + this.getDomPieceId(id) + '" class="' + color + piece + '"></div>');
         $('#' + this.getDomPieceId(id)).css({ position: 'absolute', top:pos_top, left:pos_left });
       },
       
