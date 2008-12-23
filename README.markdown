@@ -42,4 +42,4 @@ And a PGN game:
     chess.flipBoard();          // You guessed it, flips the board
     
 
-See index.html for example usage
+See [index.html](http://bmarini.github.com/jchess/ "jChess Examples") for example usage

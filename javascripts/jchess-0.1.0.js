@@ -139,7 +139,10 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var pos_top  = this.settings.square_size * square[0];
         var pos_left = this.settings.square_size * square[1];
         
-        this.boardElement().append('<div id="' + this.getDomPieceId(id) + '" class="' + piece + '"></div>');
+        var color = 'b';
+        if (piece.toUpperCase() == piece) { color = 'w'; }
+
+        this.boardElement().append('<div id="' + this.getDomPieceId(id) + '" class="' + color + piece + '"></div>');
         $('#' + this.getDomPieceId(id)).css({ position: 'absolute', top:pos_top, left:pos_left });
       },
       
@@ -148,8 +151,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var to   = this.algebriac2Coord(move.to);
         
         var top  = (parseInt(to[0]) - parseInt(from[0])) * this.settings.square_size * this.game.board_direction;
-		    var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size * this.game.board_direction;
-	      
+        var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size * this.game.board_direction;
+        
         $('#' + this.getDomPieceId(id)).animate({
           'top' : '+=' + top + 'px', 'left' : '+=' + left + 'px'
         }, 'fast');
@@ -157,6 +160,16 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       
       removeDomPiece : function(id) {
         $('#' + this.getDomPieceId(id)).remove();
+      },
+      
+      transitionTo : function(halfmove_number) {
+        while (halfmove_number < this.game.halfmove_number) {
+          this.transitionBackward();
+        }
+
+        while (halfmove_number > this.game.halfmove_number) {
+          this.transitionForward();
+        }
       },
       
       transitionForward : function() {
@@ -181,21 +194,21 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         var instance = this;
         $.each(transitions, function() {
           var pieces          = this.split(':');
-    			var transition_type = pieces[0];
-    			var id              = pieces[1];
-    			
-    			switch(transition_type) {
-    			  case 'r':
-    			    instance.removeDomPiece(id);
-    			    break;
-    			  case 'm':
-    			    instance.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
-    			    break;
-    			  case 'a':
-    			    instance.addDomPiece(id, pieces[2], pieces[3]);
-    			    break;
-    			}
-    			
+          var transition_type = pieces[0];
+          var id              = pieces[1];
+          
+          switch(transition_type) {
+            case 'r':
+              instance.removeDomPiece(id);
+              break;
+            case 'm':
+              instance.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
+              break;
+            case 'a':
+              instance.addDomPiece(id, pieces[2], pieces[3]);
+              break;
+          }
+          
         });
       },
 
@@ -582,6 +595,18 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       
       getNextPieceId : function() {
         return ++this.game.next_piece_id;
+      },
+      
+      getMove : function(n) {
+        var n = (typeof n == "undefined") ? this.game.halfmove_number : n;
+        return this.game.moves[n -1];
+      },
+      
+      getFormattedMove : function(n) {
+        var n      = (typeof n == "undefined") ? this.game.halfmove_number : n;
+        var f      = Math.ceil(n / 2.0);
+        var hellip = (n % 2 == 0) ? '... ' : '';
+        return f + ". " + hellip + this.getMove(n);
       },
 
       /* Utility Functions */
