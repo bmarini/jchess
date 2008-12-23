@@ -7,7 +7,15 @@ Given an empty div tag like so:
 
     <div id="chess-board"></div>
 
-And a PGN game:
+You can...
+
+### 1) Create a new chess board:
+    jQuery('#chess-board').chess();
+
+### 2) Display a chess position using FEN:
+    jQuery('#chess-board').chess({fen : "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"});
+
+And if you have a PGN game (the real point of this library):
 
     <p id="pgn-fischer-spassky">      
       [Event "F/S Return Match"]
@@ -28,13 +36,9 @@ And a PGN game:
       Nf2 42.g4 Bd3 43.Re6 1/2-1/2
     </p>
 
-### Create a new chess board:
-    jQuery('#chess-board').chess();
+You can...
 
-### Display a chess position using FEN:
-    jQuery('#chess-board').chess({fen : "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"});
-
-### Load a chess game via PGN and play through it:
+### 3) Load a chess game via PGN and play through it:
     var chess = jQuery('#chess-board').chess({pgn : jQuery('#pgn-fischer-spassky').html()});
     
     chess.transitionForward();  // Moves the game forward one move
@@ -42,4 +46,4 @@ And a PGN game:
     chess.flipBoard();          // You guessed it, flips the board
     
 
-See [index.html](http://bmarini.github.com/jchess/ "jChess Examples") for example usage
+### See [index.html](http://bmarini.github.com/jchess/ "jChess Examples") for some real examples.
