@@ -27,9 +27,9 @@
 if (typeof console == "undefined") { var console = { log: function() {} } }
 
 // Iterate within an arbitrary context...
-jQuery.eachWithIndex = function(context, object, callback) {
+jQuery.eachWithContext = function(context, object, callback) {
   for ( var i = 0, length = object.length, value = object[0]; 
-    i < length && callback.call(context, i, value ) !== false; value = object[++i] ){}  
+    i < length && callback.call(context, i, value ) !== false; value = object[++i] ) {}  
 }; 
 
 (function($) {
@@ -119,8 +119,8 @@ jQuery.eachWithIndex = function(context, object, callback) {
           $(this.wrapper).append('<div class="chess-board"></div>');
         }
         
-        $.eachWithIndex(this, this.boardData(), function(j, row) {
-          $.eachWithIndex(this, row, function(k, val) {
+        $.eachWithContext(this, this.boardData(), function(j, row) {
+          $.eachWithContext(this, row, function(k, val) {
             var piece = this.boardData()[j][k];
             var square = this.coord2Algebriac(j,k);
 
@@ -195,21 +195,20 @@ jQuery.eachWithIndex = function(context, object, callback) {
       // ["a:50:P:e4", "m:6:4,1:c7"]
       // ["r:50", "m:6:d7:d8"]
       runTransitions : function(transitions) {
-        var instance = this;
-        $.each(transitions, function() {
-          var pieces          = this.split(':');
+        $.eachWithContext(this, transitions, function(i, transition) {
+          var pieces          = transition.split(':');
           var transition_type = pieces[0];
           var id              = pieces[1];
           
           switch(transition_type) {
             case 'r':
-              instance.removeDomPiece(id);
+              this.removeDomPiece(id);
               break;
             case 'm':
-              instance.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
+              this.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
               break;
             case 'a':
-              instance.addDomPiece(id, pieces[2], pieces[3]);
+              this.addDomPiece(id, pieces[2], pieces[3]);
               break;
           }
           
@@ -278,99 +277,97 @@ jQuery.eachWithIndex = function(context, object, callback) {
         
         var moves = $.trim(this.game.body).split(/\s+/);
   
-        var instance    = this;
-        var move_number = 0;
-        $.each(moves, function(i, move) {
+        $.eachWithContext(this, moves, function(move_number, move) {
           if ( /annotation-\d+/.test(move) ) {
-            instance.game.annotations[move_number] = instance.game.raw_annotations.shift();
+            this.game.annotations[move_number] = this.game.raw_annotations.shift();
             return;
           }
           
-          instance.game.moves[move_number] = move;
+          this.game.moves[move_number] = move;
           
           //console.log("Processing move: " + move_number + '.' + move);
           var player = (move_number % 2 == 0) ? 'w' : 'b';
           
           // If the move was to castle
-          if ( instance.patterns.castle_queenside.test(move) ) {
+          if ( this.patterns.castle_queenside.test(move) ) {
             var rank = (player == 'w') ? 1 : 8;
-            instance.movePiece(move_number, {from : "e" + rank, to : "c" + rank} );
-            instance.movePiece(move_number, {from : "a" + rank, to : "d" + rank} );
+            this.movePiece(move_number, {from : "e" + rank, to : "c" + rank} );
+            this.movePiece(move_number, {from : "a" + rank, to : "d" + rank} );
 
-          } else if ( instance.patterns.castle_kingside.test(move) ) {
+          } else if ( this.patterns.castle_kingside.test(move) ) {
             var rank = (player == 'w') ? 1 : 8;
-            instance.movePiece(move_number, {from : "e" + rank, to : "g" + rank} );
-            instance.movePiece(move_number, {from : "h" + rank, to : "f" + rank} ); 
+            this.movePiece(move_number, {from : "e" + rank, to : "g" + rank} );
+            this.movePiece(move_number, {from : "h" + rank, to : "f" + rank} ); 
           
           // If the move was a piece
-          } else if ( instance.patterns.piece_move.test(move) ) {
-            var m = instance.patterns.piece_move.exec(move);
+          } else if ( this.patterns.piece_move.test(move) ) {
+            var m = this.patterns.piece_move.exec(move);
             var piece = m[0];
             var src_file = null;
             var src_rank = null;
             var dst_file = null;
             var dst_rank = null;
                         
-            if ( instance.patterns.rank_and_file_given.test(move) ) {
-              var m = instance.patterns.rank_and_file_given.exec(move);
+            if ( this.patterns.rank_and_file_given.test(move) ) {
+              var m = this.patterns.rank_and_file_given.exec(move);
               src_file = m[2];
               src_rank = m[3];
               dst_file = m[4];
               dst_rank = m[5];
-            } else if ( instance.patterns.file_given.test(move) ) {
-              var m = instance.patterns.file_given.exec(move);
+            } else if ( this.patterns.file_given.test(move) ) {
+              var m = this.patterns.file_given.exec(move);
               src_file = m[2];
               dst_file = m[3];
               dst_rank = m[4];
-            } else if ( instance.patterns.rank_given.test(move) ) {
-              var m = instance.patterns.rank_given.exec(move);
+            } else if ( this.patterns.rank_given.test(move) ) {
+              var m = this.patterns.rank_given.exec(move);
               src_rank = m[2];
               dst_file = m[3];
               dst_rank = m[4];
-            } else if ( instance.patterns.nothing_given.test(move) ) {
-              var m = instance.patterns.nothing_given.exec(move);
+            } else if ( this.patterns.nothing_given.test(move) ) {
+              var m = this.patterns.nothing_given.exec(move);
               dst_file = m[2];
               dst_rank = m[3];
             }
             
-            var src = instance.findMoveSource(piece, src_file, src_rank, dst_file, dst_rank, player);
-            instance.movePiece(move_number, {from : src, to : dst_file + dst_rank} );
+            var src = this.findMoveSource(piece, src_file, src_rank, dst_file, dst_rank, player);
+            this.movePiece(move_number, {from : src, to : dst_file + dst_rank} );
             
             // If the move was a pawn
           } else {
             var dst_file = null;
             var dst_rank = null;
             
-            if ( instance.patterns.pawn_move.test(move) ) {
-              var m    = instance.patterns.pawn_move.exec(move);
+            if ( this.patterns.pawn_move.test(move) ) {
+              var m    = this.patterns.pawn_move.exec(move);
               dst_file = m[1];
               dst_rank = m[2];
-              var src  = instance.findPawnMoveSource(dst_file, dst_rank, player);
+              var src  = this.findPawnMoveSource(dst_file, dst_rank, player);
               var dst  = dst_file + dst_rank;
-              instance.movePiece(move_number, {from : src, to : dst} );
+              this.movePiece(move_number, {from : src, to : dst} );
               
               // Pawn capture
-            } else if ( instance.patterns.pawn_capture.test(move) ) {
-              var m        = instance.patterns.pawn_capture.exec(move);
+            } else if ( this.patterns.pawn_capture.test(move) ) {
+              var m        = this.patterns.pawn_capture.exec(move);
               dst_file     = m[2];
               dst_rank     = m[3];
               var src_file = m[1];
               var src_rank = parseInt(dst_rank) + ( (player == 'w') ? -1 : 1 );
               
               // En passent
-              var result = instance.pieceAt(dst_file + dst_rank);
-              if (result == '-') instance.removePiece(move_number, dst_file + src_rank);
-              instance.movePiece(move_number, {from : src_file + src_rank, to : dst_file + dst_rank });
+              var result = this.pieceAt(dst_file + dst_rank);
+              if (result == '-') this.removePiece(move_number, dst_file + src_rank);
+              this.movePiece(move_number, {from : src_file + src_rank, to : dst_file + dst_rank });
             }
             
             // Queening
-            if ( instance.patterns.pawn_queen.test(move) ) {
-              instance.removePiece(move_number, dst_file + dst_rank);
+            if ( this.patterns.pawn_queen.test(move) ) {
+              this.removePiece(move_number, dst_file + dst_rank);
               
-              var m = instance.patterns.pawn_queen.exec(move);
+              var m = this.patterns.pawn_queen.exec(move);
               var queening_piece = m[1];
               queening_piece = (player == 'w') ? queening_piece : queening_piece.toLowerCase();
-              instance.addPiece(move_number, queening_piece, dst_file + dst_rank); 
+              this.addPiece(move_number, queening_piece, dst_file + dst_rank); 
             }
           }
           
@@ -542,7 +539,6 @@ jQuery.eachWithIndex = function(context, object, callback) {
       
       // Ex: this.movePiece({from : 'e2', to : 'e4'})
       movePiece : function(num, move) {
-
         //console.log("Moving a piece: (" + num + ") " + " from " + move.from + " to " + move.to);
 
         var from = this.algebriac2Coord(move.from);
@@ -665,8 +661,8 @@ jQuery.eachWithIndex = function(context, object, callback) {
       },
       
       debugBoard : function() {
-        $.each(this.boardData(), function(j, row) {
-          $.each(row, function(k, val) {
+        $.eachWithContext(this, this.boardData(), function(j, row) {
+          $.eachWithContext(this, row, function(k, val) {
             console.log('[' + j + ',' + k + '] = { id: ' + this.boardData()[j][k].id + ', piece: ' + this.boardData()[j][k].piece + ' }');
           })
         })
