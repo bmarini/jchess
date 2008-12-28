@@ -66,6 +66,5 @@ jQuery(document).ready(function() {
   jQuery('#board6-flip').click(function() {
     chess6.flipBoard();
     return false;
-  }); 
-  
+  });  
 })

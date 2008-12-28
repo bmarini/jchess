@@ -25,7 +25,13 @@
 
 // If Firebug is not installed, prevent console.log() from creating error messages
 if (typeof console == "undefined") { var console = { log: function() {} } }
- 
+
+// Iterate within an arbitrary context...
+jQuery.eachWithIndex = function(context, object, callback) {
+  for ( var i = 0, length = object.length, value = object[0]; 
+    i < length && callback.call(context, i, value ) !== false; value = object[++i] ){}  
+}; 
+
 (function($) {
   /* Constructor */
   $.chess = function(options, wrapper) {
@@ -112,15 +118,13 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
         if (this.boardElement().size() == 0) {
           $(this.wrapper).append('<div class="chess-board"></div>');
         }
-
-        var instance = this;
         
-        $.each(instance.boardData(), function(j, row) {
-          $.each(row, function(k, val) {
-            var piece = instance.boardData()[j][k];
-            var square = instance.coord2Algebriac(j,k);
+        $.eachWithIndex(this, this.boardData(), function(j, row) {
+          $.eachWithIndex(this, row, function(k, val) {
+            var piece = this.boardData()[j][k];
+            var square = this.coord2Algebriac(j,k);
 
-            if (piece != '-') instance.addDomPiece(piece.id, piece.piece, square);
+            if (piece != '-') this.addDomPiece(piece.id, piece.piece, square);
           })
         })
       },
@@ -306,7 +310,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
             var src_rank = null;
             var dst_file = null;
             var dst_rank = null;
-            
+                        
             if ( instance.patterns.rank_and_file_given.test(move) ) {
               var m = instance.patterns.rank_and_file_given.exec(move);
               src_file = m[2];
@@ -459,6 +463,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       },
             
       findMoveSource : function(piece, src_file, src_rank, dst_file, dst_rank, player) {
+        //console.log("Looking for move source for " + piece + " from " + dst_rank + dst_file);
         if ( src_file && src_rank ) return src_file + src_rank;
         
         var dst_square = dst_file + dst_rank;
@@ -470,6 +475,7 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
 
           for (var size = 1; size <= vector.limit; size++) {
             var result = this.pieceFromSourceAndVector(dst_square, vector, size);
+            //console.log("Looking at " + result);
             if (result == null) break;
             if (result[0] == '-') continue;
 
@@ -536,6 +542,8 @@ if (typeof console == "undefined") { var console = { log: function() {} } }
       
       // Ex: this.movePiece({from : 'e2', to : 'e4'})
       movePiece : function(num, move) {
+
+        //console.log("Moving a piece: (" + num + ") " + " from " + move.from + " to " + move.to);
 
         var from = this.algebriac2Coord(move.from);
         var to   = this.algebriac2Coord(move.to);
