@@ -71,7 +71,9 @@ jQuery.eachWithContext = function(context, object, callback) {
     defaults : {
       fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       square_size : 43,
-      board_element_selector : '.chess-board'
+      offsets : { left: 0, top: 0},
+      board_element_selector : '.chess-board',
+      json_annotations : false
     },
   
     prototype : {
@@ -122,7 +124,7 @@ jQuery.eachWithContext = function(context, object, callback) {
         $.eachWithContext(this, this.boardData(), function(j, row) {
           $.eachWithContext(this, row, function(k, val) {
             var piece = this.boardData()[j][k];
-            var square = this.coord2Algebriac(j,k);
+            var square = this.coord2Algebraic(j,k);
 
             if (piece != '-') this.addDomPiece(piece.id, piece.piece, square);
           })
@@ -133,15 +135,15 @@ jQuery.eachWithContext = function(context, object, callback) {
         return this.wrapper.id + "_piece_" + id;
       },
       
-      addDomPiece : function(id, piece, algebriac) {
-        var square   = this.algebriac2Coord(algebriac);
+      addDomPiece : function(id, piece, algebraic) {
+        var square   = this.algebraic2Coord(algebraic);
         if (this.game.board_direction < 0) {
           square[0] = 7 - square[0];
           square[1] = 7 - square[1];
         }
         
-        var pos_top  = this.settings.square_size * square[0];
-        var pos_left = this.settings.square_size * square[1];
+        var pos_top  = this.settings.square_size * square[0] + this.settings.offsets.top;
+        var pos_left = this.settings.square_size * square[1] + this.settings.offsets.left;
         
         var color = 'b';
         if (piece.toUpperCase() == piece) { color = 'w'; }
@@ -151,8 +153,8 @@ jQuery.eachWithContext = function(context, object, callback) {
       },
       
       moveDomPiece : function(id, move) {
-        var from = this.algebriac2Coord(move.from);
-        var to   = this.algebriac2Coord(move.to);
+        var from = this.algebraic2Coord(move.from);
+        var to   = this.algebraic2Coord(move.to);
         
         var top  = (parseInt(to[0]) - parseInt(from[0])) * this.settings.square_size * this.game.board_direction;
         var left = (parseInt(to[1]) - parseInt(from[1])) * this.settings.square_size * this.game.board_direction;
@@ -221,12 +223,13 @@ jQuery.eachWithContext = function(context, object, callback) {
 
       flipBoard : function() {
         var board_length = this.settings.square_size * 7;
+        var offsets      = this.settings.offsets;
 
         this.boardElement().children().each(function() {
-          var top_val      = parseInt($(this).css('top'));
-          var left_val     = parseInt($(this).css('left'));
-          $(this).css('top', board_length - top_val);
-          $(this).css('left', board_length - left_val);
+          var top_val      = parseInt($(this).css('top')) - offsets.top;
+          var left_val     = parseInt($(this).css('left')) - offsets.left;
+          $(this).css('top', (board_length - top_val) + offsets.top);
+          $(this).css('left', (board_length - left_val) + offsets.left);
         });
         
         this.game.board_direction *= -1;
@@ -255,10 +258,10 @@ jQuery.eachWithContext = function(context, object, callback) {
       parsePGN : function(pgn) {
         // Do a little clean up on the string
         pgn = $.trim(pgn).replace(/\n|\r/g, ' ').replace(/\s+/g, ' ');
-        // Remove annotations for now...
-        //pgn = pgn.replace(/\{[^}]+}/g, '');
         var instance = this;
-        pgn = pgn.replace(/\{[^}]+}/g, function(){ return instance.pluckAnnotation.apply(instance, arguments) });
+        // Recognize escaped closing curly brackets as part of the comment
+        // This allows us to have json encoded comments
+        pgn = pgn.replace(/\{((\\})|([^}]))+}/g, function(){ return instance.pluckAnnotation.apply(instance, arguments) });
   
         var headers = ['Event','Site','Date','Round','White','Black','Result'];
         for (var i=0; i < headers.length; i++) {
@@ -276,8 +279,12 @@ jQuery.eachWithContext = function(context, object, callback) {
         this.game.body = this.game.body.replace(/\s\d+\.+/g, ' ');
         
         var moves = $.trim(this.game.body).split(/\s+/);
-  
-        $.eachWithContext(this, moves, function(move_number, move) {
+        // console.log(moves);
+
+        // This must be a separate variable from i, since annotations don't
+        // count as moves.
+        var move_number = 0;
+        $.eachWithContext(this, moves, function(i, move) {
           if ( /annotation-\d+/.test(move) ) {
             this.game.annotations[move_number] = this.game.raw_annotations.shift();
             return;
@@ -285,7 +292,7 @@ jQuery.eachWithContext = function(context, object, callback) {
           
           this.game.moves[move_number] = move;
           
-          //console.log("Processing move: " + move_number + '.' + move);
+          // console.log("Processing move: " + move_number + '.' + move);
           var player = (move_number % 2 == 0) ? 'w' : 'b';
           
           // If the move was to castle
@@ -406,18 +413,18 @@ jQuery.eachWithContext = function(context, object, callback) {
       },
       
       squaresBetweenEndPoints : function(s,e) {
-        var start   = this.algebriac2Coord(s);
-        var end     = this.algebriac2Coord(e);
+        var start   = this.algebraic2Coord(s);
+        var end     = this.algebraic2Coord(e);
         var tmp     = start;
         var squares = [];
-        squares.push(this.coord2Algebriac(start[0],start[1]));
+        squares.push(this.coord2Algebraic(start[0],start[1]));
         
         while (tmp[0] != end[0] || tmp[1] != end[1]) {
           if (tmp[0] < end[0]) tmp[0] += 1;
           if (tmp[0] > end[0]) tmp[0] -= 1;
           if (tmp[1] < end[1]) tmp[1] += 1;
           if (tmp[1] > end[1]) tmp[1] -= 1;
-          squares.push(this.coord2Algebriac(tmp[0],tmp[1]));
+          squares.push(this.coord2Algebraic(tmp[0],tmp[1]));
         }
         
         return squares;
@@ -513,12 +520,12 @@ jQuery.eachWithContext = function(context, object, callback) {
       },
       
       pieceFromSourceAndVector : function(source, vector, limit) {
-        var source_coords = this.algebriac2Coord(source);
+        var source_coords = this.algebraic2Coord(source);
         var row = source_coords[0] - (vector.y * limit);
         var col = source_coords[1] - (vector.x * limit);   
 
         if ( row >= 8 || row < 0 || col >= 8 || col < 0 ) return null;
-        piece = [this._board[row][col], this.coord2Algebriac(row, col)];       
+        piece = [this._board[row][col], this.coord2Algebraic(row, col)];       
         return piece;
       },
       
@@ -532,17 +539,17 @@ jQuery.eachWithContext = function(context, object, callback) {
         return null;
      },
       
-      pieceAt : function(algebriac) {
-        var square = this.algebriac2Coord(algebriac);
+      pieceAt : function(algebraic) {
+        var square = this.algebraic2Coord(algebraic);
         return this._board[square[0]][square[1]];
       },
       
       // Ex: this.movePiece({from : 'e2', to : 'e4'})
       movePiece : function(num, move) {
-        //console.log("Moving a piece: (" + num + ") " + " from " + move.from + " to " + move.to);
+        // console.log("Moving a piece: (" + num + ") " + " from " + move.from + " to " + move.to);
 
-        var from = this.algebriac2Coord(move.from);
-        var to   = this.algebriac2Coord(move.to);
+        var from = this.algebraic2Coord(move.from);
+        var to   = this.algebraic2Coord(move.to);
         var piece = this.pieceAt(move.from);
         
         if (this.pieceAt(move.to).piece) this.removePiece(num, move.to);
@@ -553,22 +560,22 @@ jQuery.eachWithContext = function(context, object, callback) {
         this.saveTransition({type: 'm', num : num, dom_id : piece.id, from : move.from, to : move.to});
       },
       
-      removePiece : function(num, algebriac) {
-        var piece = this.pieceAt(algebriac);
+      removePiece : function(num, algebraic) {
+        var piece = this.pieceAt(algebraic);
 
-        var square = this.algebriac2Coord(algebriac);
+        var square = this.algebraic2Coord(algebraic);
         this._board[square[0]][square[1]] = '-';
 
-        this.saveTransition({type: 'r', num : num, dom_id : piece.id, piece: piece.piece, from : algebriac});
+        this.saveTransition({type: 'r', num : num, dom_id : piece.id, piece: piece.piece, from : algebraic});
       },
 
-      addPiece : function(num, piece_char, algebriac) {
+      addPiece : function(num, piece_char, algebraic) {
 
-        var square = this.algebriac2Coord(algebriac);
+        var square = this.algebraic2Coord(algebraic);
         var id = this.getNextPieceId();
         this._board[square[0]][square[1]] = { id : id, piece : piece_char };
 
-        this.saveTransition({type: 'a', num : num, dom_id : id, to : algebriac, piece : piece_char});
+        this.saveTransition({type: 'a', num : num, dom_id : id, to : algebraic, piece : piece_char});
       },
       
       // transitions = { 1 : { forward : ["m:50:4,1:6,1"], backward : ["m:50:6,1:4,1"] },
@@ -614,11 +621,11 @@ jQuery.eachWithContext = function(context, object, callback) {
       },
 
       /* Utility Functions */
-      algebriac2Coord : function(algebriac) {
-        return [this.rank2Row(algebriac.substr(1, 1)), this.file2Col(algebriac.substr(0, 1))];
+      algebraic2Coord : function(algebraic) {
+        return [this.rank2Row(algebraic.substr(1, 1)), this.file2Col(algebraic.substr(0, 1))];
       },
       
-      coord2Algebriac : function(row, col) {
+      coord2Algebraic : function(row, col) {
         return this.col2File(col) + this.row2Rank(row);
       },
       
@@ -652,12 +659,32 @@ jQuery.eachWithContext = function(context, object, callback) {
       pluckAnnotation : function(str) {
         this.game.raw_annotations = this.game.raw_annotations || [];
         var ann_num = this.game.raw_annotations.length;
-        this.game.raw_annotations.push(str.substring(1,str.length-1));
+        var annot   = str.substring(1,str.length-1); // Remove curly brackets
+        annot       = annot.replace(/\\\{/g, '{');
+        annot       = annot.replace(/\\\}/g, '}');
+
+        if (this.settings.json_annotations) {
+          eval("annot = " + annot);          
+        }
+
+        this.game.raw_annotations.push(annot);
         return "annotation-" + ann_num;
       },
       
       annotation : function() {
-        return this.game.annotations[this.game.halfmove_number] || '';
+        var default_value = (this.settings.json_annotations ? [] : '');
+        return this.game.annotations[this.game.halfmove_number] || default_value;
+      },
+      
+      addAnnotation : function(annot) {
+        var current_annotations = this.annotation();
+        if (typeof current_annotations == "string") {
+          current_annotations += ", " + annot;
+        } else {
+          current_annotations.push(annot);
+        }
+        
+        this.game.annotations[this.game.halfmove_number] = current_annotations;
       },
       
       debugBoard : function() {
