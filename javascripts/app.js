@@ -5,6 +5,7 @@ jQuery(document).ready(function() {
 	var chess4 = jQuery('#board4').chess({pgn : jQuery('#justdoeet').html()});
 	var chess5 = jQuery('#board5').chess({pgn : jQuery('#with-queening').html()});
 	var chess6 = jQuery('#board6').chess({pgn : jQuery('#unambiguous-knight-move').html()});
+	var chess7 = jQuery('#board7').chess({pgn : jQuery('#middle-game').html()});
 
 	jQuery('#board3-back').click(function() {
 		chess3.transitionBackward();
@@ -65,6 +66,23 @@ jQuery(document).ready(function() {
 
 	jQuery('#board6-flip').click(function() {
 		chess6.flipBoard();
+		return false;
+	});  
+
+	chess7.transitionTo(25);
+
+	jQuery('#board7-back').click(function() {
+		chess7.transitionBackward();
+		return false;
+	});
+
+	jQuery('#board7-next').click(function() {
+		chess7.transitionForward();
+		return false;
+	});
+
+	jQuery('#board7-flip').click(function() {
+		chess7.flipBoard();
 		return false;
 	});  
 })
