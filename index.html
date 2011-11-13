@@ -1,144 +1,208 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-	<title>jChess Examples</title>
-	<link rel="stylesheet" href="stylesheets/main.css" type="text/css" media="screen" title="no title" charset="utf-8">
-	<link rel="stylesheet" href="stylesheets/chess.css" type="text/css" media="screen" title="no title" charset="utf-8">
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js"></script>
-  <script src="javascripts/jchess-0.1.0.js"></script>
-  <script src="javascripts/app.js"></script>
-</head>
+		<title>jChess Examples</title>
+		<link rel="stylesheet" href="stylesheets/main.css" type="text/css" media="screen" title="no title" charset="utf-8">
+		<link rel="stylesheet" href="stylesheets/chess.css" type="text/css" media="screen" title="no title" charset="utf-8">
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js" type="text/javascript"></script>
+		<script src="javascripts/jchess-0.1.0.js" type="text/javascript"></script>
+		<script src="javascripts/app.js" type="text/javascript"></script>
+	</head>
 
-<body>
-<div id="wrapper">
-  <h1>Chess Board Demo</h1>
-  <div id="board1"></div>
-  
-	<h1>Chess Board Demo 2: FEN</h1>
-  <div id="board2"></div>
-  
-  <h1>Chess Board Demo 3: PGN</h1>
-  <div>
-    <a id="board3-back" href="#">Back</a>
-    <a id="board3-next" href="#">Next</a>
-    <a id="board3-flip" href="#">Flip</a>
-  </div>
-  <div id="board3"></div>
-  <p id="board3-annot"></p>
-  <p id="pgn-fischer-spassky">      
-    [Event "F/S Return Match"]
-    [Site "Belgrade, Serbia JUG"]
-    [Date "1992.11.04"]
-    [Round "29"]
-    [White "Fischer, Robert J."]
-    [Black "Spassky, Boris V."]
-    [Result "1/2-1/2"]
+	<body>
+		<div id="wrapper">
+			<h1>Chess Board Demo</h1>
+			<div id="board1"></div>
 
-    1.e4 e5 2.Nf3 Nc6 3.Bb5 {This opening is called the Ruy Lopez.} 3... a6
-    4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 d6 8.c3 O-O 9.h3 Nb8  10.d4 Nbd7
-    11.c4 c6 12.cxb5 axb5 13.Nc3 Bb7 14.Bg5 b4 15.Nb1 h6 16.Bh4 c5 17.dxe5
-    Nxe4 18.Bxe7 Qxe7 19.exd6 Qf6 20.Nbd2 Nxd6 21.Nc4 Nxc4 22.Bxc4 Nb6
-    23.Ne5 Rae8 24.Bxf7+ Rxf7 25.Nxf7 Rxe1+ 26.Qxe1 Kxf7 27.Qe3 Qg5 28.Qxg5
-    hxg5 29.b3 Ke6 30.a3 Kd6 31.axb4 cxb4 32.Ra5 Nd5 33.f3 Bc8 34.Kf2 Bf5
-    35.Ra7 g6 36.Ra6+ Kc5 37.Ke1 Nf4 38.g3 Nxh3 39.Kd2 Kb5 40.Rd6 Kc5 41.Ra6
-    Nf2 42.g4 Bd3 43.Re6 1/2-1/2
-  </p>
-  <h1>Chess Board Demo 4: More PGN</h1>
-  <div>
-    <a id="board4-back" href="#">Back</a>
-    <a id="board4-next" href="#">Next</a>
-    <a id="board4-flip" href="#">Flip</a>
-  </div>
-  <div id="board4"></div>
-  <p id="justdoeet">
-    [Event "rated standard game"]
-    [Site "Free Internet Chess Server"]
-    [Date "2008.02.20"]
-    [Round "-"]
-    [White "justdoeet"]
-    [Black "Zornhau"]
-    [WhiteElo "1598"]
-    [BlackElo "1482"]
-    [Result "1-0"]
-    [Time "18:51:25"]
-    [TimeControl "1200+0"]
-    [Mode "ICS"]
+			<h1>Chess Board Demo 2: FEN</h1>
+			<div id="board2"></div>
 
-    1. d4 d5 2. c4 c6 3. Nc3 e6 4. Nf3 Bb4 5. e3 Nf6 6. a3 Bxc3+ 7. bxc3 Ne4 8. Qc2
-    O-O 9. Bd3 Nf6 10. O-O Nbd7 11. cxd5 cxd5 12. c4 dxc4 13. Qxc4 a6 14. Bd2 b5
-    15. Qb3 Bb7 16. Bb4 Re8 17. Be2 Rc8 18. Rac1 Rxc1 19. Rxc1 Ne4 20. Nd2 Nxd2
-    21. Bxd2 Qg5 22. f3 Nf6 23. Qd3 g6 24. e4 Qh5 25. Rc5 Nd5 26. exd5 exd5 27. Bf4
-    g5 28. Bg3 Qh6 29. Bd1 Qf8 30. Bc2 Qg7 31. Bb3 Rd8 32. Bc2 Rf8 33. Rc7 Bc8
-    34. Be5 f6 35. Rxg7+ Kxg7 36. Qxh7# 1-0
-  </p>
-	
-  <h1>Chess Board Demo 5: Loong Game</h1>
-  <div>
-    <a id="board5-back" href="#">Back</a>
-    <a id="board5-next" href="#">Next</a>
-    <a id="board5-flip" href="#">Flip</a>
-  </div>
-  <div id="board5"></div>
-	<p id="with-queening">
-	  [Event "34th Olympiad"]
-    [Site "Istanbul TUR"]
-    [Date "2000.11.08"]
-    [EventDate "2000.10.28"]
-    [Round "11"]
-    [Result "1/2-1/2"]
-    [White "Tomasz Markowski"]
-    [Black "Jeroen Piket"]
-    [ECO "A07"]
-    [WhiteElo "2568"]
-    [BlackElo "2649"]
-    [PlyCount "253"]
+			<h1>Chess Board Demo 3: PGN</h1>
+			<div>
+				<a id="board3-back" href="#">Back</a>
+				<a id="board3-next" href="#">Next</a>
+				<a id="board3-flip" href="#">Flip</a>
+			</div>
+			<div id="board3"></div>
+			<p id="board3-annot"></p>
+			<p id="pgn-fischer-spassky">      
+			[Event "F/S Return Match"]
+			[Site "Belgrade, Serbia JUG"]
+			[Date "1992.11.04"]
+			[Round "29"]
+			[White "Fischer, Robert J."]
+			[Black "Spassky, Boris V."]
+			[Result "1/2-1/2"]
 
-    1. g3 d5 2. Nf3 c6 3. Bg2 Bg4 4. d3 Nd7 5. c4 e6 6. O-O Ngf6
-    7. cxd5 exd5 8. Nc3 Bc5 9. Qb3 Bb6 10. Na4 O-O 11. Nxb6 axb6
-    12. Qc2 Re8 13. b3 Qe7 14. Re1 Qb4 15. Bd2 Qc5 16. Qb2 Qa3
-    17. Bc1 Qxb2 18. Bxb2 Bxf3 19. Bxf3 b5 20. b4 h6 21. a3 Nb6
-    22. Bg2 Nfd7 23. h4 Nf8 24. Rab1 Ra6 25. h5 Rd8 26. e3 Na4
-    27. Ba1 d4 28. e4 c5 29. Rec1 Ne6 30. Bh3 Rc6 31. bxc5 Rxc5
-    32. Rxc5 Nexc5 33. Rxb5 Nxd3 34. Rd5 Rxd5 35. exd5 Nc3 36. Kf1
-    Kf8 37. Bf5 Ne5 38. Bxc3 dxc3 39. Ke2 Ke7 40. Bc2 Kd6 41. Bb3
-    Ng4 42. f3 Nf6 43. g4 Nxd5 44. Kd3 f5 45. a4 fxg4 46. fxg4 Kc5
-    47. Bxd5 Kxd5 48. Kxc3 Ke4 49. Kc4 Kf4 50. Kb5 Kxg4 51. Kb6
-    Kxh5 52. Kxb7 g5 53. a5 g4 54. a6 g3 55. a7 g2 56. a8=Q g1=Q
-    57. Qe8+ Kh4 58. Qe4+ Qg4 59. Qe7+ Kg3 60. Qe1+ Kh2 61. Qe5+
-    Kg2 62. Qb2+ Kh3 63. Qc3+ Qg3 64. Qc8+ Kh2 65. Qf5 Qg5 66. Qf7
-    h5 67. Ka6 Qe5 68. Qf2+ Kh3 69. Qf3+ Kh4 70. Qf2+ Kg5 71. Qg2+
-    Kf6 72. Qf3+ Qf5 73. Qc3+ Kg6 74. Qg3+ Kh7 75. Qh4 Qe6+
-    76. Ka7 Qg4 77. Qf2 h4 78. Ka8 Qe4+ 79. Ka7 Kg6 80. Qb6+ Kf7
-    81. Qb3+ Ke7 82. Qc3 Qf4 83. Qc5+ Kf7 84. Qd5+ Kg7 85. Qg2+
-    Qg3 86. Qb7+ Kh6 87. Qc6+ Qg6 88. Qf3 Qg7+ 89. Ka8 Qe5
-    90. Qc6+ Kg7 91. Qd7+ Kg6 92. Qg4+ Qg5 93. Qe4+ Kg7 94. Qd4+
-    Qf6 95. Qd7+ Kh8 96. Qe8+ Kh7 97. Qd7+ Kh6 98. Qd2+ Kg6
-    99. Qg2+ Kf7 100. Qd5+ Kf8 101. Qc5+ Kg8 102. Qd5+ Kh8
-    103. Qh5+ Kg7 104. Qd1 Kf8 105. Qd3 Qe6 106. Qf3+ Ke7
-    107. Qb7+ Kd8 108. Qb6+ Kd7 109. Qb7+ Kd6 110. Qb4+ Kc6
-    111. Qa4+ Kc7 112. Qa7+ Kd6 113. Qb6+ Kd5 114. Qb5+ Kd4
-    115. Qb6+ Kd5 116. Qb3+ Ke5 117. Qe3+ Kd6 118. Qb6+ Kd7
-    119. Qb7+ Ke8 120. Qb5+ Kf8 121. Qc5+ Qe7 122. Qf5+ Kg7
-    123. Qg4+ Kh6 124. Qf4+ Kg6 125. Qg4+ Qg5 126. Qe6+ Qf6
-    127. Qg4+ 1/2-1/2
-	</p>
+			1.e4 e5 2.Nf3 Nc6 3.Bb5 {This opening is called the Ruy Lopez.} 3... a6
+			4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 d6 8.c3 O-O 9.h3 Nb8  10.d4 Nbd7
+			11.c4 c6 12.cxb5 axb5 13.Nc3 Bb7 14.Bg5 b4 15.Nb1 h6 16.Bh4 c5 17.dxe5
+			Nxe4 18.Bxe7 Qxe7 19.exd6 Qf6 20.Nbd2 Nxd6 21.Nc4 Nxc4 22.Bxc4 Nb6
+			23.Ne5 Rae8 24.Bxf7+ Rxf7 25.Nxf7 Rxe1+ 26.Qxe1 Kxf7 27.Qe3 Qg5 28.Qxg5
+			hxg5 29.b3 Ke6 30.a3 Kd6 31.axb4 cxb4 32.Ra5 Nd5 33.f3 Bc8 34.Kf2 Bf5
+			35.Ra7 g6 36.Ra6+ Kc5 37.Ke1 Nf4 38.g3 Nxh3 39.Kd2 Kb5 40.Rd6 Kc5 41.Ra6
+			Nf2 42.g4 Bd3 43.Re6 1/2-1/2
+			</p>
+			<h1>Chess Board Demo 4: More PGN</h1>
+			<div>
+				<a id="board4-back" href="#">Back</a>
+				<a id="board4-next" href="#">Next</a>
+				<a id="board4-flip" href="#">Flip</a>
+			</div>
+			<div id="board4"></div>
+			<p id="justdoeet">
+			[Event "rated standard game"]
+			[Site "Free Internet Chess Server"]
+			[Date "2008.02.20"]
+			[Round "-"]
+			[White "justdoeet"]
+			[Black "Zornhau"]
+			[WhiteElo "1598"]
+			[BlackElo "1482"]
+			[Result "1-0"]
+			[Time "18:51:25"]
+			[TimeControl "1200+0"]
+			[Mode "ICS"]
 
-  <h1>Chess Board Demo 6: Unambiguous Knight Move</h1>
-  <div>
-    <a id="board6-back" href="#">Back</a>
-    <a id="board6-next" href="#">Next</a>
-    <a id="board6-flip" href="#">Flip</a>
-  </div>
-  <div id="board6"></div>	
-	<p id="unambiguous-knight-move">
-	  1.Nc3 Nf6 2.d4 Nc6 3.Bg5 e5 4.e3 Bb4 5.Ne2 O-O 6.d5 Na5 7.Qd2 d6 8.Ng3 Bg4 9.f3 Qd7 10.h3 Bf5 11.Bxf6 gxf6 12.a3 *
-	</p>
-	
-</div>
+			1. d4 d5 2. c4 c6 3. Nc3 e6 4. Nf3 Bb4 5. e3 Nf6 6. a3 Bxc3+ 7. bxc3 Ne4 8. Qc2
+			O-O 9. Bd3 Nf6 10. O-O Nbd7 11. cxd5 cxd5 12. c4 dxc4 13. Qxc4 a6 14. Bd2 b5
+			15. Qb3 Bb7 16. Bb4 Re8 17. Be2 Rc8 18. Rac1 Rxc1 19. Rxc1 Ne4 20. Nd2 Nxd2
+			21. Bxd2 Qg5 22. f3 Nf6 23. Qd3 g6 24. e4 Qh5 25. Rc5 Nd5 26. exd5 exd5 27. Bf4
+			g5 28. Bg3 Qh6 29. Bd1 Qf8 30. Bc2 Qg7 31. Bb3 Rd8 32. Bc2 Rf8 33. Rc7 Bc8
+			34. Be5 f6 35. Rxg7+ Kxg7 36. Qxh7# 1-0
+			</p>
 
-</body>
+			<h1>Chess Board Demo 5: Loong Game</h1>
+			<div>
+				<a id="board5-back" href="#">Back</a>
+				<a id="board5-next" href="#">Next</a>
+				<a id="board5-flip" href="#">Flip</a>
+			</div>
+			<div id="board5"></div>
+			<p id="with-queening">
+			[Event "34th Olympiad"]
+			[Site "Istanbul TUR"]
+			[Date "2000.11.08"]
+			[EventDate "2000.10.28"]
+			[Round "11"]
+			[Result "1/2-1/2"]
+			[White "Tomasz Markowski"]
+			[Black "Jeroen Piket"]
+			[ECO "A07"]
+			[WhiteElo "2568"]
+			[BlackElo "2649"]
+			[PlyCount "253"]
+
+			1. g3 d5 2. Nf3 c6 3. Bg2 Bg4 4. d3 Nd7 5. c4 e6 6. O-O Ngf6
+			7. cxd5 exd5 8. Nc3 Bc5 9. Qb3 Bb6 10. Na4 O-O 11. Nxb6 axb6
+			12. Qc2 Re8 13. b3 Qe7 14. Re1 Qb4 15. Bd2 Qc5 16. Qb2 Qa3
+			17. Bc1 Qxb2 18. Bxb2 Bxf3 19. Bxf3 b5 20. b4 h6 21. a3 Nb6
+			22. Bg2 Nfd7 23. h4 Nf8 24. Rab1 Ra6 25. h5 Rd8 26. e3 Na4
+			27. Ba1 d4 28. e4 c5 29. Rec1 Ne6 30. Bh3 Rc6 31. bxc5 Rxc5
+			32. Rxc5 Nexc5 33. Rxb5 Nxd3 34. Rd5 Rxd5 35. exd5 Nc3 36. Kf1
+			Kf8 37. Bf5 Ne5 38. Bxc3 dxc3 39. Ke2 Ke7 40. Bc2 Kd6 41. Bb3
+			Ng4 42. f3 Nf6 43. g4 Nxd5 44. Kd3 f5 45. a4 fxg4 46. fxg4 Kc5
+			47. Bxd5 Kxd5 48. Kxc3 Ke4 49. Kc4 Kf4 50. Kb5 Kxg4 51. Kb6
+			Kxh5 52. Kxb7 g5 53. a5 g4 54. a6 g3 55. a7 g2 56. a8=Q g1=Q
+			57. Qe8+ Kh4 58. Qe4+ Qg4 59. Qe7+ Kg3 60. Qe1+ Kh2 61. Qe5+
+			Kg2 62. Qb2+ Kh3 63. Qc3+ Qg3 64. Qc8+ Kh2 65. Qf5 Qg5 66. Qf7
+			h5 67. Ka6 Qe5 68. Qf2+ Kh3 69. Qf3+ Kh4 70. Qf2+ Kg5 71. Qg2+
+			Kf6 72. Qf3+ Qf5 73. Qc3+ Kg6 74. Qg3+ Kh7 75. Qh4 Qe6+
+			76. Ka7 Qg4 77. Qf2 h4 78. Ka8 Qe4+ 79. Ka7 Kg6 80. Qb6+ Kf7
+			81. Qb3+ Ke7 82. Qc3 Qf4 83. Qc5+ Kf7 84. Qd5+ Kg7 85. Qg2+
+			Qg3 86. Qb7+ Kh6 87. Qc6+ Qg6 88. Qf3 Qg7+ 89. Ka8 Qe5
+			90. Qc6+ Kg7 91. Qd7+ Kg6 92. Qg4+ Qg5 93. Qe4+ Kg7 94. Qd4+
+			Qf6 95. Qd7+ Kh8 96. Qe8+ Kh7 97. Qd7+ Kh6 98. Qd2+ Kg6
+			99. Qg2+ Kf7 100. Qd5+ Kf8 101. Qc5+ Kg8 102. Qd5+ Kh8
+			103. Qh5+ Kg7 104. Qd1 Kf8 105. Qd3 Qe6 106. Qf3+ Ke7
+			107. Qb7+ Kd8 108. Qb6+ Kd7 109. Qb7+ Kd6 110. Qb4+ Kc6
+			111. Qa4+ Kc7 112. Qa7+ Kd6 113. Qb6+ Kd5 114. Qb5+ Kd4
+			115. Qb6+ Kd5 116. Qb3+ Ke5 117. Qe3+ Kd6 118. Qb6+ Kd7
+			119. Qb7+ Ke8 120. Qb5+ Kf8 121. Qc5+ Qe7 122. Qf5+ Kg7
+			123. Qg4+ Kh6 124. Qf4+ Kg6 125. Qg4+ Qg5 126. Qe6+ Qf6
+			127. Qg4+ 1/2-1/2
+			</p>
+
+			<h1>Chess Board Demo 6: Unambiguous Knight Move</h1>
+			<div>
+				<a id="board6-back" href="#">Back</a>
+				<a id="board6-next" href="#">Next</a>
+				<a id="board6-flip" href="#">Flip</a>
+			</div>
+			<div id="board6"></div>	
+			<p id="unambiguous-knight-move">
+			1.Nc3 Nf6 2.d4 Nc6 3.Bg5 e5 4.e3 Bb4 5.Ne2 O-O 6.d5 Na5 7.Qd2 d6 8.Ng3 Bg4 9.f3 Qd7 10.h3 Bf5 11.Bxf6 gxf6 12.a3 *
+			</p>
+
+			<h1>Chess Board Demo 7: Middle game</h1>
+			<div>
+				<a id="board7-back" href="#">Back</a>
+				<a id="board7-next" href="#">Next</a>
+				<a id="board7-flip" href="#">Flip</a>
+			</div>
+			<div id="board7"></div>
+			<p id="middle-game">
+			[Event "Local Event"]
+			[Site "Local Site"]
+			[Round "1"]
+			[Date "2011.10.31"]
+			[White "dudektria"]
+			[Black "Stockfish 2.1.1"]
+			[Result "0-1"]
+
+			1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 c6 5. Bg5 h6 6. Bh4 dxc4 7. e4 g5 8. Bg3 b5
+			9. Be2 Bb7 10. Be5 Nbd7 11. b3 Bb4 12. Qc2 cxb3 13. axb3 Nxe5 14. Nxe5 Qxd4 15.
+			Rc1 Qxe5 16. O-O Rd8 17. Rfd1 Rxd1+ 18. Bxd1 Ke7 19. Bf3 g4 20. Be2 Rd8 21. Nd1
+			Rd2 22. Qb1 Rxe2 23. Ne3 Qf4 24. Rf1 Nxe4 25. Qd1 Rxf2 26. Nc2 Rxf1+ 27. Qxf1
+			Bc5+ 28. Qf2 Qc1+ 29. Ne1 Qxe1# 0-1
+			</p>
+			
+			<h1>Chess Board Demo 8: FEN from HTML</h1>
+			<div id="board8"></div>
+			<p id="fen-example">rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2</p>
+			
+			<h1>Chess Board Demo 9: Ajax Loading from remote file</h1>
+			<div>
+				<a id="board9-back" href="#">Back</a>
+				<a id="board9-next" href="#">Next</a>
+				<a id="board9-flip" href="#">Flip</a>
+			</div>
+			<div id="board9"></div>
+			<p id="board9-annot"></p>
+			<p id="annotations">
+			[Event "USA-06.Congress New York"]
+			[Site "USA-06.Congress New York"]
+			[Date "1889.??.??"]
+			[EventDate "?"]
+			[Round "32"]
+			[Result "0-1"]
+			[White "Jean Taubenhaus"]
+			[Black "Dion M Martinez"]
+			[ECO "C30"]
+			[WhiteElo "?"]
+			[BlackElo "?"]
+			[PlyCount "42"]
+
+			1.e4 {Notes by Steinitz.} e5 2.f4 Bc5 3.Nf3 d6 4.Bc4 Nc6 5.c3
+			Bg4 {Not good, though feasable if White had played 5.Nc3} 6.h3
+			Bxf3 7.Qxf3 Qf6 {?} 8.d3 Nge7 9.f5 O-O-O 10.b4 {?} Nxb4 {The
+			proper answer for if White take the knight, Black wins the
+			Rook by Bd4.} 11.Na3 {It would have been useless to attempt a
+			diversion now by g4 as Black would answer d5 and bring the
+			Queen to the Q side.} d5 {!} 12.Rb1 dxc4 13.cxb4 Rxd3 14.Qg4
+			h5 15.Qg5 Rhd8 16.Ke2 {Exchanging queens was much better, but
+			the game was lost.} Qc6 {! Black has played the attack in
+			remarkably finestyle from the eleventh move, and this
+			sacrifice of a piece evidences high ingenuity.} 17.bxc5 f6
+			{All in forcible attacking style.} 18.Qxg7 Qxe4+ 19.Kf2 Nxf5
+			20.Re1 {He had no good resource, as Black also threatened
+			Qd4+.} Qh4+ 21.g3 Rxg3 0-1
+			</p>
+		</div>
+
+	</body>
 </html>

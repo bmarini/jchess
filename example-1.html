@@ -1,48 +1,48 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-	<title>jChess Examples</title>
-	<link rel="stylesheet" href="stylesheets/main.css" type="text/css" media="screen" title="no title" charset="utf-8">
-	<link rel="stylesheet" href="stylesheets/chess.css" type="text/css" media="screen" title="no title" charset="utf-8">
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js"></script>
-  <script src="javascripts/jchess-0.1.0.js"></script>
-</head>
+		<title>jChess Examples</title>
+		<link rel="stylesheet" href="stylesheets/main.css" type="text/css" media="screen" title="no title" charset="utf-8">
+		<link rel="stylesheet" href="stylesheets/chess.css" type="text/css" media="screen" title="no title" charset="utf-8">
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js" type="text/javascript"></script>
+		<script src="javascripts/jchess-0.1.0.js" type="text/javascript"></script>
+	</head>
 
-<body>
-<div id="wrapper">
-	<h1>Chess Board Example 1: Some infinite loop error</h1>
-  <div>
-    <a id="board1-back" href="#">Back</a>
-    <a id="board1-next" href="#">Next</a>
-    <a id="board1-flip" href="#">Flip</a>
-  </div>
-  <div id="board1"></div>	
-	<p id="infinite-loop">
-	  [Event "soundchess at soundkeepers.com"]
-    [Site "www.soundkeepers.com"]
-    [Date "2007.03.23"]
-    [Round ""]
-    [White "ahmorin500@yahoo.com"]
-    [Black "jmarini211@yahoo.com"]
-    [Result "1-0"]
+	<body>
+		<div id="wrapper">
+			<h1>Chess Board Example 1: Some infinite loop error</h1>
+			<div>
+				<a id="board1-back" href="#">Back</a>
+				<a id="board1-next" href="#">Next</a>
+				<a id="board1-flip" href="#">Flip</a>
+			</div>
+			<div id="board1"></div>	
+			<p id="infinite-loop">
+			[Event "soundchess at soundkeepers.com"]
+			[Site "www.soundkeepers.com"]
+			[Date "2007.03.23"]
+			[Round ""]
+			[White "ahmorin500@yahoo.com"]
+			[Black "jmarini211@yahoo.com"]
+			[Result "1-0"]
 
-    1. c4 e5 2. d3 Nc6 3. Nh3 d6 4. g3 g6 5. e3 Bg7 6. Bg2 Nge7 7. Qa4 O-O 8. O-O Bd7 9. Bd2 e4 10. Nc3 exd3
-     11. b4 Ne5 12. Qb3 Qc8 13. Nd5 Nxd5 14. Bxd5 Bxh3 15. Rfd1 Qf5 16. f4 c6 17. e4 Nf3 18. Kf2 Qg4 19.
-     Qxd3 cxd5 20. Qxf3 Qxf3 21. Kxf3 Bxa1 22. Rxa1 dxc4 23. Rc1 b5 24. Rd1 Rd8 25. Be3 f5 26. exf5 gxf5
-     27. Rd5 a6 28. Bb6 1-0
-	</p>
-	
-	<script type="text/javascript" charset="utf-8">
-	  var chess1 = jQuery('#board1').chess({pgn : jQuery('#infinite-loop').html()});
-    jQuery('#board1-back').click(function() { chess1.transitionBackward(); return false; });
-    jQuery('#board1-next').click(function() { chess1.transitionForward(); return false; });
-    jQuery('#board1-flip').click(function() { chess1.flipBoard(); return false; }); 
-	</script>
-</div>
+			1. c4 e5 2. d3 Nc6 3. Nh3 d6 4. g3 g6 5. e3 Bg7 6. Bg2 Nge7 7. Qa4 O-O 8. O-O Bd7 9. Bd2 e4 10. Nc3 exd3
+			11. b4 Ne5 12. Qb3 Qc8 13. Nd5 Nxd5 14. Bxd5 Bxh3 15. Rfd1 Qf5 16. f4 c6 17. e4 Nf3 18. Kf2 Qg4 19.
+			Qxd3 cxd5 20. Qxf3 Qxf3 21. Kxf3 Bxa1 22. Rxa1 dxc4 23. Rc1 b5 24. Rd1 Rd8 25. Be3 f5 26. exf5 gxf5
+			27. Rd5 a6 28. Bb6 1-0
+			</p>
 
-</body>
-</html>
+			<script type="text/javascript" charset="utf-8">
+				var chess1 = jQuery('#board1').chess({pgn : jQuery('#infinite-loop').html()});
+				jQuery('#board1-back').click(function() { chess1.transitionBackward(); return false; });
+				jQuery('#board1-next').click(function() { chess1.transitionForward(); return false; });
+				jQuery('#board1-flip').click(function() { chess1.flipBoard(); return false; }); 
+				</script>
+			</div>
+
+		</body>
+	</html>
