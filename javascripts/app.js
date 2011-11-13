@@ -6,6 +6,7 @@ jQuery(document).ready(function() {
 	var chess5 = jQuery('#board5').chess({pgn : jQuery('#with-queening').html()});
 	var chess6 = jQuery('#board6').chess({pgn : jQuery('#unambiguous-knight-move').html()});
 	var chess7 = jQuery('#board7').chess({pgn : jQuery('#middle-game').html()});
+	var chess8 = jQuery('#board8').chess({fen : jQuery('#fen-example').html()});
 
 	jQuery('#board3-back').click(function() {
 		chess3.transitionBackward();
