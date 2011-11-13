@@ -1,13 +1,13 @@
 .chess-board {
-  margin: 0 auto;
-  position: relative;
-  background: transparent url(../images/bw-board.gif) no-repeat 0 0;
-  width: 344px;
-  height: 344px;
+	margin: 0 auto;
+	position: relative;
+	background: transparent url(../images/bw-board.gif) no-repeat 0 0;
+	width: 344px;
+	height: 344px;
 }
 
 .chess-board div {
-  position: absolute;
+	position: absolute;
 	vertical-align: top;
 	width: 43px;
 	height: 43px;
