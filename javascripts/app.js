@@ -28,5 +28,6 @@ jQuery(function($) {
   loadChessGame( '#game4', { pgn : $('#justdoeet').html() } );
   loadChessGame( '#game5', { pgn : $('#with-queening').html() } );
   loadChessGame( '#game6', { pgn : $('#unambiguous-knight-move').html() } );
+  loadChessGame( '#game7', { pgn : $('#heavily-annotated').html() } );
 
 });
