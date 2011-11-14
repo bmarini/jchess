@@ -30,5 +30,8 @@ jQuery(function($) {
   loadChessGame( '#game6', { pgn : $('#unambiguous-knight-move').html() } );
   loadChessGame( '#game7', { pgn : $('#heavily-annotated').html() } );
   loadChessGame( '#game8', { fen : $('#fen-html').html() } );
+  loadChessGame( '#game9', { fen : $('#middle-game').html() }, function(chess) {
+    chess.transitionTo(25);
+  });
 
 });
