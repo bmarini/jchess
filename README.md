@@ -43,6 +43,7 @@ You can...
     
     chess.transitionForward();  // Moves the game forward one move
     chess.transitionBackward(); // Moves the game backward one move
+    chess.transitionTo(n);      // Jumps to the specified halfmove
     chess.flipBoard();          // You guessed it, flips the board
     
 
