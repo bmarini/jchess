@@ -238,7 +238,7 @@ jQuery.eachWithContext = function(context, object, callback) {
       parseFEN : function(fen) {
         // rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2
         var new_board     = [];
-        var fen_parts     = fen.split(/\/|\s/);
+        var fen_parts     = fen.replace(/^\s*/, "").replace(/\s*$/, "").split(/\/|\s/);
 
         for (var j = 0;j < 8; j++) {
           new_board[j] = [];
@@ -251,7 +251,7 @@ jQuery.eachWithContext = function(context, object, callback) {
       },
 
       validateFEN : function(fen) {
-        var pattern = /([rnbqkpRNBQKP12345678]+\/){7}([rnbqkpRNBQKP12345678]+)\s[bw-]\s(([kqKQ]{1,4})|(-))\s(([a-h][1-8])|(-))\s\d+\s\d+/;
+        var pattern = /\s*([rnbqkpRNBQKP12345678]+\/){7}([rnbqkpRNBQKP12345678]+)\s[bw-]\s(([kqKQ]{1,4})|(-))\s(([a-h][1-8])|(-))\s\d+\s\d+\s*/;
         return pattern.test(fen);
       },
 
@@ -361,7 +361,7 @@ jQuery.eachWithContext = function(context, object, callback) {
               var src_file = m[1];
               var src_rank = parseInt(dst_rank) + ( (player == 'w') ? -1 : 1 );
 
-              // En passent
+              // En passant
               var result = this.pieceAt(dst_file + dst_rank);
               if (result == '-') this.removePiece(move_number, dst_file + src_rank);
               this.movePiece(move_number, {from : src_file + src_rank, to : dst_file + dst_rank });
