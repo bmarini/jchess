@@ -8,10 +8,10 @@
 
 .chess-board div {
   position: absolute;
-	vertical-align: top;
-	width: 43px;
-	height: 43px;
-	padding: 0; margin: 0;
+  vertical-align: top;
+  width: 43px;
+  height: 43px;
+  padding: 0; margin: 0;
 }
 
 .chess-board .wP { background: transparent url(../images/chess-sets/acmaster.gif) -1px -1px; }
