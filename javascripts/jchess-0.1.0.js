@@ -361,7 +361,7 @@ jQuery.eachWithContext = function(context, object, callback) {
               var src_file = m[1];
               var src_rank = parseInt(dst_rank) + ( (player == 'w') ? -1 : 1 );
 
-              // En passent
+              // En passant
               var result = this.pieceAt(dst_file + dst_rank);
               if (result == '-') this.removePiece(move_number, dst_file + src_rank);
               this.movePiece(move_number, {from : src_file + src_rank, to : dst_file + dst_rank });
