@@ -29,5 +29,6 @@ jQuery(function($) {
   loadChessGame( '#game5', { pgn : $('#with-queening').html() } );
   loadChessGame( '#game6', { pgn : $('#unambiguous-knight-move').html() } );
   loadChessGame( '#game7', { pgn : $('#heavily-annotated').html() } );
+  loadChessGame( '#game8', { fen : $('#fen-html').html() } );
 
 });
