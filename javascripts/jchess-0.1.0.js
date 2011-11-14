@@ -238,7 +238,7 @@ jQuery.eachWithContext = function(context, object, callback) {
       parseFEN : function(fen) {
         // rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2
         var new_board     = [];
-        var fen_parts     = fen.split(/\/|\s/);
+        var fen_parts     = fen.replace(/^\s*/, "").replace(/\s*$/, "").split(/\/|\s/);
 
         for (var j = 0;j < 8; j++) {
           new_board[j] = [];
@@ -251,7 +251,7 @@ jQuery.eachWithContext = function(context, object, callback) {
       },
 
       validateFEN : function(fen) {
-        var pattern = /([rnbqkpRNBQKP12345678]+\/){7}([rnbqkpRNBQKP12345678]+)\s[bw-]\s(([kqKQ]{1,4})|(-))\s(([a-h][1-8])|(-))\s\d+\s\d+/;
+        var pattern = /\s*([rnbqkpRNBQKP12345678]+\/){7}([rnbqkpRNBQKP12345678]+)\s[bw-]\s(([kqKQ]{1,4})|(-))\s(([a-h][1-8])|(-))\s\d+\s\d+\s*/;
         return pattern.test(fen);
       },
 
