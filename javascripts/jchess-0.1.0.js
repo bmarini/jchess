@@ -132,7 +132,7 @@ jQuery.eachWithContext = function(context, object, callback) {
       },
 
       getDomPieceId : function(id) {
-        return this.wrapper.id + "_piece_" + id;
+        return $(this.wrapper).id + "_piece_" + id;
       },
 
       addDomPiece : function(id, piece, algebraic) {
