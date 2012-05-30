@@ -35,3 +35,4 @@ jQuery(function($) {
   });
   loadChessGame( '#game10', { linked_pgn : $('#bold'), pgn : $('#bold').html() } )
 });
+
