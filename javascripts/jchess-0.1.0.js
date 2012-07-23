@@ -83,7 +83,12 @@ jQuery.eachWithContext = function(context, object, callback) {
 
         // If pgn was passed in, parse it
         if (this.settings.pgn) this.parsePGN(this.settings.pgn);
-
+        /* if header has a FEN tag then setup board again */
+        if(this.game.header.FEN) { 
+        // this.setUpBoard( this.parseFEN( this.game.header.FEN)  );
+        console.log("setting the board for FEN " + this.game.header.FEN);
+        this.settings.fen = this.game.header.FEN;
+        };
         this.setUpBoard( this.parseFEN( this.settings.fen ) );
         this.writeBoard();
       },
@@ -269,9 +274,29 @@ jQuery.eachWithContext = function(context, object, callback) {
           var result  = re.exec(pgn);
           this.game.header[headers[i]] = (result == null) ? "" : result[1];
         }
+        
+            re_fen = new RegExp('[Ff][Ee][Nn] "([^"]*)"]');
+            console.log(re_fen);
+            console.log(pgn);
+            console.log(re_fen.exec(pgn));
+            var fen_result = re_fen.exec(pgn);
+            if (fen_result) { this.game.header["FEN"] = fen_result[1]; 
+            console.log("fen result " +  this.parseFEN(fen_result[1]));
+            this.setUpBoard( this.parseFEN( fen_result[1]));
+            this.clearBoard();
+            }
 
         // Find the body
-        this.game.body = /(1\. ?(N[acfh]3|[abcdefgh][34]).*)/m.exec(pgn)[1];
+        // this.game.body = /(1\. ?(N[acfh]3|[abcdefgh][34]).*)/m.exec(pgn)[1];
+        /* not sure from the regexp */
+         this.game.body = /(\d{1,3}(\.[^.[0-9A-Z?].*|\.\.\. .*))/m.exec(pgn)[1];
+         console.log(this.game.body);
+         
+        var first_move = 0; // if game is setup from the fen and starts with black 
+        if((/^\d{1,3}\.\.\. /).test(this.game.body)) {
+            console.log("player black")
+            first_move = 1;
+        }
 
         // Remove numbers, remove result
         this.game.body = this.game.body.replace(new RegExp("1-0|1/2-1/2|0-1"), '');
@@ -279,11 +304,14 @@ jQuery.eachWithContext = function(context, object, callback) {
         this.game.body = this.game.body.replace(/\s\d+\.+/g, ' ');
 
         var moves = $.trim(this.game.body).split(/\s+/);
-        // console.log(moves);
+        console.log(moves);
+        console.log(this.game.body);
 
         // This must be a separate variable from i, since annotations don't
         // count as moves.
         var move_number = 0;
+
+
         $.eachWithContext(this, moves, function(i, move) {
           if ( /annotation-\d+/.test(move) ) {
             this.game.annotations[move_number] = this.game.raw_annotations.shift();
@@ -293,7 +321,7 @@ jQuery.eachWithContext = function(context, object, callback) {
           this.game.moves[move_number] = move;
 
           // console.log("Processing move: " + move_number + '.' + move);
-          var player = (move_number % 2 == 0) ? 'w' : 'b';
+          var player = ((move_number + first_move) % 2 == 0) ? 'w' : 'b';
 
           // If the move was to castle
           if ( this.patterns.castle_queenside.test(move) ) {

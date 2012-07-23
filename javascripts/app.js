@@ -33,5 +33,6 @@ jQuery(function($) {
   loadChessGame( '#game9', { pgn : $('#middle-game').html() }, function(chess) {
     chess.transitionTo(25);
   });
-
+ loadChessGame( '#game10', { pgn : $('#pgn-with-fen-1').html() } );
+  loadChessGame( '#game11', { pgn : $('#pgn-with-fen-2').html() } );
 });
