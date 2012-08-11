@@ -1,5 +1,5 @@
 /*
- * jChess 0.1.0 - Chess Library Built From jQuery
+ * jChess 0.1.1 - Chess Library Built From jQuery
  *
  * Copyright (c) 2008 Ben Marini
  *
