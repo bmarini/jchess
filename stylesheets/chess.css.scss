@@ -1,0 +1,35 @@
+.chess-board {
+  margin: 0 auto;
+  position: relative;
+  background: transparent asset-url("bw-board.gif", image) no-repeat 0 0;
+  width: 344px;
+  height: 344px;
+}
+
+.chess-board div {
+  position: absolute;
+  vertical-align: top;
+  width: 43px;
+  height: 43px;
+  padding: 0; margin: 0;
+}
+
+#chess-board h1,h3 { text-align: center; }
+
+.chess-board .wP { background: transparent asset-url("chess-sets/acmaster.gif", image) -1px -1px; }
+.chess-board .wN { background: transparent asset-url("chess-sets/acmaster.gif", image) -46px -1px; }
+.chess-board .wB { background: transparent asset-url("chess-sets/acmaster.gif", image) -91px -1px; }
+.chess-board .wR { background: transparent asset-url("chess-sets/acmaster.gif", image) -136px -1px; }
+.chess-board .wQ { background: transparent asset-url("chess-sets/acmaster.gif", image) -181px -1px; }
+.chess-board .wK { background: transparent asset-url("chess-sets/acmaster.gif", image) -226px -1px; }
+
+.chess-board .bp { background: transparent asset-url("chess-sets/acmaster.gif", image) -1px -46px; }
+.chess-board .bn { background: transparent asset-url("chess-sets/acmaster.gif", image) -46px -46px; }
+.chess-board .bb { background: transparent asset-url("chess-sets/acmaster.gif", image) -91px -46px; }
+.chess-board .br { background: transparent asset-url("chess-sets/acmaster.gif", image) -136px -46px; }
+.chess-board .bq { background: transparent asset-url("chess-sets/acmaster.gif", image) -181px -46px; }
+.chess-board .bk { background: transparent asset-url("chess-sets/acmaster.gif", image) -226px -46px; }
+
+#chess-nav {
+  text-align: center;
+}
