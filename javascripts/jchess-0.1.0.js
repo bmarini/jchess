@@ -276,7 +276,7 @@ jQuery.eachWithContext = function(context, object, callback) {
         // Remove numbers, remove result
         this.game.body = this.game.body.replace(new RegExp("1-0|1/2-1/2|0-1"), '');
         this.game.body = this.game.body.replace(/^\d+\.+/, '');
-        this.game.body = this.game.body.replace(/\s\d+\.+/g, ' ');
+        this.game.body = this.game.body.replace(/\s\d+[\.]+/g, ' ');
 
         var moves = $.trim(this.game.body).split(/\s+/);
 
