@@ -666,7 +666,7 @@ jQuery.eachWithContext = function(context, object, callback) {
         }
 
         this.game.raw_annotations.push(annot);
-        return "annotation-" + ann_num;
+        return [" annotation-", ann_num, " "].join("");;
       },
 
       annotation : function() {
