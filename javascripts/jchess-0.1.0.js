@@ -276,10 +276,9 @@ jQuery.eachWithContext = function(context, object, callback) {
         // Remove numbers, remove result
         this.game.body = this.game.body.replace(new RegExp("1-0|1/2-1/2|0-1"), '');
         this.game.body = this.game.body.replace(/^\d+\.+/, '');
-        this.game.body = this.game.body.replace(/\s\d+\.+/g, ' ');
+        this.game.body = this.game.body.replace(/\s\d+[\.]+/g, ' ');
 
         var moves = $.trim(this.game.body).split(/\s+/);
-        // console.log(moves);
 
         // This must be a separate variable from i, since annotations don't
         // count as moves.
@@ -292,7 +291,6 @@ jQuery.eachWithContext = function(context, object, callback) {
 
           this.game.moves[move_number] = move;
 
-          // console.log("Processing move: " + move_number + '.' + move);
           var player = (move_number % 2 == 0) ? 'w' : 'b';
 
           // If the move was to castle
@@ -668,7 +666,7 @@ jQuery.eachWithContext = function(context, object, callback) {
         }
 
         this.game.raw_annotations.push(annot);
-        return "annotation-" + ann_num;
+        return [" annotation-", ann_num, " "].join("");;
       },
 
       annotation : function() {
