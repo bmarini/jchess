@@ -24,12 +24,13 @@
  */
 
 // If Firebug is not installed, prevent console.log() from creating error messages
-if (typeof console == "undefined") { var console = { log: function() {} }; }
+        if (typeof console == "undefined") { var console = { log: function() {} }; }
 
 // Iterate within an arbitrary context...
+
 jQuery.eachWithContext = function(context, object, callback) {
   for ( var i = 0, length = object.length, value = object[0];
-    i < length && callback.call(context, i, value ) !== false; value = object[++i] ) {}
+        i < length && callback.call(context, i, value ) !== false; value = object[++i] ) {}
 };
 
 (function($) {
@@ -43,7 +44,7 @@ jQuery.eachWithContext = function(context, object, callback) {
       castling_availability : 'KQkq',
       en_passant_square : '-',
       halfmove_clock : 0,
-      fullmove_number : 1,
+
       halfmove_number : 0,
 
       header : [],
@@ -54,9 +55,8 @@ jQuery.eachWithContext = function(context, object, callback) {
 
       next_piece_id : 64,
       transitions : [],
-      board_direction : 1
+      board_direction : 1,
     };
-
   };
 
   /* Add chess() to the jQuery namespace */
@@ -73,7 +73,8 @@ jQuery.eachWithContext = function(context, object, callback) {
       square_size : 43,
       offsets : { left: 0, top: 0},
       board_element_selector : '.chess-board',
-      json_annotations : false
+      json_annotations : false,
+      headers : ['Event','Site','Date','Round','White','Black','Result']
     },
 
     prototype : {
@@ -86,6 +87,7 @@ jQuery.eachWithContext = function(context, object, callback) {
 
         this.setUpBoard( this.parseFEN( this.settings.fen ) );
         this.writeBoard();
+        this.displayPGN();
       },
 
       boardElement : function() {
@@ -183,6 +185,7 @@ jQuery.eachWithContext = function(context, object, callback) {
           this.runTransitions(this.game.transitions[this.game.halfmove_number].forward);
           this.game.halfmove_number++;
         }
+        this.displayPGN();
       },
 
       transitionBackward : function() {
@@ -190,6 +193,12 @@ jQuery.eachWithContext = function(context, object, callback) {
           this.game.halfmove_number--;
           this.runTransitions(this.game.transitions[this.game.halfmove_number].backward);
         }
+        this.displayPGN();
+      },
+
+
+      fullmoveNumber: function(){
+        return Math.floor(this.game.halfmove_number/2)+1;
       },
 
       // Example transitions
@@ -203,18 +212,22 @@ jQuery.eachWithContext = function(context, object, callback) {
           var id              = pieces[1];
 
           switch(transition_type) {
-            case 'r':
-              this.removeDomPiece(id);
-              break;
-            case 'm':
-              this.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
-              break;
-            case 'a':
-              this.addDomPiece(id, pieces[2], pieces[3]);
-              break;
+          case 'r':
+            this.removeDomPiece(id);
+            break;
+          case 'm':
+            this.moveDomPiece(id, { from : pieces[2], to : pieces[3] });
+            break;
+          case 'a':
+            this.addDomPiece(id, pieces[2], pieces[3]);
+            break;
           }
 
         });
+
+
+
+
       },
 
       clearBoard : function() {
@@ -261,13 +274,14 @@ jQuery.eachWithContext = function(context, object, callback) {
         var instance = this;
         // Recognize escaped closing curly brackets as part of the comment
         // This allows us to have json encoded comments
-        pgn = pgn.replace(/\{((\\})|([^}]))+}/g, function(){ return instance.pluckAnnotation.apply(instance, arguments); });
+        pgn = pgn.replace(/\{((\\})|([^}]))+}/g, function(){
+          return instance.pluckAnnotation.apply(instance, arguments);
+        });
 
-        var headers = ['Event','Site','Date','Round','White','Black','Result'];
-        for (var i=0; i < headers.length; i++) {
-          var re      = new RegExp(headers[i] + ' "([^"]*)"]');
+        for (var i=0; i < this.settings.headers.length; i++) {
+          var re      = new RegExp(this.settings.headers[i] + ' "([^"]*)"]');
           var result  = re.exec(pgn);
-          this.game.header[headers[i]] = (result == null) ? "" : result[1];
+          this.game.header[this.settings.headers[i]] = (result == null) ? "" : result[1];
         }
 
         // Find the body
@@ -289,6 +303,7 @@ jQuery.eachWithContext = function(context, object, callback) {
             return;
           }
 
+
           this.game.moves[move_number] = move;
 
           var player = (move_number % 2 == 0) ? 'w' : 'b';
@@ -304,7 +319,7 @@ jQuery.eachWithContext = function(context, object, callback) {
             this.movePiece(move_number, {from : "e" + rank, to : "g" + rank} );
             this.movePiece(move_number, {from : "h" + rank, to : "f" + rank} );
 
-          // If the move was a piece
+            // If the move was a piece
           } else if ( this.patterns.piece_move.test(move) ) {
             var m = this.patterns.piece_move.exec(move);
             var piece = m[0];
@@ -380,9 +395,57 @@ jQuery.eachWithContext = function(context, object, callback) {
         });
       },
 
+
+      displayPGN: function() {
+
+        if(!this.settings.linked_pgn) return;
+
+        var output_text = "";
+        for (var i=0; i < this.settings.headers.length; i++) {
+          output_text += "[" + this.settings.headers[i] + " \"" + this.game.header[this.settings.headers[i]]  + "\"]" + "<br/>";
+        }
+        output_text += "<br/>";
+
+        for (var i=0; i < this.game.moves.length; i++) {
+          itr_fullmove_number = Math.floor(i/2)+1;
+          itr_halfmove_number = i;
+
+          // display the number
+          if(itr_halfmove_number%2==0){
+            move_num = itr_fullmove_number  + ". ";
+            if(this.fullmoveNumber()==itr_fullmove_number){
+              output_text += "<b>"+move_num+"</b>";
+            }
+            else{
+              output_text += move_num
+            }
+          }
+
+          // move
+          if(this.fullmoveNumber()==itr_fullmove_number &&
+             this.game.halfmove_number==itr_halfmove_number ){
+            output_text += "<b>"+this.game.moves[i]+"</b> ";
+          }
+          else {
+            output_text += this.game.moves[i] + " ";
+          }
+
+
+          // annotatioon
+          if(this.game.annotations[itr_halfmove_number]){
+            output_text += "{"+ this.game.annotations[itr_halfmove_number] +"} "
+          }
+        }
+
+
+
+        this.settings.linked_pgn.html(output_text);
+      },
+
       // src_square = square the piece is currently on
       // dst_square = square the piece will move to
       cantMoveFromAbsolutePin : function(piece, src_square, dst_square) {
+
         // Look for an open vector from piece to the king.
         var piece_char = piece.piece;
         var player     = ( piece_char == piece_char.toLowerCase() ) ? 'b' : 'w';
@@ -535,7 +598,7 @@ jQuery.eachWithContext = function(context, object, callback) {
           return piece;
         };
         return null;
-     },
+      },
 
       pieceAt : function(algebraic) {
         var square = this.algebraic2Coord(algebraic);
@@ -661,6 +724,7 @@ jQuery.eachWithContext = function(context, object, callback) {
         annot       = annot.replace(/\\\{/g, '{');
         annot       = annot.replace(/\\\}/g, '}');
 
+
         if (this.settings.json_annotations) {
           eval("annot = " + annot);
         }
@@ -681,6 +745,7 @@ jQuery.eachWithContext = function(context, object, callback) {
         } else {
           current_annotations.push(annot);
         }
+
 
         this.game.annotations[this.game.halfmove_number] = current_annotations;
       },
@@ -769,3 +834,4 @@ jQuery.eachWithContext = function(context, object, callback) {
     }
   });
 })(jQuery);
+

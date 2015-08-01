@@ -1,3 +1,14 @@
+
+.pgn pre {
+ overflow-x: auto; /* Use horizontal scroller if needed; for Firefox 2, not needed in Firefox 3 */
+ white-space: pre-wrap; /* css-3 */
+ white-space: -moz-pre-wrap !important; /* Mozilla, since 1999 */
+ white-space: -pre-wrap; /* Opera 4-6 */
+ white-space: -o-pre-wrap; /* Opera 7 */
+ /* width: 99%; */
+ word-wrap: break-word; /* Internet Explorer 5.5+ */
+}
+
 .chess-board {
   margin: 0 auto;
   position: relative;
@@ -27,3 +38,4 @@
 .chess-board .br { background: transparent url(../images/chess-sets/acmaster.gif) -136px -46px; }
 .chess-board .bq { background: transparent url(../images/chess-sets/acmaster.gif) -181px -46px; }
 .chess-board .bk { background: transparent url(../images/chess-sets/acmaster.gif) -226px -46px; }
+
