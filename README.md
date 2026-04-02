@@ -1,50 +1,102 @@
 # jChess
-A jQuery based javascript library for parsing and displaying chess games. Currently takes FEN and PGN as inputs.
 
-## Instructions
+A chess game viewer. Pass in a PGN string (or FEN position) and get an interactive board with forward/backward navigation, animated piece moves, board-flip, and annotations.
 
-Given an empty div tag like so:
+## Quick start
 
-    <div id="chess-board"></div>
+```bash
+npm install
+npm run dev      # dev server at http://localhost:5173
+```
 
-You can...
+Open `http://localhost:5173` to see the demo page with 9 example games.
 
-### 1) Create a new chess board:
-    jQuery('#chess-board').chess();
+## Usage
 
-### 2) Display a chess position using FEN:
-    jQuery('#chess-board').chess({fen : "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"});
+```html
+<div id="board" style="--jchess-size: 480px"></div>
+```
 
-And if you have a PGN game (the real point of this library):
+```typescript
+import { ChessViewer } from './src/chess.ts'
 
-    <p id="pgn-fischer-spassky">      
-      [Event "F/S Return Match"]
-      [Site "Belgrade, Serbia JUG"]
-      [Date "1992.11.04"]
-      [Round "29"]
-      [White "Fischer, Robert J."]
-      [Black "Spassky, Boris V."]
-      [Result "1/2-1/2"]
+const viewer = new ChessViewer(document.getElementById('board')!, {
+  pgn: `[White "Fischer"] [Black "Spassky"] 1. e4 e5 2. Nf3 Nc6 ...`
+})
 
-      1.e4 e5 2.Nf3 Nc6 3.Bb5 {This opening is called the Ruy Lopez.} 3...a6
-      4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 d6 8.c3 O-O 9.h3 Nb8  10.d4 Nbd7
-      11.c4 c6 12.cxb5 axb5 13.Nc3 Bb7 14.Bg5 b4 15.Nb1 h6 16.Bh4 c5 17.dxe5
-      Nxe4 18.Bxe7 Qxe7 19.exd6 Qf6 20.Nbd2 Nxd6 21.Nc4 Nxc4 22.Bxc4 Nb6
-      23.Ne5 Rae8 24.Bxf7+ Rxf7 25.Nxf7 Rxe1+ 26.Qxe1 Kxf7 27.Qe3 Qg5 28.Qxg5
-      hxg5 29.b3 Ke6 30.a3 Kd6 31.axb4 cxb4 32.Ra5 Nd5 33.f3 Bc8 34.Kf2 Bf5
-      35.Ra7 g6 36.Ra6+ Kc5 37.Ke1 Nf4 38.g3 Nxh3 39.Kd2 Kb5 40.Rd6 Kc5 41.Ra6
-      Nf2 42.g4 Bd3 43.Re6 1/2-1/2
-    </p>
+// Navigation
+viewer.next()           // step forward one half-move (animated)
+viewer.prev()           // step backward one half-move (animated)
+viewer.jumpTo(25)       // jump directly to half-move 25 (no intermediate animations)
+viewer.flip()           // flip the board
 
-You can...
+// State
+viewer.getCurrentMove()   // → 'Nf3' (SAN of the last applied move)
+viewer.getAnnotation()    // → string | undefined
+viewer.getHalfmove()      // → current half-move number (0 = start)
+viewer.getTotalMoves()    // → total number of half-moves in the game
 
-### 3) Load a chess game via PGN and play through it:
-    var chess = jQuery('#chess-board').chess({pgn : jQuery('#pgn-fischer-spassky').html()});
-    
-    chess.transitionForward();  // Moves the game forward one move
-    chess.transitionBackward(); // Moves the game backward one move
-    chess.transitionTo(n);      // Jumps to the specified halfmove
-    chess.flipBoard();          // You guessed it, flips the board
-    
+// Events
+viewer.on('move', (san, halfmove) => {
+  console.log(`Move ${halfmove}: ${san}`)
+})
 
-### See [index.html](http://bmarini.github.com/jchess/ "jChess Examples") for some real examples.
+// Load a new game without recreating the element
+viewer.loadPGN(newPgn)
+```
+
+### FEN-only (no PGN)
+
+```typescript
+const viewer = new ChessViewer(el, {
+  fen: 'rq2r1k1/1b3pp1/p3p1n1/1p4BQ/8/7R/PP3PPP/4R1K1 w - - 0 0'
+})
+```
+
+### Styling
+
+The board size and colors are controlled via CSS custom properties:
+
+| Property | Default | Description |
+|---|---|---|
+| `--jchess-size` | `400px` | Board width/height |
+| `--jchess-light` | `#f0d9b5` | Light square color |
+| `--jchess-dark` | `#b58863` | Dark square color |
+| `--jchess-anim` | `120ms` | Piece animation duration |
+
+## Development
+
+```bash
+npm run dev          # Vite dev server with hot reload
+npm test             # Run all tests once
+npm run test:watch   # Run tests in watch mode
+npm run build        # Build library to dist/
+```
+
+## Project structure
+
+```
+src/
+  types.ts        # Shared TypeScript types
+  board.ts        # FEN parser, board data model, coordinate helpers
+  pgn.ts          # PGN tokenizer and parser
+  moves.ts        # SAN parser, move source-finding, applyMove
+  transitions.ts  # Transition-list builder, GamePlayer navigation class
+  renderer.ts     # Vanilla DOM renderer — CSS board, Unicode pieces, CSS animations
+  chess.ts        # ChessViewer public API (entry point)
+  *.test.ts       # Co-located Vitest tests
+examples/
+  *.pgn           # Example PGN files used by the demo and tests
+```
+
+## Architecture
+
+The core design is a **pre-computed transition list**. When a PGN is loaded:
+
+1. `parsePGN` tokenizes the PGN into SAN move strings
+2. `buildTransitions` walks the moves, applies each to the board state, and records a `{ forward, backward }` pair of `TransitionCommand[]` for every half-move
+3. `GamePlayer` navigates via these transition lists: forward/backward steps execute the pre-computed commands in O(1); `jumpTo(n)` re-renders from the correct computed state without animating intermediate moves
+
+## Legacy version
+
+The original 2008 jQuery version is preserved in `javascripts/jchess-0.1.0.js` for reference.
