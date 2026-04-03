@@ -79,26 +79,27 @@ export default function Board({
 
   return (
     <div className="relative select-none">
-      <div className="flex">
-        {/* Rank labels */}
-        <div
-          className="flex flex-col justify-around pr-1 text-xs text-neutral-500 font-mono"
-          style={{ width: '1.2rem' }}
-        >
-          {ranks.map(r => (
-            <div
-              key={r}
-              className="flex items-center justify-center"
-              style={{ height: '12.5%', aspectRatio: '1' }}
-            >
-              {r}
+      {/* Outer frame */}
+      <div className="bg-amber-950 rounded-md shadow-lg overflow-hidden">
+        {/* Top file labels */}
+        <div className="flex" style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+          {files.map(f => (
+            <div key={f} className="flex-1 text-center text-[10px] text-amber-200/70 font-mono leading-5">
+              {f}
             </div>
           ))}
         </div>
 
-        <div className="flex flex-col flex-1">
+        <div className="flex">
+          {/* Left rank labels */}
+          <div className="flex flex-col justify-around text-[10px] text-amber-200/70 font-mono" style={{ width: '1.5rem' }}>
+            {ranks.map(r => (
+              <div key={r} className="flex-1 flex items-center justify-center">{r}</div>
+            ))}
+          </div>
+
           {/* Board: square-colored grid + absolutely-positioned pieces */}
-          <div className="relative w-full aspect-square border border-neutral-300 rounded shadow-md overflow-hidden">
+          <div className="relative flex-1 aspect-square overflow-hidden">
             {/* 8×8 colored squares — background layer */}
             <div
               className="absolute inset-0 grid"
@@ -144,7 +145,6 @@ export default function Board({
                     willChange: 'left, top',
                   }}
                 >
-                  {/* Plain img — SVGs need no Next.js optimization, and src is already prefixed */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`${pieceBase}${piece.color}${piece.type}.svg`}
@@ -157,12 +157,21 @@ export default function Board({
             })}
           </div>
 
-          {/* File labels */}
-          <div className="flex text-xs text-neutral-500 font-mono mt-0.5">
-            {files.map(f => (
-              <div key={f} className="flex-1 text-center">{f}</div>
+          {/* Right rank labels */}
+          <div className="flex flex-col justify-around text-[10px] text-amber-200/70 font-mono" style={{ width: '1.5rem' }}>
+            {ranks.map(r => (
+              <div key={r} className="flex-1 flex items-center justify-center">{r}</div>
             ))}
           </div>
+        </div>
+
+        {/* Bottom file labels */}
+        <div className="flex" style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+          {files.map(f => (
+            <div key={f} className="flex-1 text-center text-[10px] text-amber-200/70 font-mono leading-5">
+              {f}
+            </div>
+          ))}
         </div>
       </div>
     </div>

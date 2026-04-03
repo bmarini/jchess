@@ -41,9 +41,10 @@ export default function ChessApp({ initialPgn }: Props) {
   const chess = useChessGame(activeGame?.game ?? undefined)
 
   const lastCommands = useMemo(() => {
-    if (chess.halfmove === 0) return undefined
-    const t = chess.transitions[chess.halfmove - 1]
-    return t?.forward
+    const t = chess.transitions
+    const hm = chess.halfmove
+    if (hm === 0) return undefined
+    return t[hm - 1]?.forward
   }, [chess.halfmove, chess.transitions])
 
   const handleLoadPGN = useCallback((pgn: string) => {
@@ -183,24 +184,26 @@ export default function ChessApp({ initialPgn }: Props) {
           <GameInfo game={activeGame?.game ?? null} />
           <div className="flex-1 overflow-hidden p-3">
             <MoveList
-              transitions={chess.transitions}
-              halfmove={chess.halfmove}
-              isInVariation={chess.isInVariation}
+              transitions={chess.mainTransitions}
+              mainHalfmove={chess.mainHalfmove}
+              activeVarPath={chess.activeVarPath}
+              varHalfmove={chess.varHalfmove}
               onJump={chess.jumpTo}
               onJumpToVariation={chess.jumpToVariation}
               preAnnotation={activeGame?.game.preAnnotation}
             />
           </div>
-          {chess.annotation && (
-            <div className="border-t border-neutral-200 dark:border-neutral-800 p-3 shrink-0">
-              <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">
-                Annotation
-              </div>
-              <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed italic">
+          <div className="h-1/3 shrink-0 border-t border-neutral-200 dark:border-neutral-800 p-3 overflow-y-auto">
+            {chess.annotation ? (
+              <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed italic">
                 &ldquo;{chess.annotation}&rdquo;
               </p>
-            </div>
-          )}
+            ) : (
+              <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">
+                Navigate to an annotated move to see commentary
+              </p>
+            )}
+          </div>
         </aside>
       </div>
     </div>

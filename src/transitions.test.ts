@@ -297,6 +297,45 @@ describe('GamePlayer – variation navigation', () => {
     expect(player.currentSAN).toBe('d4')
   })
 
+  it('jumpToVariation path navigates nested variations correctly', () => {
+    // Simulates the UI's jumpToVariation: exit all, follow path, jump to target
+    const player = makePlayer('1. e4 e5 (1... c5 2. Nf3 (2. d4)) 2. Nf3')
+    const path = [
+      { halfmove: 1, varIndex: 0 },  // enter outer var (alt to e5) from main line
+      { halfmove: 1, varIndex: 0 },  // enter inner var (alt to Nf3) from outer var
+    ]
+    // Follow the path
+    for (const step of path) {
+      player.jumpTo(step.halfmove)
+      player.enterVariation(step.varIndex)
+    }
+    player.jumpTo(1) // after d4
+    expect(player.currentSAN).toBe('d4')
+    expect(player.isInVariation).toBe(true)
+  })
+
+  it('jumpToVariation path works with deeply nested variations', () => {
+    const player = makePlayer(
+      '1. e4 c5 (1... e5 2. Nf3 Nc6 3. Bb5 (3. d4 exd4 4. Nxd4)) 2. Nf3 d6 1-0'
+    )
+    // Path to the nested variation (3. d4 exd4 4. Nxd4) inside (1... e5 ... 3. Bb5)
+    const path = [
+      { halfmove: 1, varIndex: 0 },  // enter outer var (alt to c5)
+      { halfmove: 3, varIndex: 0 },  // enter inner var (alt to Bb5)
+    ]
+    for (const step of path) {
+      player.jumpTo(step.halfmove)
+      player.enterVariation(step.varIndex)
+    }
+    // Navigate to Nxd4 (3rd move in the nested variation)
+    player.jumpTo(3)
+    expect(player.currentSAN).toBe('Nxd4')
+    expect(player.isInVariation).toBe(true)
+    // Navigate to d4 (1st move)
+    player.jumpTo(1)
+    expect(player.currentSAN).toBe('d4')
+  })
+
   it('positionAt(0) inside a variation is the branch point position', () => {
     // 1.e4 (1.d4 d5) e5 — variation on e4 starts from initial position
     const player = makePlayer('1. e4 (1. d4 d5) e5')

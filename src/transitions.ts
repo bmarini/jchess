@@ -191,6 +191,12 @@ export class GamePlayer {
   /** The transitions for the currently active line (main line or a variation). */
   get transitions(): Transition[] { return this._cur.transitions }
 
+  /** The main line transitions (always the root, even when inside a variation). */
+  get mainTransitions(): Transition[] { return this._stack[0]!.transitions }
+
+  /** The main line halfmove (branch point when inside a variation). */
+  get mainHalfmove(): number { return this._stack[0]!.halfmove }
+
   get halfmove(): number { return this._cur.halfmove }
   get totalMoves(): number { return this._cur.transitions.length }
   get isInVariation(): boolean { return this._stack.length > 1 }

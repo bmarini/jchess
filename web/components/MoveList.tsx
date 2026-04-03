@@ -6,17 +6,27 @@ import type { VarStep } from '@/hooks/useChessGame'
 
 type Props = {
   transitions: Transition[]
-  halfmove: number
-  isInVariation: boolean
+  mainHalfmove: number
+  activeVarPath: VarStep[]
+  varHalfmove: number
   onJump: (n: number) => void
   onJumpToVariation: (path: VarStep[], varHalfmove: number) => void
   preAnnotation?: string
 }
 
+function pathEquals(a: VarStep[], b: VarStep[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]!.halfmove !== b[i]!.halfmove || a[i]!.varIndex !== b[i]!.varIndex) return false
+  }
+  return true
+}
+
 export default function MoveList({
   transitions,
-  halfmove,
-  isInVariation,
+  mainHalfmove,
+  activeVarPath,
+  varHalfmove,
   onJump,
   onJumpToVariation,
   preAnnotation,
@@ -25,7 +35,7 @@ export default function MoveList({
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [halfmove])
+  }, [mainHalfmove, varHalfmove, activeVarPath])
 
   return (
     <div className="h-full overflow-y-auto text-sm leading-relaxed font-mono">
@@ -37,8 +47,9 @@ export default function MoveList({
       <MoveTree
         transitions={transitions}
         startHalfmove={1}
-        currentHalfmove={halfmove}
-        isInVariation={isInVariation}
+        mainHalfmove={mainHalfmove}
+        activeVarPath={activeVarPath}
+        varHalfmove={varHalfmove}
         onJump={onJump}
         onJumpToVariation={onJumpToVariation}
         activeRef={activeRef}
@@ -51,26 +62,29 @@ export default function MoveList({
 type TreeProps = {
   transitions: Transition[]
   startHalfmove: number
-  currentHalfmove: number
-  isInVariation: boolean
+  mainHalfmove: number
+  activeVarPath: VarStep[]
+  varHalfmove: number
   onJump: (n: number) => void
   onJumpToVariation: (path: VarStep[], varHalfmove: number) => void
   activeRef: React.MutableRefObject<HTMLButtonElement | null>
-  /** Path of variation steps from the main line to reach this tree. Empty = main line. */
   varPath: VarStep[]
 }
 
 function MoveTree({
   transitions,
   startHalfmove,
-  currentHalfmove,
-  isInVariation,
+  mainHalfmove,
+  activeVarPath,
+  varHalfmove,
   onJump,
   onJumpToVariation,
   activeRef,
   varPath,
 }: TreeProps) {
   const isVariation = varPath.length > 0
+  const isActiveVar = isVariation && pathEquals(varPath, activeVarPath)
+  const isOnMainLine = activeVarPath.length === 0
   const items: React.ReactNode[] = []
 
   for (let i = 0; i < transitions.length; i++) {
@@ -78,7 +92,11 @@ function MoveTree({
     const hm = startHalfmove + i
     const moveNum = Math.ceil(hm / 2)
     const isWhite = hm % 2 === 1
-    const isCurrent = !isVariation && hm === currentHalfmove
+    const localHm = hm - startHalfmove + 1
+
+    const isCurrent = isActiveVar
+      ? localHm === varHalfmove
+      : !isVariation && isOnMainLine && hm === mainHalfmove
 
     // Move number
     if (isWhite) {
@@ -97,7 +115,7 @@ function MoveTree({
 
     // Move button
     const handleClick = isVariation
-      ? () => onJumpToVariation(varPath, hm - startHalfmove + 1)
+      ? () => onJumpToVariation(varPath, localHm)
       : () => onJump(hm)
 
     items.push(
@@ -109,23 +127,16 @@ function MoveTree({
           'px-1 py-0.5 rounded transition-colors mr-0.5',
           isCurrent
             ? 'bg-blue-600 text-white font-semibold'
-            : isVariation
-              ? 'text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400'
-              : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200',
+            : t.annotation
+              ? 'text-amber-700 dark:text-amber-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+              : isVariation
+                ? 'text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400'
+                : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200',
         ].join(' ')}
       >
         {t.san}
       </button>
     )
-
-    // Annotation after this move
-    if (t.annotation) {
-      items.push(
-        <span key={`ann-${hm}`} className="text-neutral-500 dark:text-neutral-400 italic text-xs mx-1 font-sans">
-          {t.annotation}
-        </span>
-      )
-    }
 
     // Variations — rendered as indented block elements
     if (t.variations.length > 0) {
@@ -141,8 +152,9 @@ function MoveTree({
             <MoveTree
               transitions={varTransitions}
               startHalfmove={hm}
-              currentHalfmove={currentHalfmove}
-              isInVariation={isInVariation}
+              mainHalfmove={mainHalfmove}
+              activeVarPath={activeVarPath}
+              varHalfmove={varHalfmove}
               onJump={onJump}
               onJumpToVariation={onJumpToVariation}
               activeRef={activeRef}

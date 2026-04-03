@@ -14,15 +14,23 @@ export type ChessGameState = {
   totalMoves: number
   currentSAN: string | null
   annotation: string | undefined
+  /** Always the main line transitions (for MoveList to render the full tree). */
+  mainTransitions: Transition[]
+  /** Current line transitions (main or variation — for Controls canNext/canPrev). */
   transitions: Transition[]
   isInVariation: boolean
+  /** Path to the active variation (empty when on main line). */
+  activeVarPath: VarStep[]
+  /** Halfmove within the active variation (only meaningful when activeVarPath is non-empty). */
+  varHalfmove: number
+  /** Halfmove on the main line (branch point when inside a variation). */
+  mainHalfmove: number
   flipped: boolean
   warnings: string[]
 
   next: () => void
   prev: () => void
   jumpTo: (n: number) => void
-  /** Jump into a variation (possibly nested) by following a path of steps from the main line. */
   jumpToVariation: (path: VarStep[], varHalfmove: number) => void
   flip: () => void
   enterVariation: (index: number) => void
@@ -37,27 +45,19 @@ function makePlayer(game: ParsedGame, fen?: string): { player: GamePlayer; warni
 }
 
 export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameState {
-  // Player lives in a ref — it's mutable, not React-managed state.
-  // We drive re-renders via halfmove + tick below.
   const playerRef = useRef<GamePlayer | null>(null)
   const warningsRef = useRef<string[]>([])
 
-  // Initialize synchronously on first render. The `if` guard ensures this
-  // runs only once even under React Strict Mode's double-invoke of the component body.
   if (playerRef.current === null && initialGame) {
     const { player, warnings } = makePlayer(initialGame, fen)
     playerRef.current = player
     warningsRef.current = warnings
   }
 
-  // halfmove is React state — changing it triggers a re-render.
   const [halfmove, setHalfmove] = useState(0)
-  // tick forces a re-render when variation stack changes (isInVariation, transitions).
   const [tick, setTick] = useState(0)
   const [flipped, setFlipped] = useState(false)
-
-  // All callbacks mutate playerRef.current directly (not inside a setState updater).
-  // React Strict Mode only double-invokes updater functions — callbacks are safe.
+  const [activeVarPath, setActiveVarPath] = useState<VarStep[]>([])
 
   const next = useCallback(() => {
     const p = playerRef.current
@@ -76,6 +76,12 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
   const jumpTo = useCallback((n: number) => {
     const p = playerRef.current
     if (!p) return
+    // If clicking a main line move while in a variation, exit first
+    if (p.isInVariation) {
+      while (p.isInVariation) p.exitVariation()
+      setActiveVarPath([])
+      setTick(t => t + 1)
+    }
     p.jumpTo(n)
     setHalfmove(p.halfmove)
   }, [])
@@ -91,7 +97,8 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
   const exitVariation = useCallback(() => {
     const p = playerRef.current
     if (!p) return
-    p.exitVariation()
+    while (p.isInVariation) p.exitVariation()
+    setActiveVarPath([])
     setHalfmove(p.halfmove)
     setTick(t => t + 1)
   }, [])
@@ -105,6 +112,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
       p.enterVariation(step.varIndex)
     }
     p.jumpTo(varHalfmove)
+    setActiveVarPath(path)
     setHalfmove(p.halfmove)
     setTick(t => t + 1)
   }, [])
@@ -115,6 +123,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     const { player, warnings } = makePlayer(game, fenStr)
     playerRef.current = player
     warningsRef.current = warnings
+    setActiveVarPath([])
     setHalfmove(0)
     setTick(t => t + 1)
   }, [])
@@ -131,8 +140,12 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
         ? p.transitions[halfmove - 1]?.annotation
         : p.transitions[0]?.annotation
       : undefined,
+    mainTransitions: p?.mainTransitions ?? [],
     transitions: p?.transitions ?? [],
     isInVariation: p?.isInVariation ?? false,
+    activeVarPath,
+    varHalfmove: halfmove,
+    mainHalfmove: p?.mainHalfmove ?? 0,
     flipped,
     warnings: warningsRef.current,
     next,
