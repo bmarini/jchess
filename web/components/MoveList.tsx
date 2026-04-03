@@ -146,7 +146,7 @@ function MoveTree({
               onJump={onJump}
               onJumpToVariation={onJumpToVariation}
               activeRef={activeRef}
-              varPath={[...varPath, { halfmove: hm - 1, varIndex: v }]}
+              varPath={[...varPath, { halfmove: hm - startHalfmove, varIndex: v }]}
             />
           </div>
         )
