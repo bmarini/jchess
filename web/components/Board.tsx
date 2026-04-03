@@ -1,12 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import type { Position } from '@chess/board'
 import type { TransitionCommand } from '@chess/types'
-
-const PIECE_GLYPHS: Record<string, string> = {
-  wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
-  bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟',
-}
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1']
@@ -15,6 +11,7 @@ type Props = {
   position: Position | null
   flipped?: boolean
   lastCommands?: TransitionCommand[]
+  pieceBase?: string
 }
 
 function getLastMoveSquares(commands: TransitionCommand[] | undefined): Set<string> {
@@ -27,7 +24,12 @@ function getLastMoveSquares(commands: TransitionCommand[] | undefined): Set<stri
   return squares
 }
 
-export default function Board({ position, flipped = false, lastCommands }: Props) {
+export default function Board({
+  position,
+  flipped = false,
+  lastCommands,
+  pieceBase = '/pieces/mpchess/',
+}: Props) {
   const highlightedSquares = getLastMoveSquares(lastCommands)
 
   const files = flipped ? [...FILES].reverse() : FILES
@@ -51,33 +53,32 @@ export default function Board({ position, flipped = false, lastCommands }: Props
             className="grid border border-neutral-300 rounded shadow-md overflow-hidden"
             style={{ gridTemplateColumns: 'repeat(8, 1fr)', gridTemplateRows: 'repeat(8, 1fr)' }}
           >
-            {ranks.map((rank, ri) =>
-              files.map((file, fi) => {
+            {ranks.map(rank =>
+              files.map(file => {
                 const square = file + rank
                 const isLight = (FILES.indexOf(file) + RANKS.indexOf(rank)) % 2 === 0
                 const isHighlighted = highlightedSquares.has(square)
                 const piece = position?.get(square)
+                const src = piece ? `${pieceBase}${piece.color}${piece.type}.svg` : null
 
                 return (
                   <div
                     key={square}
                     className={[
-                      'flex items-center justify-center aspect-square',
+                      'relative aspect-square',
                       isHighlighted
                         ? isLight ? 'bg-yellow-200' : 'bg-yellow-500'
                         : isLight ? 'bg-amber-100' : 'bg-amber-800',
                     ].join(' ')}
                   >
-                    {piece && (
-                      <span
-                        className={[
-                          'text-3xl leading-none cursor-default',
-                          piece.color === 'w' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]' : 'text-neutral-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.3)]',
-                        ].join(' ')}
-                        style={{ fontSize: 'min(6vw, 2.5rem)' }}
-                      >
-                        {PIECE_GLYPHS[piece.color + piece.type] ?? '?'}
-                      </span>
+                    {src && (
+                      <Image
+                        src={src}
+                        alt={`${piece!.color}${piece!.type}`}
+                        fill
+                        className="p-[6%] drop-shadow-sm"
+                        draggable={false}
+                      />
                     )}
                   </div>
                 )

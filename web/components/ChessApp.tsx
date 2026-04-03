@@ -139,7 +139,7 @@ export default function ChessApp({ initialPgn }: Props) {
         </main>
 
         {/* Right panel: move list + annotation */}
-        <aside className="w-64 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+        <aside className="w-96 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-hidden p-3">
             <MoveList
               transitions={chess.transitions}
