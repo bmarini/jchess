@@ -6,6 +6,7 @@ import Controls from './Controls'
 import MoveList from './MoveList'
 import GameList from './GameList'
 import PGNInput from './PGNInput'
+import GameInfo from './GameInfo'
 import { useChessGame } from '@/hooks/useChessGame'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { EXAMPLE_GAMES } from '@/lib/examples'
@@ -177,8 +178,9 @@ export default function ChessApp({ initialPgn }: Props) {
           )}
         </main>
 
-        {/* Right panel: move list + annotation */}
+        {/* Right panel: game info + move list + annotation */}
         <aside className="w-96 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+          <GameInfo game={activeGame?.game ?? null} />
           <div className="flex-1 overflow-hidden p-3">
             <MoveList
               transitions={chess.transitions}

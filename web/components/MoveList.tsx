@@ -68,37 +68,36 @@ function MoveTree({
   activeRef,
   varContext,
 }: TreeProps) {
-  const nodes: React.ReactNode[] = []
+  const items: React.ReactNode[] = []
 
   for (let i = 0; i < transitions.length; i++) {
     const t = transitions[i]!
     const hm = startHalfmove + i
     const moveNum = Math.ceil(hm / 2)
     const isWhite = hm % 2 === 1
-    // Highlight current move only in the main line (not inside variation previews)
-    const isCurrent = !varContext && !isInVariation && hm === currentHalfmove
+    const isCurrent = !varContext && hm === currentHalfmove
 
     // Move number
     if (isWhite) {
-      nodes.push(
+      items.push(
         <span key={`num-${hm}`} className="text-neutral-400 mr-0.5 select-none">
           {moveNum}.
         </span>
       )
     } else if (i === 0) {
-      nodes.push(
+      items.push(
         <span key={`num-${hm}`} className="text-neutral-400 mr-0.5 select-none">
           {moveNum}...
         </span>
       )
     }
 
-    // Move button — calls jumpToVariation if inside a variation context, jumpTo otherwise
+    // Move button
     const handleClick = varContext
       ? () => onJumpToVariation(varContext.mainHalfmove, varContext.varIndex, hm - startHalfmove + 1)
       : () => onJump(hm)
 
-    nodes.push(
+    items.push(
       <button
         key={`move-${hm}`}
         ref={isCurrent ? (el => { activeRef.current = el }) : undefined}
@@ -108,7 +107,7 @@ function MoveTree({
           isCurrent
             ? 'bg-blue-600 text-white font-semibold'
             : varContext
-              ? 'text-neutral-500 hover:text-blue-600 dark:hover:text-blue-400'
+              ? 'text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400'
               : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200',
         ].join(' ')}
       >
@@ -118,40 +117,50 @@ function MoveTree({
 
     // Annotation after this move
     if (t.annotation) {
-      nodes.push(
-        <span key={`ann-${hm}`} className="text-neutral-500 italic text-xs mx-1 font-sans">
+      items.push(
+        <span key={`ann-${hm}`} className="text-neutral-500 dark:text-neutral-400 italic text-xs mx-1 font-sans">
           {t.annotation}
         </span>
       )
     }
 
-    // Variations — each variation is a span (not a button) containing individual move buttons
+    // Variations — rendered as indented block elements (not inline)
     if (!varContext && t.variations.length > 0) {
+      const varBlocks: React.ReactNode[] = []
       for (let v = 0; v < t.variations.length; v++) {
         const varTransitions = t.variations[v]!
         if (varTransitions.length === 0) continue
-        nodes.push(
-          <span key={`var-open-${hm}-${v}`} className="text-neutral-400 mx-0.5">{'('}</span>
+        varBlocks.push(
+          <div
+            key={v}
+            className="flex flex-wrap items-baseline gap-x-0.5 gap-y-0.5 pl-2 border-l-2 border-neutral-300 dark:border-neutral-600 text-neutral-500 dark:text-neutral-400 my-0.5"
+          >
+            <MoveTree
+              transitions={varTransitions}
+              startHalfmove={hm}
+              currentHalfmove={currentHalfmove}
+              isInVariation={isInVariation}
+              onJump={onJump}
+              onJumpToVariation={onJumpToVariation}
+              activeRef={activeRef}
+              varContext={{ mainHalfmove: hm - 1, varIndex: v }}
+            />
+          </div>
         )
-        nodes.push(
-          <MoveTree
-            key={`var-tree-${hm}-${v}`}
-            transitions={varTransitions}
-            startHalfmove={hm}
-            currentHalfmove={currentHalfmove}
-            isInVariation={isInVariation}
-            onJump={onJump}
-            onJumpToVariation={onJumpToVariation}
-            activeRef={activeRef}
-            varContext={{ mainHalfmove: hm - 1, varIndex: v }}
-          />
-        )
-        nodes.push(
-          <span key={`var-close-${hm}-${v}`} className="text-neutral-400 mx-0.5">{')'}</span>
+      }
+      if (varBlocks.length > 0) {
+        items.push(
+          <div key={`vars-${hm}`} className="w-full ml-2 my-0.5 flex flex-col gap-0.5">
+            {varBlocks}
+          </div>
         )
       }
     }
   }
 
-  return <>{nodes}</>
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-0.5 gap-y-0.5">
+      {items}
+    </div>
+  )
 }
