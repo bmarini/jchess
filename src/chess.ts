@@ -1,4 +1,4 @@
-import { parseFEN, STARTING_FEN } from './board.js'
+import { Position, STARTING_FEN } from './board.js'
 import { parsePGN } from './pgn.js'
 import { Renderer } from './renderer.js'
 import { buildTransitions, GamePlayer } from './transitions.js'
@@ -6,9 +6,9 @@ import type { ChessViewerOptions } from './types.js'
 
 export type { ChessViewerOptions } from './types.js'
 export type { ParsedGame } from './types.js'
-export type { GameState, Board, Piece, Square, Color, PieceType } from './types.js'
+export type { Board, Piece, Square, Color, PieceType, CastlingRights } from './types.js'
 export { parsePGN } from './pgn.js'
-export { parseFEN, STARTING_FEN } from './board.js'
+export { Position, STARTING_FEN } from './board.js'
 export { buildTransitions, GamePlayer } from './transitions.js'
 
 type MoveEventHandler = (san: string, halfmove: number) => void
@@ -34,19 +34,17 @@ export class ChessViewer {
   constructor(container: HTMLElement, options: ChessViewerOptions = {}) {
     this.renderer = new Renderer(container)
 
-    const fenStr = options.fen ?? STARTING_FEN
-    const initialState = parseFEN(fenStr)
+    const initial = options.fen ? Position.fromFEN(options.fen) : Position.starting()
 
     if (options.pgn) {
-      const game = parsePGN(options.pgn)
-      const result = buildTransitions(game, initialState)
+      const result = buildTransitions(parsePGN(options.pgn), initial)
       if (result.warnings.length > 0) {
         console.warn('[jchess] Move parse warnings:', result.warnings)
       }
       this.player = new GamePlayer(result)
-      this.renderer.render(result.initialState)
+      this.renderer.render(result.initialPosition)
     } else {
-      this.renderer.render(initialState)
+      this.renderer.render(initial)
     }
   }
 
@@ -75,8 +73,7 @@ export class ChessViewer {
   jumpTo(halfmove: number): void {
     if (!this.player) return
     this.player.jumpTo(halfmove)
-    const state = this.player.stateAt(halfmove)
-    this.renderer.render(state)
+    this.renderer.render(this.player.positionAt(halfmove))
     this.emit()
   }
 
@@ -125,14 +122,12 @@ export class ChessViewer {
   // ── Reload ──────────────────────────────────────────────────────────────────
 
   loadPGN(pgn: string, fen?: string): void {
-    const fenStr = fen ?? STARTING_FEN
-    const initialState = parseFEN(fenStr)
-    const game = parsePGN(pgn)
-    const result = buildTransitions(game, initialState)
+    const initial = fen ? Position.fromFEN(fen) : Position.starting()
+    const result = buildTransitions(parsePGN(pgn), initial)
     if (result.warnings.length > 0) {
       console.warn('[jchess] Move parse warnings:', result.warnings)
     }
     this.player = new GamePlayer(result)
-    this.renderer.render(result.initialState)
+    this.renderer.render(result.initialPosition)
   }
 }

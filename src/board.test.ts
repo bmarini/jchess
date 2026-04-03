@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
-  parseFEN, boardGet, boardSet, squareToCoord, coordToSquare,
-  boardToFENRanks, STARTING_FEN, resetPieceIds,
+  Position, boardGet, boardSet, boardToFENRanks,
+  squareToCoord, coordToSquare, STARTING_FEN, resetPieceIds,
 } from './board.js'
 
 beforeEach(() => resetPieceIds())
@@ -26,107 +26,111 @@ describe('squareToCoord / coordToSquare', () => {
   })
 })
 
-describe('parseFEN – starting position', () => {
+describe('Position.fromFEN – starting position', () => {
   it('parses without throwing', () => {
-    expect(() => parseFEN(STARTING_FEN)).not.toThrow()
+    expect(() => Position.fromFEN(STARTING_FEN)).not.toThrow()
   })
 
   it('places white king on e1', () => {
-    const { board } = parseFEN(STARTING_FEN)
-    const piece = boardGet(board, 'e1')
-    expect(piece?.type).toBe('K')
-    expect(piece?.color).toBe('w')
+    expect(Position.fromFEN(STARTING_FEN).get('e1')).toMatchObject({ type: 'K', color: 'w' })
   })
 
   it('places black king on e8', () => {
-    const { board } = parseFEN(STARTING_FEN)
-    const piece = boardGet(board, 'e8')
-    expect(piece?.type).toBe('K')
-    expect(piece?.color).toBe('b')
+    expect(Position.fromFEN(STARTING_FEN).get('e8')).toMatchObject({ type: 'K', color: 'b' })
   })
 
   it('e4 is empty', () => {
-    const { board } = parseFEN(STARTING_FEN)
-    expect(boardGet(board, 'e4')).toBeNull()
+    expect(Position.fromFEN(STARTING_FEN).get('e4')).toBeNull()
   })
 
   it('active color is white', () => {
-    expect(parseFEN(STARTING_FEN).activeColor).toBe('w')
+    expect(Position.fromFEN(STARTING_FEN).activeColor).toBe('w')
   })
 
   it('all castling rights available', () => {
-    const { castlingRights } = parseFEN(STARTING_FEN)
-    expect(castlingRights).toEqual({ K: true, Q: true, k: true, q: true })
+    expect(Position.fromFEN(STARTING_FEN).castlingRights).toEqual({ K: true, Q: true, k: true, q: true })
   })
 
   it('no en passant square', () => {
-    expect(parseFEN(STARTING_FEN).enPassantSquare).toBeNull()
+    expect(Position.fromFEN(STARTING_FEN).enPassantSquare).toBeNull()
   })
 })
 
-describe('parseFEN – mid-game position', () => {
+describe('Position.starting()', () => {
+  it('is equivalent to fromFEN(STARTING_FEN)', () => {
+    const a = Position.fromFEN(STARTING_FEN)
+    resetPieceIds()
+    const b = Position.starting()
+    expect(boardToFENRanks(a.board)).toBe(boardToFENRanks(b.board))
+    expect(a.activeColor).toBe(b.activeColor)
+    expect(a.castlingRights).toEqual(b.castlingRights)
+  })
+})
+
+describe('Position.fromFEN – mid-game position', () => {
   const fen = 'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2'
 
   it('parses active color as black', () => {
-    expect(parseFEN(fen).activeColor).toBe('b')
+    expect(Position.fromFEN(fen).activeColor).toBe('b')
   })
 
   it('places white knight on f3', () => {
-    const { board } = parseFEN(fen)
-    const piece = boardGet(board, 'f3')
-    expect(piece?.type).toBe('N')
-    expect(piece?.color).toBe('w')
+    expect(Position.fromFEN(fen).get('f3')).toMatchObject({ type: 'N', color: 'w' })
   })
 
   it('places black pawn on c5', () => {
-    const { board } = parseFEN(fen)
-    const piece = boardGet(board, 'c5')
-    expect(piece?.type).toBe('P')
-    expect(piece?.color).toBe('b')
+    expect(Position.fromFEN(fen).get('c5')).toMatchObject({ type: 'P', color: 'b' })
   })
 
   it('e4 has white pawn', () => {
-    const { board } = parseFEN(fen)
-    const piece = boardGet(board, 'e4')
-    expect(piece?.type).toBe('P')
-    expect(piece?.color).toBe('w')
+    expect(Position.fromFEN(fen).get('e4')).toMatchObject({ type: 'P', color: 'w' })
   })
 })
 
-describe('parseFEN – en passant', () => {
+describe('Position.fromFEN – en passant', () => {
   it('parses en passant square', () => {
     const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
-    expect(parseFEN(fen).enPassantSquare).toBe('e3')
+    expect(Position.fromFEN(fen).enPassantSquare).toBe('e3')
   })
 })
 
-describe('parseFEN – partial castling rights', () => {
+describe('Position.fromFEN – partial castling rights', () => {
   it('parses only kingside white', () => {
     const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w K - 0 1'
-    const { castlingRights } = parseFEN(fen)
-    expect(castlingRights).toEqual({ K: true, Q: false, k: false, q: false })
+    expect(Position.fromFEN(fen).castlingRights).toEqual({ K: true, Q: false, k: false, q: false })
   })
 })
 
-describe('parseFEN – custom position (FEN from demo)', () => {
+describe('Position.fromFEN – custom position', () => {
   it('parses the rq2r1k1 position without throwing', () => {
-    expect(() => parseFEN('rq2r1k1/1b3pp1/p3p1n1/1p4BQ/8/7R/PP3PPP/4R1K1 w - - 0 0')).not.toThrow()
+    expect(() => Position.fromFEN('rq2r1k1/1b3pp1/p3p1n1/1p4BQ/8/7R/PP3PPP/4R1K1 w - - 0 0')).not.toThrow()
+  })
+})
+
+describe('Position.toFEN()', () => {
+  it('round-trips the starting position', () => {
+    expect(Position.fromFEN(STARTING_FEN).toFEN()).toBe(STARTING_FEN)
+  })
+
+  it('round-trips a mid-game position', () => {
+    const fen = 'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2'
+    expect(Position.fromFEN(fen).toFEN()).toBe(fen)
   })
 })
 
 describe('boardSet', () => {
-  it('places a piece without mutating the original', () => {
-    const { board } = parseFEN(STARTING_FEN)
-    const piece = boardGet(board, 'e2')!
-    const next = boardSet(board, 'e4', piece)
+  it('places a piece without mutating the original board', () => {
+    const pos = Position.fromFEN(STARTING_FEN)
+    const piece = pos.get('e2')!
+    const next = boardSet(pos.board, 'e4', piece)
     expect(boardGet(next, 'e4')).toBe(piece)
-    expect(boardGet(board, 'e4')).toBeNull()  // original unchanged
+    expect(pos.get('e4')).toBeNull()  // original position unchanged
   })
 })
 
 describe('boardToFENRanks', () => {
   it('round-trips the starting position ranks', () => {
-    const { board } = parseFEN(STARTING_FEN)
-    expect(boardToFENRanks(board)).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+    expect(boardToFENRanks(Position.fromFEN(STARTING_FEN).board))
+      .toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
   })
 })

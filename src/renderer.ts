@@ -1,5 +1,5 @@
-import { boardGet, coordToSquare, squareToCoord } from './board.js'
-import type { Board, Color, GameState, Piece, PieceType, Square, TransitionCommand } from './types.js'
+import { coordToSquare, Position, squareToCoord } from './board.js'
+import type { Color, Piece, PieceType, Square, TransitionCommand } from './types.js'
 
 // ── Unicode piece glyphs ──────────────────────────────────────────────────────
 
@@ -141,12 +141,12 @@ export class Renderer {
     return this.squareEl(row, col)
   }
 
-  /** Full render of board state. No animations. */
-  render(state: GameState): void {
+  /** Full render of a position. No animations. */
+  render(position: Position): void {
     this.clearPieces()
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
-        const piece = state.board[row]?.[col]
+        const piece = position.board[row]?.[col]
         if (piece) this.placePiece(piece, coordToSquare(row, col))
       }
     }

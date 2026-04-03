@@ -1,5 +1,5 @@
-import { boardGet, coordToSquare, isOnBoard, squareToCoord } from './board.js'
-import type { Board, Color, GameState, Piece, PieceType, Square, Vector } from './types.js'
+import { boardGet, coordToSquare, isOnBoard, Position, squareToCoord } from './board.js'
+import type { Board, CastlingRights, Color, Piece, PieceType, Square, Vector } from './types.js'
 
 // ── Piece vectors ─────────────────────────────────────────────────────────────
 
@@ -326,23 +326,23 @@ export function parseSAN(san: string): ParsedMove | null {
 // ── Apply a move to GameState (for use by transitions builder) ────────────────
 
 export type MoveApplication = {
-  /** New game state after the move */
-  state: GameState
+  /** New position after the move */
+  position: Position
   /** The piece that was captured, if any */
   captured: Piece | null
   /** The square from which the piece moved */
   fromSquare: Square
 }
 
-export function applyMove(state: GameState, san: string): MoveApplication | null {
+export function applyMove(position: Position, san: string): MoveApplication | null {
   const parsed = parseSAN(san)
   if (!parsed) return null
 
-  const { board, activeColor } = state
+  const { board, activeColor } = position
   const color = activeColor
 
   if (parsed.kind === 'castle') {
-    return applyCastle(state, parsed.side)
+    return applyCastle(position, parsed.side)
   }
 
   const { pieceType, dstSquare, hintFile, hintRank, promotion } = parsed
@@ -369,13 +369,12 @@ export function applyMove(state: GameState, san: string): MoveApplication | null
   let epCaptureSquare: Square | null = null
 
   if (pieceType === 'P' && parsed.capture && captured === null) {
-    // En passant
     epCaptureSquare = dstSquare[0]! + fromSquare[1]!
     captured = boardGet(board, epCaptureSquare)
   }
 
   // Build new board
-  let newBoard = board.map(row => row.slice()) as typeof board
+  const newBoard = board.map(row => row.slice()) as typeof board
 
   const movingPiece = boardGet(newBoard, fromSquare)!
   newBoard[squareToCoord(fromSquare)[0]]![squareToCoord(fromSquare)[1]] = null
@@ -387,7 +386,7 @@ export function applyMove(state: GameState, san: string): MoveApplication | null
     : movingPiece
 
   // Update castling rights
-  const cr = { ...state.castlingRights }
+  const cr: CastlingRights = { ...position.castlingRights }
   if (pieceType === 'K') {
     if (color === 'w') { cr.K = false; cr.Q = false }
     else               { cr.k = false; cr.q = false }
@@ -407,20 +406,22 @@ export function applyMove(state: GameState, san: string): MoveApplication | null
     }
   }
 
-  const newState: GameState = {
-    board: newBoard,
-    activeColor: color === 'w' ? 'b' : 'w',
-    castlingRights: cr,
-    enPassantSquare: newEP,
-    halfmoveClock: (pieceType === 'P' || captured !== null) ? 0 : state.halfmoveClock + 1,
-    fullmoveNumber: color === 'b' ? state.fullmoveNumber + 1 : state.fullmoveNumber,
+  return {
+    position: new Position(
+      newBoard,
+      color === 'w' ? 'b' : 'w',
+      cr,
+      newEP,
+      (pieceType === 'P' || captured !== null) ? 0 : position.halfmoveClock + 1,
+      color === 'b' ? position.fullmoveNumber + 1 : position.fullmoveNumber,
+    ),
+    captured,
+    fromSquare,
   }
-
-  return { state: newState, captured, fromSquare }
 }
 
-function applyCastle(state: GameState, side: 'K' | 'Q'): MoveApplication {
-  const color = state.activeColor
+function applyCastle(position: Position, side: 'K' | 'Q'): MoveApplication {
+  const color = position.activeColor
   const rank = color === 'w' ? '1' : '8'
 
   const kingFrom: Square = 'e' + rank
@@ -428,7 +429,7 @@ function applyCastle(state: GameState, side: 'K' | 'Q'): MoveApplication {
   const rookFrom: Square = side === 'K' ? 'h' + rank : 'a' + rank
   const rookTo:   Square = side === 'K' ? 'f' + rank : 'd' + rank
 
-  let newBoard = state.board.map(row => row.slice()) as typeof state.board
+  const newBoard = position.board.map(row => row.slice()) as typeof position.board
 
   const king = boardGet(newBoard, kingFrom)!
   const rook = boardGet(newBoard, rookFrom)!
@@ -438,18 +439,20 @@ function applyCastle(state: GameState, side: 'K' | 'Q'): MoveApplication {
   newBoard[squareToCoord(kingTo)[0]]![squareToCoord(kingTo)[1]] = king
   newBoard[squareToCoord(rookTo)[0]]![squareToCoord(rookTo)[1]] = rook
 
-  const cr = { ...state.castlingRights }
+  const cr: CastlingRights = { ...position.castlingRights }
   if (color === 'w') { cr.K = false; cr.Q = false }
   else               { cr.k = false; cr.q = false }
 
-  const newState: GameState = {
-    board: newBoard,
-    activeColor: color === 'w' ? 'b' : 'w',
-    castlingRights: cr,
-    enPassantSquare: null,
-    halfmoveClock: state.halfmoveClock + 1,
-    fullmoveNumber: color === 'b' ? state.fullmoveNumber + 1 : state.fullmoveNumber,
+  return {
+    position: new Position(
+      newBoard,
+      color === 'w' ? 'b' : 'w',
+      cr,
+      null,
+      position.halfmoveClock + 1,
+      color === 'b' ? position.fullmoveNumber + 1 : position.fullmoveNumber,
+    ),
+    captured: null,
+    fromSquare: kingFrom,
   }
-
-  return { state: newState, captured: null, fromSquare: kingFrom }
 }

@@ -18,13 +18,11 @@ export type Piece = {
  */
 export type Board = (Piece | null)[][]
 
-export type GameState = {
-  board: Board
-  activeColor: Color
-  castlingRights: { K: boolean; Q: boolean; k: boolean; q: boolean }
-  enPassantSquare: Square | null
-  halfmoveClock: number
-  fullmoveNumber: number
+export type CastlingRights = {
+  K: boolean  // white kingside
+  Q: boolean  // white queenside
+  k: boolean  // black kingside
+  q: boolean  // black queenside
 }
 
 /** A directional step vector for piece movement */
