@@ -89,32 +89,31 @@
     .move-list {
       height: var(--jchess-size, min(480px, 75dvh));
       overflow-y: auto;
+      overflow-x: hidden;
       font-family: monospace;
       font-size: 0.8rem;
     }
 
-    .move-list table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .move-list td {
-      padding: 0.2rem 0.3rem;
-      white-space: nowrap;
+    .move-list .move-row {
+      display: flex;
+      align-items: baseline;
     }
 
     .move-list .move-num {
       color: #555;
       text-align: right;
-      padding-right: 0.5rem;
+      padding: 0.2rem 0.3rem 0.2rem 0.2rem;
+      min-width: 2rem;
       user-select: none;
+      flex-shrink: 0;
     }
 
     .move-list .move {
       color: #bbb;
       border-radius: 3px;
       cursor: pointer;
-      width: 50%;
+      padding: 0.2rem 0.3rem;
+      min-width: 3.5rem;
     }
 
     .move-list .move:hover { background: #2a2a2a; color: #e0e0e0; }
@@ -123,6 +122,29 @@
       background: #b58863;
       color: #fff;
     }
+
+    .move-list .variation-block {
+      padding: 0.05rem 0.3rem 0.1rem 0.5rem;
+      font-size: 0.75rem;
+      color: #666;
+      line-height: 1.8;
+      white-space: normal;
+      overflow-wrap: break-word;
+    }
+
+    .move-list .variation-block .move-num {
+      color: #555;
+      min-width: unset;
+      padding: 0.05rem 0.1rem;
+    }
+
+    .move-list .variation-block .move {
+      color: #888;
+      min-width: unset;
+      padding: 0.05rem 0.2rem;
+    }
+
+    .move-list .variation-block .move:hover { color: #e0e0e0; background: #2a2a2a; }
 
     .board-column {
       display: flex;
@@ -299,6 +321,7 @@
       { title: 'Unambiguous knight move',               pgn: 'unambiguous-knight.pgn' },
       { title: 'Heavily annotated game',                pgn: 'heavily-annotated.pgn' },
       { title: 'Middle game — jump to move 25',         pgn: 'middle-game.pgn', jumpTo: 25 },
+      { title: 'RAV: Sicilian with nested variations',  pgn: 'with-rav.pgn' },
       { title: 'FEN: Sicilian after 1.e4 c5 2.Nf3',    options: { fen: 'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2' } },
       { title: 'FEN: Mid-game position',                options: { fen: 'rq2r1k1/1b3pp1/p3p1n1/1p4BQ/8/7R/PP3PPP/4R1K1 w - - 0 0' } },
       { title: 'Blank board',                           options: {} },
@@ -339,6 +362,7 @@
     const backBtn     = document.createElement('button')
     const nextBtn     = document.createElement('button')
     const flipBtn     = document.createElement('button')
+    const exitVarBtn  = document.createElement('button')
     const moveDisplay = document.createElement('div')
     const hmDisplay   = document.createElement('div')
     const annotation  = document.createElement('div')
@@ -376,12 +400,14 @@
     annotation.className  = 'annotation'
     noControls.className  = 'no-controls'
 
-    backBtn.textContent  = '← Back'
-    nextBtn.textContent  = 'Next →'
-    flipBtn.textContent  = 'Flip'
-    noControls.textContent = 'Position only — no moves'
+    backBtn.textContent      = '← Back'
+    nextBtn.textContent      = 'Next →'
+    flipBtn.textContent      = 'Flip'
+    exitVarBtn.textContent   = '↑ Exit variation'
+    exitVarBtn.style.display = 'none'
+    noControls.textContent   = 'Position only — no moves'
 
-    btnRow.append(backBtn, nextBtn, flipBtn)
+    btnRow.append(backBtn, nextBtn, flipBtn, exitVarBtn)
     controlsEl.append(btnRow, moveDisplay, hmDisplay, noControls)
 
     function updateControls() {
@@ -407,11 +433,13 @@
         backBtn.disabled = hm === 0
         nextBtn.disabled = hm >= total
       }
+      exitVarBtn.style.display = viewer.isInVariation ? '' : 'none'
       highlightCurrentMove()
     }
 
     backBtn.addEventListener('click', () => { viewer.prev(); updateControls() })
     nextBtn.addEventListener('click', () => { viewer.next(); updateControls() })
+    exitVarBtn.addEventListener('click', () => { viewer.exitVariation(); updateControls() })
     flipBtn.addEventListener('click', () => viewer.flip())
 
     document.addEventListener('keydown', e => {
@@ -424,43 +452,165 @@
     const sidebar = document.getElementById('sidebar')
     let activeItem = null
 
-    function buildMoveList() {
-      const moves = viewer.getMoves()
-      if (moves.length === 0) { moveListEl.innerHTML = ''; return }
+    /**
+     * Build a div-based move list from `transitions`.
+     * `startFull` / `startColor` set the starting full-move number and side.
+     * `navPath` is an array of { branchHalfmove, variationIndex } steps describing the full
+     *   path from the main line to reach this variation. Empty array = main line.
+     * `depth` is nesting level (0 = main line), used only for CSS class.
+     * Returns a DocumentFragment containing the move rows and variation blocks.
+     */
+    function buildMoveSequence(transitions, startFull, startColor, navPath, depth) {
+      const frag = document.createDocumentFragment()
+      let fullMove = startFull
+      let color = startColor
+      let currentRow = null
 
-      const table = document.createElement('table')
-      for (let i = 0; i < moves.length; i += 2) {
-        const tr = document.createElement('tr')
+      for (let i = 0; i < transitions.length; i++) {
+        const t = transitions[i]
+        const halfmoveInLine = i + 1
+        // Snapshot color/fullMove for this move's variations (before advancing)
+        const moveColor = color
+        const moveFull  = fullMove
 
-        const numTd = document.createElement('td')
-        numTd.className = 'move-num'
-        numTd.textContent = `${Math.floor(i / 2) + 1}.`
-        tr.appendChild(numTd)
-
-        for (let j = 0; j < 2; j++) {
-          const halfmove = i + j + 1
-          const san = moves[i + j]
-          const td = document.createElement('td')
-          td.className = 'move'
-          if (san) {
-            td.textContent = san
-            td.dataset.halfmove = String(halfmove)
-            td.addEventListener('click', () => {
-              viewer.jumpTo(halfmove)
-              updateControls()
-            })
-          }
-          tr.appendChild(td)
+        // Start a new row for every white move, or whenever there's no current row
+        if (color === 'w') {
+          currentRow = document.createElement('div')
+          currentRow.className = 'move-row'
+          const numSpan = document.createElement('span')
+          numSpan.className = 'move-num'
+          numSpan.textContent = `${fullMove}.`
+          currentRow.appendChild(numSpan)
+          frag.appendChild(currentRow)
+        } else if (!currentRow) {
+          // No current row (start of sequence or after a variation block) and it's black's move
+          currentRow = document.createElement('div')
+          currentRow.className = 'move-row'
+          const numSpan = document.createElement('span')
+          numSpan.className = 'move-num'
+          numSpan.textContent = `${fullMove}…`
+          currentRow.appendChild(numSpan)
+          const empty = document.createElement('span')
+          empty.className = 'move'
+          currentRow.appendChild(empty)
+          frag.appendChild(currentRow)
         }
-        table.appendChild(tr)
+
+        const moveSpan = document.createElement('span')
+        moveSpan.className = 'move'
+        moveSpan.textContent = t.san
+        moveSpan.dataset.lineDepth = String(depth)
+        moveSpan.dataset.halfmoveInLine = String(halfmoveInLine)
+        moveSpan.addEventListener('click', () => {
+          // Exit back to main line, then replay the full nav path to reach this variation
+          while (viewer.isInVariation) viewer.exitVariation()
+          for (const step of navPath) {
+            viewer.jumpTo(step.branchHalfmove)
+            viewer.enterVariation(step.variationIndex)
+          }
+          viewer.jumpTo(halfmoveInLine)
+          updateControls()
+        })
+        currentRow.appendChild(moveSpan)
+
+        // Advance
+        if (color === 'b') fullMove++
+        color = color === 'w' ? 'b' : 'w'
+
+        // Append variation blocks (they start from the position BEFORE this move)
+        if (t.variations && t.variations.length > 0) {
+          for (let vi = 0; vi < t.variations.length; vi++) {
+            const varT = t.variations[vi]
+            if (!varT || varT.length === 0) continue
+            const block = document.createElement('div')
+            block.className = 'variation-block'
+            const childNavPath = [...navPath, { branchHalfmove: i, variationIndex: vi }]
+            block.appendChild(buildVariationSpan(varT, moveFull, moveColor, childNavPath))
+            frag.appendChild(block)
+            currentRow = null
+          }
+        }
       }
-      moveListEl.replaceChildren(table)
+      return frag
+    }
+
+    /**
+     * Build an inline ( move1 move2 (nested...) ) <span> for a variation.
+     * Nested variations are also inline spans so they wrap naturally within the text.
+     */
+    function buildVariationSpan(transitions, startFull, startColor, navPath) {
+      const span = document.createElement('span')
+      span.append('(')
+
+      let fullMove = startFull
+      let color = startColor
+      let showNum = true  // first move always needs a number
+
+      for (let i = 0; i < transitions.length; i++) {
+        const t = transitions[i]
+        const halfmoveInLine = i + 1
+        const moveColor = color
+        const moveFull  = fullMove
+
+        if (showNum || color === 'w') {
+          const numSpan = document.createElement('span')
+          numSpan.className = 'move-num'
+          numSpan.textContent = color === 'w' ? `${fullMove}.` : `${fullMove}\u2026`
+          span.appendChild(numSpan)
+          showNum = false
+        }
+
+        const moveSpan = document.createElement('span')
+        moveSpan.className = 'move'
+        moveSpan.textContent = t.san
+        moveSpan.addEventListener('click', (e) => {
+          e.stopPropagation()
+          while (viewer.isInVariation) viewer.exitVariation()
+          for (const step of navPath) {
+            viewer.jumpTo(step.branchHalfmove)
+            viewer.enterVariation(step.variationIndex)
+          }
+          viewer.jumpTo(halfmoveInLine)
+          updateControls()
+        })
+        span.appendChild(moveSpan)
+
+        if (color === 'b') fullMove++
+        color = color === 'w' ? 'b' : 'w'
+
+        if (t.variations && t.variations.length > 0) {
+          for (let vi = 0; vi < t.variations.length; vi++) {
+            const varT = t.variations[vi]
+            if (!varT || varT.length === 0) continue
+            const childNavPath = [...navPath, { branchHalfmove: i, variationIndex: vi }]
+            span.appendChild(buildVariationSpan(varT, moveFull, moveColor, childNavPath))
+          }
+          showNum = true  // after an inline variation, next move needs its number
+        }
+      }
+
+      span.append(')')
+      return span
+    }
+
+    function buildMoveList() {
+      const transitions = viewer.getTransitions()
+      if (transitions.length === 0) { moveListEl.innerHTML = ''; return }
+      moveListEl.replaceChildren(buildMoveSequence(transitions, 1, 'w', [], 0))
     }
 
     function highlightCurrentMove() {
       const hm = viewer.getHalfmove()
+      const inVar = viewer.isInVariation
       moveListEl.querySelectorAll('.move').forEach(el => {
-        el.classList.toggle('current', el.dataset.halfmove === String(hm))
+        const depth = Number(el.dataset.lineDepth ?? 0)
+        // Highlight main-line moves when not in a variation; variation moves when in one
+        const isMain = depth === 0 && !inVar
+        if (isMain) {
+          el.classList.toggle('current', el.dataset.halfmoveInLine === String(hm))
+        } else {
+          el.classList.remove('current')
+        }
       })
       const current = moveListEl.querySelector('.move.current')
       current?.scrollIntoView({ block: 'nearest' })

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parsePGN, tokenize } from './pgn.js'
+import { buildTransitions } from './transitions.js'
+import { Position } from './board.js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -80,20 +82,25 @@ describe('parsePGN – basics', () => {
     expect(game.headers['Black']).toBe('Spassky')
   })
 
-  it('parses moves', () => {
+  it('parses moves as ParsedMove objects', () => {
     const game = parsePGN('1. e4 e5 2. Nf3 Nc6')
-    expect(game.moves).toEqual(['e4', 'e5', 'Nf3', 'Nc6'])
+    expect(game.moves.map(m => m.san)).toEqual(['e4', 'e5', 'Nf3', 'Nc6'])
+    expect(game.moves.every(m => Array.isArray(m.variations))).toBe(true)
   })
 
-  it('attaches annotation to next move (before the move)', () => {
+  it('attaches annotation to the move it follows', () => {
     const game = parsePGN('1. e4 {great move} e5')
-    // annotation is attached at halfmove 1 (after e4, before e5)
-    expect(game.annotations[1]).toBe('great move')
+    expect(game.moves[0]!.annotation).toBe('great move')
+    expect(game.moves[1]!.annotation).toBeUndefined()
   })
 
-  it('skips moves inside variations', () => {
+  it('captures variation moves in .variations instead of main line', () => {
     const game = parsePGN('1. e4 (1. d4 d5) e5')
-    expect(game.moves).toEqual(['e4', 'e5'])
+    // Main line: only e4 and e5
+    expect(game.moves.map(m => m.san)).toEqual(['e4', 'e5'])
+    // Variation is attached to e4
+    expect(game.moves[0]!.variations).toHaveLength(1)
+    expect(game.moves[0]!.variations[0]!.map(m => m.san)).toEqual(['d4', 'd5'])
   })
 
   it('handles result tokens without crashing', () => {
@@ -102,6 +109,56 @@ describe('parsePGN – basics', () => {
 
   it('handles * result', () => {
     expect(() => parsePGN('1. Nc3 Nf6 *')).not.toThrow()
+  })
+})
+
+// ── RAV (Recursive Annotation Variations) ────────────────────────────────────
+
+describe('parsePGN – RAV', () => {
+  it('parses a single variation', () => {
+    const game = parsePGN('1. e4 e5 (1...c5 2. Nf3) 2. Nf3')
+    expect(game.moves.map(m => m.san)).toEqual(['e4', 'e5', 'Nf3'])
+    // Variation on e5
+    expect(game.moves[1]!.variations[0]!.map(m => m.san)).toEqual(['c5', 'Nf3'])
+  })
+
+  it('parses nested variations', () => {
+    const game = parsePGN('1. e4 e5 (1...c5 2. Nf3 (2. d4)) 2. Nf3')
+    const outerVar = game.moves[1]!.variations[0]!
+    expect(outerVar.map(m => m.san)).toEqual(['c5', 'Nf3'])
+    // Nested variation on Nf3 inside the outer variation
+    expect(outerVar[1]!.variations[0]!.map(m => m.san)).toEqual(['d4'])
+  })
+
+  it('parses multiple sibling variations on the same move', () => {
+    const game = parsePGN('1. e4 e5 (1...c5) (1...e6) 2. Nf3')
+    expect(game.moves[1]!.variations).toHaveLength(2)
+    expect(game.moves[1]!.variations[0]![0]!.san).toBe('c5')
+    expect(game.moves[1]!.variations[1]![0]!.san).toBe('e6')
+  })
+
+  it('preserves annotation inside a variation', () => {
+    const game = parsePGN('1. e4 e5 (1...c5 2. Nf3 {Sicilian}) 2. Nc3')
+    const varMoves = game.moves[1]!.variations[0]!
+    expect(varMoves[1]!.san).toBe('Nf3')
+    expect(varMoves[1]!.annotation).toBe('Sicilian')
+  })
+
+  it('parses the with-rav.pgn fixture without warnings', () => {
+    const game = parsePGN(loadExample('with-rav.pgn'))
+    const { warnings } = buildTransitions(game, Position.starting())
+    expect(warnings).toHaveLength(0)
+    // Main line moves are intact
+    expect(game.moves[0]!.san).toBe('e4')
+    expect(game.moves[0]!.annotation).toBe('The best test')
+    // c5 has one variation (1...e5 ...)
+    expect(game.moves[1]!.san).toBe('c5')
+    expect(game.moves[1]!.variations).toHaveLength(1)
+    // Nested variation inside the Ruy Lopez line
+    const ravLine = game.moves[1]!.variations[0]!
+    const bb5 = ravLine.find(m => m.san === 'Bb5')
+    expect(bb5).toBeDefined()
+    expect(bb5!.variations).toHaveLength(1)
   })
 })
 
@@ -121,17 +178,16 @@ describe('fischer-spassky', () => {
   })
 
   it('first move is e4', () => {
-    expect(game.moves[0]).toBe('e4')
+    expect(game.moves[0]!.san).toBe('e4')
   })
 
   it('last move is Re6', () => {
-    expect(game.moves[84]).toBe('Re6')
+    expect(game.moves[84]!.san).toBe('Re6')
   })
 
   it('has annotation on move 3 (Bb5)', () => {
-    // Bb5 is halfmove 4 (0-based), annotation is attached at halfmove 5
-    const annotatedIdx = game.annotations.findIndex(a => a !== undefined)
-    expect(game.annotations[annotatedIdx]).toContain('Ruy Lopez')
+    const annotated = game.moves.find(m => m.annotation !== undefined)
+    expect(annotated?.annotation).toContain('Ruy Lopez')
   })
 })
 
@@ -143,7 +199,7 @@ describe('justdoeet', () => {
   })
 
   it('last move is Qxh7#', () => {
-    expect(game.moves[70]).toBe('Qxh7#')
+    expect(game.moves[70]!.san).toBe('Qxh7#')
   })
 })
 
@@ -155,11 +211,11 @@ describe('with-queening', () => {
   })
 
   it('contains a8=Q (white queens)', () => {
-    expect(game.moves).toContain('a8=Q')
+    expect(game.moves.some(m => m.san === 'a8=Q')).toBe(true)
   })
 
   it('contains g1=Q (black queens)', () => {
-    expect(game.moves).toContain('g1=Q')
+    expect(game.moves.some(m => m.san === 'g1=Q')).toBe(true)
   })
 })
 
@@ -171,7 +227,7 @@ describe('unambiguous-knight', () => {
   })
 
   it('first move is Nc3 (not e4 or d4)', () => {
-    expect(game.moves[0]).toBe('Nc3')
+    expect(game.moves[0]!.san).toBe('Nc3')
   })
 })
 
@@ -183,13 +239,13 @@ describe('heavily-annotated', () => {
   })
 
   it('has many annotations', () => {
-    const annCount = game.annotations.filter(a => a !== undefined).length
+    const annCount = game.moves.filter(m => m.annotation !== undefined).length
     expect(annCount).toBeGreaterThan(20)
   })
 
   it('handles annotation immediately after move (no space)', () => {
     // move 13 "Nf3" is followed directly by { without space
-    expect(game.moves[12]).toBe('Nf3')
+    expect(game.moves[12]!.san).toBe('Nf3')
   })
 })
 
@@ -201,7 +257,7 @@ describe('middle-game', () => {
   })
 
   it('last move is Qxe1#', () => {
-    expect(game.moves[57]).toBe('Qxe1#')
+    expect(game.moves[57]!.san).toBe('Qxe1#')
   })
 })
 
@@ -210,33 +266,33 @@ describe('middle-game', () => {
 describe('edge cases', () => {
   it('handles game starting with 1.a4 (old parser would crash)', () => {
     const game = parsePGN('1.a4 a5 2.b4 b5')
-    expect(game.moves[0]).toBe('a4')
+    expect(game.moves[0]!.san).toBe('a4')
     expect(game.moves).toHaveLength(4)
   })
 
   it('handles game starting with 1.Na3', () => {
     const game = parsePGN('1.Na3 Nf6 2.Nc4')
-    expect(game.moves[0]).toBe('Na3')
+    expect(game.moves[0]!.san).toBe('Na3')
   })
 
   it('handles game starting with 1.h4', () => {
     const game = parsePGN('1.h4 h5 2.g4')
-    expect(game.moves[0]).toBe('h4')
+    expect(game.moves[0]!.san).toBe('h4')
   })
 
   it('handles promotion notation', () => {
     const game = parsePGN('1.e4 e5 2.a4 a5 55.a8=Q')
-    expect(game.moves).toContain('a8=Q')
+    expect(game.moves.some(m => m.san === 'a8=Q')).toBe(true)
   })
 
   it('does not include result tokens as moves', () => {
     const game = parsePGN('1. e4 e5 1-0')
-    expect(game.moves).not.toContain('1-0')
+    expect(game.moves.every(m => m.san !== '1-0')).toBe(true)
   })
 
   it('does not include 0-1 as a move', () => {
     const game = parsePGN('1. d4 d5 0-1')
-    expect(game.moves).not.toContain('0-1')
+    expect(game.moves.every(m => m.san !== '0-1')).toBe(true)
   })
 
   it('handles deeply nested variations without crashing', () => {

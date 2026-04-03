@@ -100,3 +100,10 @@ The core design is a **pre-computed transition list**. When a PGN is loaded:
 ## Legacy version
 
 The original 2008 jQuery version is preserved in `javascripts/jchess-0.1.0.js` for reference.
+
+## TODO
+
+* Good separation of concerns between engine and display. Should be easy to build new displays with the underlying engine.
+* Goal is for this to not just be a viewer but an editor. I want to take a game, play through it, add annotations, add variations, and then export back to PGN.
+* How to support comments / multiple user annotations?
+* Be able to upload a .pgn file with multiple games and show a viewer with game list (searchable too)

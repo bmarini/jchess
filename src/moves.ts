@@ -244,7 +244,7 @@ export function findPawnMoveSource(
 
 // ── SAN parsing ──────────────────────────────────────────────────────────────
 
-export type ParsedMove =
+export type ParsedSAN =
   | { kind: 'castle'; side: 'K' | 'Q' }
   | {
       kind: 'normal'
@@ -265,7 +265,7 @@ const SAN_NORMAL = /^([NBRQK])?([a-h])?([1-8])?(x)?([a-h])([1-8])(=[NBRQ])?([+#]
 /**
  * Parse a SAN string into a structured move description.
  */
-export function parseSAN(san: string): ParsedMove | null {
+export function parseSAN(san: string): ParsedSAN | null {
   if (/^O-O-O/.test(san)) return { kind: 'castle', side: 'Q' }
   if (/^O-O/.test(san))   return { kind: 'castle', side: 'K' }
 
@@ -295,7 +295,7 @@ export type MoveApplication = {
   /** The square from which the piece moved */
   fromSquare: Square
   /** The parsed move (avoids re-parsing in callers that need structural info) */
-  parsed: ParsedMove
+  parsed: ParsedSAN
 }
 
 export function applyMove(position: Position, san: string): MoveApplication | null {

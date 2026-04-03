@@ -1,4 +1,4 @@
-import type { ParsedGame } from './types.js'
+import type { ParsedGame, ParsedMove } from './types.js'
 
 // ── Token types ───────────────────────────────────────────────────────────────
 
@@ -118,63 +118,105 @@ function isSANMove(san: string): boolean {
   return /^([PNBRQK]|[a-h]|O-O)/.test(san)
 }
 
+/**
+ * Recursively parse a sequence of moves from `tokens` starting at `startIndex`.
+ * Returns when it hits `variation_end`, `result`, or end of token stream.
+ */
+function parseMoves(tokens: Token[], startIndex: number): { moves: ParsedMove[]; endIndex: number } {
+  const moves: ParsedMove[] = []
+  let i = startIndex
+
+  while (i < tokens.length) {
+    const token = tokens[i]!
+
+    if (token.type === 'variation_end' || token.type === 'result') {
+      i++
+      break
+    }
+
+    if (token.type === 'header' || token.type === 'nag') {
+      i++
+      continue
+    }
+
+    if (token.type === 'annotation') {
+      if (moves.length === 0) {
+        // Leading annotation before first move at this level — stop; caller handles it
+        break
+      }
+      // Trailing annotation for the last move
+      moves[moves.length - 1]!.annotation = token.text
+      i++
+      continue
+    }
+
+    if (token.type === 'variation_start') {
+      // Variation with no preceding move at this level — skip it
+      if (moves.length === 0) {
+        const sub = parseMoves(tokens, i + 1)
+        i = sub.endIndex
+        continue
+      }
+      // Attach to the last move pushed
+      const sub = parseMoves(tokens, i + 1)
+      moves[moves.length - 1]!.variations.push(sub.moves)
+      i = sub.endIndex
+      continue
+    }
+
+    if (token.type === 'move') {
+      if (!isSANMove(token.san)) { i++; continue }
+
+      const move: ParsedMove = { san: token.san, annotation: undefined, variations: [] }
+      moves.push(move)
+      i++
+
+      // Eagerly collect any trailing annotation, NAGs, and RAVs that belong to this move
+      while (i < tokens.length) {
+        const next = tokens[i]!
+        if (next.type === 'annotation') {
+          move.annotation = next.text
+          i++
+        } else if (next.type === 'nag') {
+          i++
+        } else if (next.type === 'variation_start') {
+          const sub = parseMoves(tokens, i + 1)
+          move.variations.push(sub.moves)
+          i = sub.endIndex
+        } else {
+          break
+        }
+      }
+      continue
+    }
+
+    i++
+  }
+
+  return { moves, endIndex: i }
+}
+
 export function parsePGN(pgn: string): ParsedGame {
   const tokens = tokenize(pgn)
 
   const headers: Record<string, string> = {}
-  const moves: string[] = []
-  const annotations: (string | undefined)[] = []
+  let hi = 0
 
-  let pendingAnnotation: string | undefined
-  let halfmove = 0
-  let variationDepth = 0
-
-  for (const token of tokens) {
-    switch (token.type) {
-      case 'header':
-        headers[token.key] = token.value
-        break
-
-      case 'annotation':
-        pendingAnnotation = token.text
-        break
-
-      case 'nag':
-        // NAG codes are annotation glyphs — we silently ignore them
-        break
-
-      case 'variation_start':
-        variationDepth++
-        break
-
-      case 'variation_end':
-        if (variationDepth > 0) variationDepth--
-        break
-
-      case 'result':
-        // Nothing to do — just marks end of game
-        break
-
-      case 'move':
-        if (variationDepth > 0) break  // skip moves inside variations
-
-        if (!isSANMove(token.san)) break
-
-        if (pendingAnnotation !== undefined) {
-          annotations[halfmove] = pendingAnnotation
-          pendingAnnotation = undefined
-        }
-
-        moves.push(token.san)
-        halfmove++
-        break
-    }
+  // Extract all leading headers first
+  while (hi < tokens.length && tokens[hi]!.type === 'header') {
+    const t = tokens[hi]!
+    if (t.type === 'header') headers[t.key] = t.value
+    hi++
   }
 
-  // Annotation that trails the last move
-  if (pendingAnnotation !== undefined) {
-    annotations[halfmove] = pendingAnnotation
+  // Check for a pre-game annotation
+  let preAnnotation: string | undefined
+  if (hi < tokens.length && tokens[hi]!.type === 'annotation') {
+    preAnnotation = (tokens[hi] as { type: 'annotation'; text: string }).text
+    hi++
   }
 
-  return { headers, moves, annotations }
+  const { moves } = parseMoves(tokens, hi)
+
+  return { headers, moves, preAnnotation }
 }

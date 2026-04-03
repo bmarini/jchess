@@ -1,0 +1,8 @@
+[Event "Example of Recursive Variations"]
+[Site "ChessBoard"]
+[Date "2026.04.03"]
+[White "Player A"]
+[Black "Player B"]
+[Result "1-0"]
+
+1. e4 {The best test} 1... c5 (1... e5 2. Nf3 Nc6 3. Bb5 {The Ruy Lopez} (3. d4 exd4 4. Nxd4 {A more aggressive approach})) 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 {Main Line} a6 (5... Nc6 6. Bg5) 6. Be3 e5 7. Nb3 Be6 8. f3 Be7 9. Qd2 O-O 10. O-O-O Nbd7 11. g4 b5 12. g5 b4 13. Ne2 Ne8 14. f4 a5 15. f5 a4 16. Nbd4 exd4 17. Nxd4 b3 18. Kb1 bxc2+ 19. Nxc2 Bb3 20. axb3 axb3 21. Na3 Ne5 22. h4 Ra5 23. Qc3 Qa8 24. Bg2 Ra6 25. Bd4 f6 26. Qxb3+ Kh8 27. Qe6 Qb7 28. Bxe5 dxe5 29. Rd7 Qxe4+ 30. Bxe4 Rxe6 31. fxe6 Bxa3 32. bxa3 fxg5 33. hxg5 Kg8 34. Bxh7+ 1-0

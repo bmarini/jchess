@@ -43,14 +43,24 @@ export type Transition = {
   /** SAN notation for the move, e.g. 'Nf3', 'O-O', 'exd5' */
   san: string
   annotation?: string
+  /** RAV lines that are alternatives to this move, indexed parallel to ParsedMove.variations */
+  variations: Transition[][]
+}
+
+export type ParsedMove = {
+  san: string
+  /** Annotation that follows this move in the PGN */
+  annotation?: string
+  /** RAV lines that start from the position BEFORE this move */
+  variations: ParsedMove[][]
 }
 
 export type ParsedGame = {
   headers: Record<string, string>
-  /** SAN strings in half-move order */
-  moves: string[]
-  /** Indexed by half-move number (0-based). Undefined means no annotation. */
-  annotations: (string | undefined)[]
+  /** Moves in half-move order, with embedded annotations and variations */
+  moves: ParsedMove[]
+  /** Annotation that appears before the first move */
+  preAnnotation?: string
 }
 
 export type ChessViewerOptions = {

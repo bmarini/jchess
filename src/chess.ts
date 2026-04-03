@@ -2,10 +2,10 @@ import { Position, STARTING_FEN } from './board.js'
 import { parsePGN } from './pgn.js'
 import { Renderer } from './renderer.js'
 import { buildTransitions, GamePlayer } from './transitions.js'
-import type { ChessViewerOptions } from './types.js'
+import type { ChessViewerOptions, Transition } from './types.js'
 
 export type { ChessViewerOptions } from './types.js'
-export type { ParsedGame } from './types.js'
+export type { ParsedGame, ParsedMove, Transition } from './types.js'
 export type { Board, Piece, Square, Color, PieceType, CastlingRights } from './types.js'
 export { parsePGN } from './pgn.js'
 export { Position, STARTING_FEN } from './board.js'
@@ -101,6 +101,29 @@ export class ChessViewer {
 
   getMoves(): string[] {
     return this.player?.transitions.map(t => t.san) ?? []
+  }
+
+  /** Returns the main-line transitions (with embedded .variations for the move list). */
+  getTransitions(): Transition[] {
+    return this.player?.transitions ?? []
+  }
+
+  enterVariation(variationIndex: number): void {
+    if (!this.player) return
+    const pos = this.player.enterVariation(variationIndex)
+    this.renderer.render(pos)
+    this.emit()
+  }
+
+  exitVariation(): void {
+    if (!this.player) return
+    const pos = this.player.exitVariation()
+    this.renderer.render(pos)
+    this.emit()
+  }
+
+  get isInVariation(): boolean {
+    return this.player?.isInVariation ?? false
   }
 
   // ── Events ──────────────────────────────────────────────────────────────────

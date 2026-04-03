@@ -197,6 +197,118 @@ describe('GamePlayer – positionAt', () => {
   })
 })
 
+// ── RAV: variation transitions ────────────────────────────────────────────────
+
+describe('buildTransitions – RAV', () => {
+  it('attaches variation transitions to the parent move', () => {
+    // 1.e4 (1.d4 d5) e5 — variation is on e4
+    const { transitions } = buildTransitions(parsePGN('1. e4 (1. d4 d5) e5'), Position.starting())
+    expect(transitions[0]!.variations).toHaveLength(1)
+    expect(transitions[0]!.variations[0]).toHaveLength(2)
+    expect(transitions[0]!.variations[0]![0]!.san).toBe('d4')
+    expect(transitions[0]!.variations[0]![1]!.san).toBe('d5')
+  })
+
+  it('variation transitions start from the same position as the parent move', () => {
+    // 1.e4 e5 (1...c5 2.Nf3) — variation is on e5, starts from after e4
+    const { transitions } = buildTransitions(parsePGN('1. e4 e5 (1... c5 2. Nf3) 2. Nf3'), Position.starting())
+    const varT = transitions[1]!.variations[0]!
+    // c5 should be a valid move from after e4 — transition commands should be non-empty
+    expect(varT[0]!.forward.length).toBeGreaterThan(0)
+    expect(varT[0]!.san).toBe('c5')
+  })
+
+  it('nested variation transitions are built recursively', () => {
+    // 1.e4 e5 (1...c5 2.Nf3 (2.d4)) — nested variation on Nf3
+    const { transitions } = buildTransitions(
+      parsePGN('1. e4 e5 (1... c5 2. Nf3 (2. d4)) 2. Nf3'),
+      Position.starting(),
+    )
+    const outerVar = transitions[1]!.variations[0]!
+    expect(outerVar[1]!.san).toBe('Nf3')
+    expect(outerVar[1]!.variations[0]![0]!.san).toBe('d4')
+    expect(outerVar[1]!.variations[0]![0]!.forward.length).toBeGreaterThan(0)
+  })
+
+  it('produces no warnings for the with-rav game', () => {
+    const { warnings } = buildTransitions(parsePGN(loadExample('with-rav.pgn')), Position.starting())
+    expect(warnings).toHaveLength(0)
+  })
+})
+
+// ── GamePlayer – variation navigation ─────────────────────────────────────────
+
+describe('GamePlayer – variation navigation', () => {
+  it('isInVariation is false on main line', () => {
+    expect(makePlayer('1. e4 (1. d4) e5').isInVariation).toBe(false)
+  })
+
+  it('enterVariation enters the variation and isInVariation becomes true', () => {
+    // 1.e4 (1.d4 d5) e5 — variation is on e4 (transitions[0]), enter from halfmove=0
+    const player = makePlayer('1. e4 (1. d4 d5) e5')
+    player.enterVariation(0)
+    expect(player.isInVariation).toBe(true)
+  })
+
+  it('enterVariation positions the player at the start of the variation', () => {
+    const player = makePlayer('1. e4 (1. d4 d5) e5')
+    player.enterVariation(0)
+    expect(player.halfmove).toBe(0)
+    expect(player.totalMoves).toBe(2)  // d4, d5
+  })
+
+  it('stepForward in a variation plays variation moves', () => {
+    const player = makePlayer('1. e4 (1. d4 d5) e5')
+    player.enterVariation(0)
+    const cmds = player.stepForward()
+    expect(cmds).not.toBeNull()
+    expect(player.currentSAN).toBe('d4')
+  })
+
+  it('exitVariation returns to main line', () => {
+    const player = makePlayer('1. e4 (1. d4 d5) e5')
+    player.enterVariation(0)
+    player.exitVariation()
+    expect(player.isInVariation).toBe(false)
+    expect(player.halfmove).toBe(0)
+  })
+
+  it('exitVariation at root has no effect', () => {
+    const player = makePlayer('1. e4 e5')
+    player.exitVariation()
+    expect(player.isInVariation).toBe(false)
+    expect(player.halfmove).toBe(0)
+  })
+
+  it('can navigate nested variations', () => {
+    // outer var on e5 (transitions[1]): c5 Nf3; inner var on Nf3: d4
+    const player = makePlayer('1. e4 e5 (1... c5 2. Nf3 (2. d4)) 2. Nf3')
+    // Step to halfmove=1 (after e4) so transitions[1] (e5) is accessible
+    player.stepForward()
+    // Enter outer variation (c5, Nf3)
+    player.enterVariation(0)
+    expect(player.totalMoves).toBe(2)  // c5, Nf3
+    player.stepForward()  // play c5, now at halfmove=1 inside variation
+    // Nf3 is transitions[1] of the outer var, which has a nested variation
+    player.enterVariation(0)
+    expect(player.isInVariation).toBe(true)
+    expect(player.totalMoves).toBe(1)  // d4
+    player.stepForward()
+    expect(player.currentSAN).toBe('d4')
+  })
+
+  it('positionAt(0) inside a variation is the branch point position', () => {
+    // 1.e4 (1.d4 d5) e5 — variation on e4 starts from initial position
+    const player = makePlayer('1. e4 (1. d4 d5) e5')
+    const branchPos = player.positionAt(0)  // initial position (before e4)
+    player.enterVariation(0)
+    const varStart = player.positionAt(0)
+    // The variation (1.d4) starts from the same position as the main-line e4
+    expect(varStart.get('e2')).toMatchObject({ type: 'P', color: 'w' })
+    expect(varStart.toFEN()).toBe(branchPos.toFEN())
+  })
+})
+
 // ── Full game integration ─────────────────────────────────────────────────────
 
 describe('full game: fischer-spassky', () => {
