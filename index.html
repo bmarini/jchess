@@ -153,6 +153,29 @@
       flex: 1;
     }
 
+    /* ── PGN paste input ── */
+
+    .pgn-input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .pgn-input-wrap textarea {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 0.75rem;
+      padding: 0.5rem;
+      resize: none;
+      outline: none;
+    }
+    .pgn-input-wrap textarea:focus { border-color: #555; }
+
     .no-controls {
       font-size: 0.8rem;
       color: #555;
@@ -217,6 +240,7 @@
       { title: 'FEN: Sicilian after 1.e4 c5 2.Nf3',    options: { fen: 'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2' } },
       { title: 'FEN: Mid-game position',                options: { fen: 'rq2r1k1/1b3pp1/p3p1n1/1p4BQ/8/7R/PP3PPP/4R1K1 w - - 0 0' } },
       { title: 'Blank board',                           options: {} },
+      { title: 'Paste PGN',                             paste: true },
     ]
 
     async function loadPGN(filename) {
@@ -259,6 +283,14 @@
     const hmDisplay   = document.createElement('div')
     const annotation  = document.createElement('div')
     const noControls  = document.createElement('div')
+
+    const pgnInputWrap = document.createElement('div')
+    pgnInputWrap.className = 'pgn-input-wrap'
+    const pgnTextarea = document.createElement('textarea')
+    pgnTextarea.placeholder = 'Paste PGN here…'
+    const pgnLoadBtn = document.createElement('button')
+    pgnLoadBtn.textContent = 'Load'
+    pgnInputWrap.append(pgnTextarea, pgnLoadBtn)
 
     const annotationPanel = document.createElement('div')
     annotationPanel.className = 'annotation-panel'
@@ -317,15 +349,38 @@
     const sidebar = document.getElementById('sidebar')
     let activeItem = null
 
+    function loadPGNText(pgn) {
+      viewer.loadPGN(pgn)
+      updateControls()
+      annotation.textContent = viewer.getAnnotation() ?? ''
+    }
+
+    pgnLoadBtn.addEventListener('click', () => loadPGNText(pgnTextarea.value))
+    pgnTextarea.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) loadPGNText(pgnTextarea.value)
+    })
+
     async function loadDemo(demo, itemEl) {
       if (activeItem) activeItem.classList.remove('active')
       activeItem = itemEl
       itemEl.classList.add('active')
 
+      gameTitle.textContent = demo.title
+
+      if (demo.paste) {
+        annotationPanel.replaceChildren(pgnInputWrap)
+        sourceDetails.style.display = 'none'
+        viewer.loadPGN('')
+        updateControls()
+        pgnTextarea.focus()
+        return
+      }
+
+      annotationPanel.replaceChildren(annotation)
+
       let options = demo.options ?? {}
       if (demo.pgn) options = { ...options, pgn: await loadPGN(demo.pgn) }
 
-      gameTitle.textContent = demo.title
       sourceDetails.removeAttribute('open')
       if (options.pgn) {
         sourceSummary.textContent = 'Show PGN'
