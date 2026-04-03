@@ -69,14 +69,59 @@
     /* ── Main area ── */
 
     .main {
+      --jchess-size: min(480px, 75dvh);
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 1.5rem;
       padding: 1.5rem;
       min-width: 0;
       overflow-y: auto;
+    }
+
+    /* ── Move list ── */
+
+    .move-list-panel {
+      width: 160px;
+      flex-shrink: 0;
+    }
+
+    .move-list {
+      height: var(--jchess-size, min(480px, 75dvh));
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    .move-list table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .move-list td {
+      padding: 0.2rem 0.3rem;
+      white-space: nowrap;
+    }
+
+    .move-list .move-num {
+      color: #555;
+      text-align: right;
+      padding-right: 0.5rem;
+      user-select: none;
+    }
+
+    .move-list .move {
+      color: #bbb;
+      border-radius: 3px;
+      cursor: pointer;
+      width: 50%;
+    }
+
+    .move-list .move:hover { background: #2a2a2a; color: #e0e0e0; }
+
+    .move-list .move.current {
+      background: #b58863;
+      color: #fff;
     }
 
     .board-column {
@@ -84,11 +129,15 @@
       flex-direction: column;
       align-items: center;
       gap: 0.75rem;
-      flex-shrink: 0;
+    }
+
+    .board-row {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
     }
 
     .board-wrap {
-      --jchess-size: min(480px, 75dvh);
       flex-shrink: 0;
     }
 
@@ -137,20 +186,16 @@
     .annotation-panel {
       width: 220px;
       flex-shrink: 0;
-      align-self: stretch;
-      display: flex;
-      flex-direction: column;
-      padding-top: 2rem;
     }
 
     .annotation {
+      height: var(--jchess-size, min(480px, 75dvh));
       font-size: 0.85rem;
       line-height: 1.6;
       color: #888;
       font-style: italic;
       white-space: pre-wrap;
       overflow-y: auto;
-      flex: 1;
     }
 
     /* ── PGN paste input ── */
@@ -267,8 +312,6 @@
     const sourcePre = document.createElement('pre')
     sourceDetails.append(sourceSummary, sourcePre)
 
-    boardColumn.append(gameTitle, boardWrap, controlsEl, sourceDetails)
-
     // ── Shared viewer ─────────────────────────────────────────────────────────
 
     let viewer = new ChessViewer(boardWrap, {})
@@ -292,11 +335,23 @@
     pgnLoadBtn.textContent = 'Load'
     pgnInputWrap.append(pgnTextarea, pgnLoadBtn)
 
+    const moveListPanel = document.createElement('div')
+    moveListPanel.className = 'move-list-panel'
+    const moveListEl = document.createElement('div')
+    moveListEl.className = 'move-list'
+    moveListPanel.appendChild(moveListEl)
+
     const annotationPanel = document.createElement('div')
     annotationPanel.className = 'annotation-panel'
     annotationPanel.appendChild(annotation)
 
-    document.getElementById('main').append(boardColumn, annotationPanel)
+    const boardRow = document.createElement('div')
+    boardRow.className = 'board-row'
+    boardRow.append(moveListPanel, boardWrap, annotationPanel)
+
+    // Re-append boardColumn children in correct order now that boardRow exists
+    boardColumn.append(gameTitle, boardRow, controlsEl, sourceDetails)
+    document.getElementById('main').append(boardColumn)
 
     btnRow.className      = 'btn-row'
     moveDisplay.className = 'move-display'
@@ -333,6 +388,7 @@
         backBtn.disabled = hm === 0
         nextBtn.disabled = hm >= total
       }
+      highlightCurrentMove()
     }
 
     backBtn.addEventListener('click', () => { viewer.prev(); updateControls() })
@@ -349,8 +405,51 @@
     const sidebar = document.getElementById('sidebar')
     let activeItem = null
 
+    function buildMoveList() {
+      const moves = viewer.getMoves()
+      if (moves.length === 0) { moveListEl.innerHTML = ''; return }
+
+      const table = document.createElement('table')
+      for (let i = 0; i < moves.length; i += 2) {
+        const tr = document.createElement('tr')
+
+        const numTd = document.createElement('td')
+        numTd.className = 'move-num'
+        numTd.textContent = `${Math.floor(i / 2) + 1}.`
+        tr.appendChild(numTd)
+
+        for (let j = 0; j < 2; j++) {
+          const halfmove = i + j + 1
+          const san = moves[i + j]
+          const td = document.createElement('td')
+          td.className = 'move'
+          if (san) {
+            td.textContent = san
+            td.dataset.halfmove = String(halfmove)
+            td.addEventListener('click', () => {
+              viewer.jumpTo(halfmove)
+              updateControls()
+            })
+          }
+          tr.appendChild(td)
+        }
+        table.appendChild(tr)
+      }
+      moveListEl.replaceChildren(table)
+    }
+
+    function highlightCurrentMove() {
+      const hm = viewer.getHalfmove()
+      moveListEl.querySelectorAll('.move').forEach(el => {
+        el.classList.toggle('current', el.dataset.halfmove === String(hm))
+      })
+      const current = moveListEl.querySelector('.move.current')
+      current?.scrollIntoView({ block: 'nearest' })
+    }
+
     function loadPGNText(pgn) {
       viewer.loadPGN(pgn)
+      buildMoveList()
       updateControls()
       annotation.textContent = viewer.getAnnotation() ?? ''
     }
@@ -371,6 +470,7 @@
         annotationPanel.replaceChildren(pgnInputWrap)
         sourceDetails.style.display = 'none'
         viewer.loadPGN('')
+        moveListEl.innerHTML = ''
         updateControls()
         pgnTextarea.focus()
         return
@@ -395,6 +495,7 @@
       }
       viewer.loadPGN(options.pgn ?? '', options.fen)
       if (demo.jumpTo) viewer.jumpTo(demo.jumpTo)
+      buildMoveList()
       updateControls()
     }
 

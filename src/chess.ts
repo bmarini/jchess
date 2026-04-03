@@ -99,6 +99,10 @@ export class ChessViewer {
     return this.player?.totalMoves ?? 0
   }
 
+  getMoves(): string[] {
+    return this.player?.transitions.map(t => t.san) ?? []
+  }
+
   // ── Events ──────────────────────────────────────────────────────────────────
 
   on(event: 'move', handler: MoveEventHandler): this {
