@@ -8,39 +8,36 @@ import GameList from './GameList'
 import PGNInput from './PGNInput'
 import { useChessGame } from '@/hooks/useChessGame'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
+import { EXAMPLE_GAMES } from '@/lib/examples'
 import type { GameEntry } from '@/lib/parseMultiPGN'
-
-const DEFAULT_PGN = `[Event "F/S Return Match"]
-[Site "Belgrade, Serbia JUG"]
-[Date "1992.11.04"]
-[Round "29"]
-[White "Fischer, Robert J."]
-[Black "Spassky, Boris V."]
-[Result "1/2-1/2"]
-
-1. e4 e5 2. Nf3 Nc6 3. Bb5 {This opening is called the Ruy Lopez.} 3... a6
-4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7
-11. c4 c6 12. cxb5 axb5 13. Nc3 Bb7 14. Bg5 b4 15. Nb1 h6 16. Bh4 c5 17. dxe5
-Nxe4 18. Bxe7 Qxe7 19. exd6 Qf6 20. Nbd2 Nxd6 21. Nc4 Nxc4 22. Bxc4 Nb6
-23. Ne5 Rae8 24. Bxf7+ Rxf7 25. Nxf7 Rxe1+ 26. Qxe1 Kxf7 27. Qe3 Qg5 28. Qxg5
-hxg5 29. b3 Ke6 30. a3 Kd6 31. axb4 cxb4 32. Ra5 Nd5 33. f3 Bc8 34. Kf2 Bf5
-35. Ra7 g6 36. Ra6+ Kc5 37. Ke1 Nf4 38. g3 Nxh3 39. Kd2 Kb5 40. Rd6 Kc5 41. Ra6
-Nf2 42. g4 Bd3 43. Re6 1/2-1/2`
 
 type Props = {
   initialPgn?: string
 }
 
+function parseFirstExample(): GameEntry | null {
+  const first = EXAMPLE_GAMES[0]
+  if (!first) return null
+  return parseMultiPGN(first.pgn)[0] ?? null
+}
+
 export default function ChessApp({ initialPgn }: Props) {
-  const [games, setGames] = useState<GameEntry[]>(() =>
-    parseMultiPGN(initialPgn ?? DEFAULT_PGN)
+  // The active game entry (for headers, annotations, preAnnotation)
+  const [activeGame, setActiveGame] = useState<GameEntry | null>(() =>
+    initialPgn ? (parseMultiPGN(initialPgn)[0] ?? null) : parseFirstExample()
   )
-  const [activeIndex, setActiveIndex] = useState(0)
+  // Games from a user-loaded multi-game PGN (for the sidebar Games section)
+  const [loadedGames, setLoadedGames] = useState<GameEntry[]>(() =>
+    initialPgn ? parseMultiPGN(initialPgn) : []
+  )
+  const [activeLoadedIndex, setActiveLoadedIndex] = useState(0)
+  // Which example is highlighted (-1 if a loaded game is active)
+  const [activeExampleIndex, setActiveExampleIndex] = useState<number>(
+    initialPgn ? -1 : 0
+  )
   const [showInput, setShowInput] = useState(false)
 
-  const activeGame = games[activeIndex]
-
-  const chess = useChessGame(activeGame?.game)
+  const chess = useChessGame(activeGame?.game ?? undefined)
 
   const lastCommands = useMemo(() => {
     if (chess.halfmove === 0) return undefined
@@ -51,25 +48,39 @@ export default function ChessApp({ initialPgn }: Props) {
   const handleLoadPGN = useCallback((pgn: string) => {
     const newGames = parseMultiPGN(pgn)
     if (newGames.length === 0) return
-    setGames(newGames)
-    setActiveIndex(0)
-    chess.loadGame(newGames[0]!.game)
+    const first = newGames[0]!
+    setLoadedGames(newGames)
+    setActiveLoadedIndex(0)
+    setActiveExampleIndex(-1)
+    setActiveGame(first)
+    chess.loadGame(first.game)
     setShowInput(false)
   }, [chess])
 
-  const handleSelectGame = useCallback((index: number) => {
-    const entry = games[index]
+  const handleSelectLoadedGame = useCallback((index: number) => {
+    const entry = loadedGames[index]
     if (!entry) return
-    setActiveIndex(index)
+    setActiveLoadedIndex(index)
+    setActiveExampleIndex(-1)
+    setActiveGame(entry)
     chess.loadGame(entry.game)
-  }, [games, chess])
+  }, [loadedGames, chess])
+
+  const handleSelectExample = useCallback((index: number) => {
+    const example = EXAMPLE_GAMES[index]
+    if (!example) return
+    const entry = parseMultiPGN(example.pgn)[0]
+    if (!entry) return
+    setActiveExampleIndex(index)
+    setActiveGame(entry)
+    chess.loadGame(entry.game)
+  }, [chess])
 
   const headers = activeGame?.game.headers ?? {}
   const white = headers['White']
   const black = headers['Black']
   const event = headers['Event']
   const date = headers['Date']
-  const result = activeGame?.result
 
   return (
     <div className="h-screen flex flex-col bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
@@ -98,16 +109,44 @@ export default function ChessApp({ initialPgn }: Props) {
 
       {/* Main layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar: game list */}
-        {games.length > 1 && (
-          <aside className="w-48 shrink-0 border-r border-neutral-200 dark:border-neutral-800 p-2 overflow-y-auto">
-            <GameList
-              games={games}
-              activeIndex={activeIndex}
-              onSelect={handleSelectGame}
-            />
-          </aside>
-        )}
+        {/* Left sidebar: examples + loaded games */}
+        <aside className="w-48 shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-3">
+            {/* Loaded games section — only shown when a multi-game PGN is loaded */}
+            {loadedGames.length > 1 && (
+              <div>
+                <GameList
+                  games={loadedGames}
+                  activeIndex={activeExampleIndex === -1 ? activeLoadedIndex : -1}
+                  onSelect={handleSelectLoadedGame}
+                />
+              </div>
+            )}
+
+            {/* Examples section */}
+            <div>
+              <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1 px-2">
+                Examples
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {EXAMPLE_GAMES.map((ex, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectExample(i)}
+                    className={[
+                      'text-left px-2 py-1.5 rounded text-sm transition-colors leading-snug w-full',
+                      activeExampleIndex === i
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
+                        : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
+                    ].join(' ')}
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
 
         {/* Center: board */}
         <main className="flex flex-col items-center justify-center flex-1 p-4 gap-3 min-w-0">

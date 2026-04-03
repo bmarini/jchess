@@ -1,0 +1,317 @@
+export type ExampleGame = {
+  label: string
+  pgn: string
+}
+
+export const EXAMPLE_GAMES: ExampleGame[] = [
+  {
+    label: 'Fischer vs. Spassky (1992)',
+    pgn: `[Event "F/S Return Match"]
+[Site "Belgrade, Serbia JUG"]
+[Date "1992.11.04"]
+[Round "29"]
+[White "Fischer, Robert J."]
+[Black "Spassky, Boris V."]
+[Result "1/2-1/2"]
+
+1.e4 e5 2.Nf3 Nc6 3.Bb5 {This opening is called the Ruy Lopez.} 3... a6
+4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 d6 8.c3 O-O 9.h3 Nb8  10.d4 Nbd7
+11.c4 c6 12.cxb5 axb5 13.Nc3 Bb7 14.Bg5 b4 15.Nb1 h6 16.Bh4 c5 17.dxe5
+Nxe4 18.Bxe7 Qxe7 19.exd6 Qf6 20.Nbd2 Nxd6 21.Nc4 Nxc4 22.Bxc4 Nb6
+23.Ne5 Rae8 24.Bxf7+ Rxf7 25.Nxf7 Rxe1+ 26.Qxe1 Kxf7 27.Qe3 Qg5 28.Qxg5
+hxg5 29.b3 Ke6 30.a3 Kd6 31.axb4 cxb4 32.Ra5 Nd5 33.f3 Bc8 34.Kf2 Bf5
+35.Ra7 g6 36.Ra6+ Kc5 37.Ke1 Nf4 38.g3 Nxh3 39.Kd2 Kb5 40.Rd6 Kc5 41.Ra6
+Nf2 42.g4 Bd3 43.Re6 1/2-1/2`,
+  },
+  {
+    label: 'Heavily Annotated Dutch',
+    pgn: `[Event "Friendly game"]
+[Site "Chess with friends"]
+[Date "2015.07.25"]
+[Round "?"]
+[White "themodredditneeds"]
+[Black "random opponent"]
+[Result "0-1"]
+[ECO "A80"]
+[Annotator "themodredditneeds"]
+[Plycount "86"]
+[Eventdate "2015.07.25"]
+[TimeControl "correspondence"]
+
+1.d4
+1...f5
+2.Bg5
+{
+    At this point I had not had a challenging game on Chess with friends so I went with 2. Bg5 hoping
+    for the trap that arises after 2...h6. Normally I go with 2.c4 but I could not see my opponents rating
+    and figured I'd go for the trap.
+}
+2...d5
+{
+    Not sure why my opponent didn't just play d5 on move 1. I expected 2...Nf6, 2...d6 or 2...g6.
+    Surely this is a fine move though
+}
+3.e3 {
+    Closing the pawn chain, supporting d4.
+}
+3...g6 {
+    This seems like a familiar dutch idea. The novice in me salivates over the open king after they castle.
+}
+4.c4 {
+    Normally this is what I play on move 2 in the dutch, I figure it's best to do it now
+}
+4...Bg7 {
+    Maybe 4...c6 would have been a better move. Now I get to take on d5 and chase the queen after it
+    recaptures d5, gaining a tempo. Also trades a flank pawn for a center pawn. I'm happy so far.
+}
+5.cxd5
+5...Qxd5
+6.Nc3
+6...Qa5
+7. Nf3{
+    Now I'm trying to clear out the kingside in order to castle.
+    NOTE: This move still renders correctly even though there is no space between the move and the annotation
+}7...c6 {
+    I figured this was to prepare b5.
+}
+8.Bc4 {
+    I want to prevent kingside castling in the immediate future. I'm not worried about b5 because Bb3 is fine with me.
+}
+8...b5 {
+    At this point I'm thinking black is much too liberal with the pawn moves. I'm ahead in development,
+    central control, and I feel my pawn structure is more coherent
+}
+9.Bb3 9...Ba6 {
+    I notice now that if I castle, 10...b4 will attack my knight and unleash a discovery on my rook.
+    I then realize Ne2 prevents material loss
+}
+10.O-O
+10...b4
+11.Ne2
+11...Nf6 {
+    I now see my knight is pinned to my rook, I neglected that when I visualized this position on move 10.
+    Regardless, at this point I'm enjoying my position. I feel my opponent has made too many pawn moves
+    and has a weak pawn structure, b4 and c6 look particularly weak. My LSB is powerful. Black's queen
+    looks a little out of place. My opponent can not castle. There are holes on c5, e6 and e5. I don't
+    appear to have any holes that can be immediately exploited. The only con of my position that I could
+    come up with is that my knight on e2 is pinned, other than that I was very happy with the position.
+}
+12.Bf4 {
+    This is the part of the game I struggle with (edit: Scratch that! I struggle in all phases of the game!).
+    I liked my position, but I'm having trouble finding ways of exploiting it. I wanted to play Ne5 but after
+    a think I realized that if 12.Ne5 then 12...Ne4 and there was no way to prevent either the bishop on g5
+    or the knight on e5 from falling. I wanted to keep those pieces so I played Bf4 with the idea of Be5.
+    I figured my knight on f3 had more potential than my DSB and I thought black's DSB was a good defender
+    that I wanted to swap off.
+}
+12...Nd5 {
+    I spent so much time thinking about 12..Ne4 I neglected to think about 12...Nd5 I wasn't happy that I
+    didn't consider this move. It attacks my bishop and blocks the b2-g8 diagonal that my LSB controlled.
+    Either way I want to continue my plan of swapping my "bad bishop" with their bishop on g7.
+}
+13.Be5
+13...Bxe5
+14.Nxe5
+14...Qb6 {
+    I'm guessing my opponent did this to further protect c6.
+}
+15.Re1 {
+    I decided to unpin my rook. I had a long term plan of Kh1 then maneuvering my knight to f3 via g1 in
+    order to support the knight on e5. Perhaps this plan was too ambitious and was a waste of my time.
+    I also had ideas of playing f3 preparing e4
+}
+15...Bxe2 {
+    This was probably a good move for black. I didn't like it as I had plans for that knight. On the
+    bright side, I felt my remaining knight and bishop were very powerful and their knights could be
+    stopped by using Steinitz's idea of taking away their advanced support points. I'm not very far into
+    amateurs mind by Silman but I had just read about the knights and bishops and felt I was winning that
+    battle. Also, if my opponent decided to castle, they would be pinned and I could start aiming at the knight on d5.
+}
+16.Qxe2 {
+    I took with the queen in order to "complete my development" and connect the rooks.
+}
+16...e6 {
+    I'm guessing to support d5. Looking back this also allows the King to move to e7
+}
+17.Qc2 {
+    This was the point I realized I could attack c6 and black doesn't have enough pieces to defend it and
+    c5 doesn't work. Perhaps I should have moved either Rac1, Rec1, or Qd4. Looking back I wish I had played it differently.
+}
+17...Ke7 {
+    I really didn't see this move and I didn't realize how useful a move this was until later. It allows
+    the rook to move to c8 and now the king is one move away from defending c6. I figured my opponent was exposing their king
+}
+18.Ba4 {
+    More pressure on c6
+}
+18...Rc8 {
+    I failed to notice the x-ray on my queen, hopefully I'll learn from this and notice from now on.
+    Also the king is one move away from the defense of c6.
+}
+19. Rec1 {
+    More pressure on c6
+}
+19...a5 {
+    I did not understand this move at the time. Perhaps preparing Ra6. It looked like a blunder to me
+}
+20.Bxc6? {
+    I was too hasty here. I saw I had 4 attackers and my opponent had 3 defenders so I decided to take the pawn.
+    I should have been more patient and should have tried to get to get my other rook in the attack. After 20...Ra6 maybe I
+    could have attacked the kingside considering that all of black's pieces busy defending c6
+}
+20...Nxc6
+21.Nxc6 {
+    Shortly after playing this move I see how bad my decision to take on move 20 was. 21...Kd6 is gonna be a killer
+    as my knight is pinned
+}
+21...Kd6
+22.e4 {
+    22.Qc5+ Qxc5 23.Rxc5 Rxc6 24.Rxc6 Kxc6 wouldn't have worked. I felt this was my only hope. If 22...fxe5 23.Qxe5
+    and maybe I have a shot at harassing the King?
+}
+22...Rxc6
+23.Qxc6
+23...Qxc6
+24.Rxc6
+24...Kxc6
+25.Rc1+ { I guess I wanted to put my rook on the c file before capturing on d5. I guess it wouldn't have mattered either way }
+25...Kd6
+26.exd5
+26...Kxd5
+27.Rd1 {
+    Looking back I wish I had kept my rook on the open c-file, let the pawn go, and then brought my king into the game.
+    Ironically my opponent's "excessive pawn moves" and "exposed king" are now very powerful, meanwhile my king is hiding
+    behind a weak back rank and my pawns are very passive. Surely I was too hasty in initiating this endgame.
+}
+27...Rc8
+28.a4 {
+    A desperate attempt at 28...bxa3 e.p. 29.bxa3 and now there's no passed pawn on the queenside. 28. Rd2 would have been
+    nice, but I didn't want to get checkmated on the back rank.
+}
+28...Rc2
+29.b3
+29...Rc3
+30.Kf1 {
+    At this point I feel hopeless, no way my opponent fails to convert the win
+}
+30...Rxb3
+31.Ke2
+31...Rb2+
+32.Rd2
+32...Rxd2+
+33.Kxd2 {
+    Maybe some hope I can weasel my way to a draw?
+}
+33...Kxd4
+34.Kc2
+34...Kc4
+35.g3 {
+    I guess to prepare f4?
+}
+35...b3+
+36.Kb2
+36...Kb4 {
+    Now a4 will definitely fall, there's no way to prevent the queenside pawns from promoting without allowing
+    black's king from gobbling my kingside minority pawns. It's time to resign.
+}
+0-1`,
+  },
+  {
+    label: 'justdoeet vs. Zornhau (FICS)',
+    pgn: `[Event "rated standard game"]
+[Site "Free Internet Chess Server"]
+[Date "2008.02.20"]
+[Round "-"]
+[White "justdoeet"]
+[Black "Zornhau"]
+[WhiteElo "1598"]
+[BlackElo "1482"]
+[Result "1-0"]
+[Time "18:51:25"]
+[TimeControl "1200+0"]
+[Mode "ICS"]
+
+1. d4 d5 2. c4 c6 3. Nc3 e6 4. Nf3 Bb4 5. e3 Nf6 6. a3 Bxc3+ 7. bxc3 Ne4 8. Qc2
+O-O 9. Bd3 Nf6 10. O-O Nbd7 11. cxd5 cxd5 12. c4 dxc4 13. Qxc4 a6 14. Bd2 b5
+15. Qb3 Bb7 16. Bb4 Re8 17. Be2 Rc8 18. Rac1 Rxc1 19. Rxc1 Ne4 20. Nd2 Nxd2
+21. Bxd2 Qg5 22. f3 Nf6 23. Qd3 g6 24. e4 Qh5 25. Rc5 Nd5 26. exd5 exd5 27. Bf4
+g5 28. Bg3 Qh6 29. Bd1 Qf8 30. Bc2 Qg7 31. Bb3 Rd8 32. Bc2 Rf8 33. Rc7 Bc8
+34. Be5 f6 35. Rxg7+ Kxg7 36. Qxh7# 1-0`,
+  },
+  {
+    label: 'dudektria vs. Stockfish (2011)',
+    pgn: `[Event "Local Event"]
+[Site "Local Site"]
+[Round "1"]
+[Date "2011.10.31"]
+[White "dudektria"]
+[Black "Stockfish 2.1.1"]
+[Result "0-1"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 c6 5. Bg5 h6 6. Bh4 dxc4 7. e4 g5 8. Bg3 b5
+9. Be2 Bb7 10. Be5 Nbd7 11. b3 Bb4 12. Qc2 cxb3 13. axb3 Nxe5 14. Nxe5 Qxd4 15.
+Rc1 Qxe5 16. O-O Rd8 17. Rfd1 Rxd1+ 18. Bxd1 Ke7 19. Bf3 g4 20. Be2 Rd8 21. Nd1
+Rd2 22. Qb1 Rxe2 23. Ne3 Qf4 24. Rf1 Nxe4 25. Qd1 Rxf2 26. Nc2 Rxf1+ 27. Qxf1
+Bc5+ 28. Qf2 Qc1+ 29. Ne1 Qxe1# 0-1`,
+  },
+  {
+    label: 'Knight Disambiguation',
+    pgn: `1.Nc3 Nf6 2.d4 Nc6 3.Bg5 e5 4.e3 Bb4 5.Ne2 O-O 6.d5 Na5 7.Qd2 d6 8.Ng3
+Bg4 9.f3 Qd7 10.h3 Bf5 11.Bxf6 gxf6 12.a3 *`,
+  },
+  {
+    label: 'Markowski vs. Piket — Queening Endgame',
+    pgn: `[Event "34th Olympiad"]
+[Site "Istanbul TUR"]
+[Date "2000.11.08"]
+[EventDate "2000.10.28"]
+[Round "11"]
+[Result "1/2-1/2"]
+[White "Tomasz Markowski"]
+[Black "Jeroen Piket"]
+[ECO "A07"]
+[WhiteElo "2568"]
+[BlackElo "2649"]
+[PlyCount "253"]
+
+1. g3 d5 2. Nf3 c6 3. Bg2 Bg4 4. d3 Nd7 5. c4 e6 6. O-O Ngf6
+7. cxd5 exd5 8. Nc3 Bc5 9. Qb3 Bb6 10. Na4 O-O 11. Nxb6 axb6
+12. Qc2 Re8 13. b3 Qe7 14. Re1 Qb4 15. Bd2 Qc5 16. Qb2 Qa3
+17. Bc1 Qxb2 18. Bxb2 Bxf3 19. Bxf3 b5 20. b4 h6 21. a3 Nb6
+22. Bg2 Nfd7 23. h4 Nf8 24. Rab1 Ra6 25. h5 Rd8 26. e3 Na4
+27. Ba1 d4 28. e4 c5 29. Rec1 Ne6 30. Bh3 Rc6 31. bxc5 Rxc5
+32. Rxc5 Nexc5 33. Rxb5 Nxd3 34. Rd5 Rxd5 35. exd5 Nc3 36. Kf1
+Kf8 37. Bf5 Ne5 38. Bxc3 dxc3 39. Ke2 Ke7 40. Bc2 Kd6 41. Bb3
+Ng4 42. f3 Nf6 43. g4 Nxd5 44. Kd3 f5 45. a4 fxg4 46. fxg4 Kc5
+47. Bxd5 Kxd5 48. Kxc3 Ke4 49. Kc4 Kf4 50. Kb5 Kxg4 51. Kb6
+Kxh5 52. Kxb7 g5 53. a5 g4 54. a6 g3 55. a7 g2 56. a8=Q g1=Q
+57. Qe8+ Kh4 58. Qe4+ Qg4 59. Qe7+ Kg3 60. Qe1+ Kh2 61. Qe5+
+Kg2 62. Qb2+ Kh3 63. Qc3+ Qg3 64. Qc8+ Kh2 65. Qf5 Qg5 66. Qf7
+h5 67. Ka6 Qe5 68. Qf2+ Kh3 69. Qf3+ Kh4 70. Qf2+ Kg5 71. Qg2+
+Kf6 72. Qf3+ Qf5 73. Qc3+ Kg6 74. Qg3+ Kh7 75. Qh4 Qe6+
+76. Ka7 Qg4 77. Qf2 h4 78. Ka8 Qe4+ 79. Ka7 Kg6 80. Qb6+ Kf7
+81. Qb3+ Ke7 82. Qc3 Qf4 83. Qc5+ Kf7 84. Qd5+ Kg7 85. Qg2+
+Qg3 86. Qb7+ Kh6 87. Qc6+ Qg6 88. Qf3 Qg7+ 89. Ka8 Qe5
+90. Qc6+ Kg7 91. Qd7+ Kg6 92. Qg4+ Qg5 93. Qe4+ Kg7 94. Qd4+
+Qf6 95. Qd7+ Kh8 96. Qe8+ Kh7 97. Qd7+ Kh6 98. Qd2+ Kg6
+99. Qg2+ Kf7 100. Qd5+ Kf8 101. Qc5+ Kg8 102. Qd5+ Kh8
+103. Qh5+ Kg7 104. Qd1 Kf8 105. Qd3 Qe6 106. Qf3+ Ke7
+107. Qb7+ Kd8 108. Qb6+ Kd7 109. Qb7+ Kd6 110. Qb4+ Kc6
+111. Qa4+ Kc7 112. Qa7+ Kd6 113. Qb6+ Kd5 114. Qb5+ Kd4
+115. Qb6+ Kd5 116. Qb3+ Ke5 117. Qe3+ Kd6 118. Qb6+ Kd7
+119. Qb7+ Ke8 120. Qb5+ Kf8 121. Qc5+ Qe7 122. Qf5+ Kg7
+123. Qg4+ Kh6 124. Qf4+ Kg6 125. Qg4+ Qg5 126. Qe6+ Qf6
+127. Qg4+ 1/2-1/2`,
+  },
+  {
+    label: 'Recursive Variations (RAV)',
+    pgn: `[Event "Example of Recursive Variations"]
+[Site "ChessBoard"]
+[Date "2026.04.03"]
+[White "Player A"]
+[Black "Player B"]
+[Result "1-0"]
+
+1. e4 {The best test} 1... c5 (1... e5 2. Nf3 Nc6 3. Bb5 {The Ruy Lopez} (3. d4 exd4 4. Nxd4 {A more aggressive approach})) 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 {Main Line} a6 (5... Nc6 6. Bg5) 6. Be3 e5 7. Nb3 Be6 8. f3 Be7 9. Qd2 O-O 10. O-O-O Nbd7 11. g4 b5 12. g5 b4 13. Ne2 Ne8 14. f4 a5 15. f5 a4 16. Nbd4 exd4 17. Nxd4 b3 18. Kb1 bxc2+ 19. Nxc2 Bb3 20. axb3 axb3 21. Na3 Ne5 22. h4 Ra5 23. Qc3 Qa8 24. Bg2 Ra6 25. Bd4 f6 26. Qxb3+ Kh8 27. Qe6 Qb7 28. Bxe5 dxe5 29. Rd7 Qxe4+ 30. Bxe4 Rxe6 31. fxe6 Bxa3 32. bxa3 fxg5 33. hxg5 Kg8 34. Bxh7+ 1-0`,
+  },
+]
