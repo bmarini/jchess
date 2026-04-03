@@ -101,9 +101,16 @@ The core design is a **pre-computed transition list**. When a PGN is loaded:
 
 The original 2008 jQuery version is preserved in `javascripts/jchess-0.1.0.js` for reference.
 
-## TODO
+## Roadmap
 
-* Good separation of concerns between engine and display. Should be easy to build new displays with the underlying engine.
-* Goal is for this to not just be a viewer but an editor. I want to take a game, play through it, add annotations, add variations, and then export back to PGN.
-* How to support comments / multiple user annotations?
+### UX
+
+* Goal is for this to not just be a viewer but an editor. I want to take a game, play through it, add annotations, add variations, and then export back to PGN, or via sharable link.
+* How to support comments / multiple user annotations? Some type of "rich" annoation?
 * Be able to upload a .pgn file with multiple games and show a viewer with game list (searchable too)
+
+### Clean Code
+
+* Rewrite frontend in React, Next.js, and Tailwind (easier for AI driven coding)
+* Good separation of concerns between engine and display. Should be easy to build new displays with the underlying engine.
+* Go file-by-file and move from purely functional to more idiomatic Typescript (use interfaces, best practices, for example: https://docs.aws.amazon.com/prescriptive-guidance/latest/best-practices-cdk-typescript-iac/typescript-best-practices.html)
