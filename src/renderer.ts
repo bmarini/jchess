@@ -10,6 +10,12 @@ function pieceImageUrl(color: Color, type: PieceType, base: string): string {
 // ── CSS injected once ─────────────────────────────────────────────────────────
 
 const CSS = `
+.jchess-outer {
+  display: inline-grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr auto;
+  user-select: none;
+}
 .jchess-board {
   position: relative;
   display: grid;
@@ -17,7 +23,8 @@ const CSS = `
   grid-template-rows: repeat(8, 1fr);
   width: var(--jchess-size, 400px);
   height: var(--jchess-size, 400px);
-  user-select: none;
+  grid-column: 2;
+  grid-row: 1;
 }
 .jchess-square {
   position: relative;
@@ -36,18 +43,36 @@ const CSS = `
   transition: transform var(--jchess-anim, 120ms) ease;
   z-index: 100;
 }
-.jchess-coords {
-  position: absolute;
-  font-size: calc(var(--jchess-size, 400px) / 32);
+.jchess-rank-labels {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1;
+  grid-row: 1;
+}
+.jchess-file-labels {
+  display: flex;
+  flex-direction: row;
+  grid-column: 2;
+  grid-row: 2;
+}
+.jchess-coord-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--jchess-size, 400px) / 8);
+  height: calc(var(--jchess-size, 400px) / 8);
+  font-size: calc(var(--jchess-size, 400px) / 40);
   font-family: sans-serif;
   font-weight: bold;
-  line-height: 1;
+  color: #888;
   pointer-events: none;
 }
-.jchess-square.light .jchess-coords { color: var(--jchess-dark,  #b58863); }
-.jchess-square.dark  .jchess-coords { color: var(--jchess-light, #f0d9b5); }
-.jchess-coord-rank { bottom: 2px; left: 3px; }
-.jchess-coord-file { top: 2px; right: 3px; }
+.jchess-rank-labels .jchess-coord-label {
+  width: calc(var(--jchess-size, 400px) / 20);
+}
+.jchess-file-labels .jchess-coord-label {
+  height: calc(var(--jchess-size, 400px) / 20);
+}
 `
 
 let cssInjected = false
@@ -63,7 +88,10 @@ function injectCSS(): void {
 
 export class Renderer {
   private container: HTMLElement
+  private outerEl: HTMLElement
   private boardEl: HTMLElement
+  private rankLabelsEl: HTMLElement
+  private fileLabelsEl: HTMLElement
   private squares: HTMLElement[] = []  // indexed [row * 8 + col]
   private pieces: Map<number, HTMLElement> = new Map()  // pieceId → element
   private pieceSquares: Map<number, Square> = new Map() // pieceId → square name
@@ -76,16 +104,47 @@ export class Renderer {
     this.container = container
     this.container.innerHTML = ''
 
+    this.outerEl = document.createElement('div')
+    this.outerEl.className = 'jchess-outer'
+    this.container.appendChild(this.outerEl)
+
+    this.rankLabelsEl = document.createElement('div')
+    this.rankLabelsEl.className = 'jchess-rank-labels'
+    this.outerEl.appendChild(this.rankLabelsEl)
+
     this.boardEl = document.createElement('div')
     this.boardEl.className = 'jchess-board'
-    this.container.appendChild(this.boardEl)
+    this.outerEl.appendChild(this.boardEl)
+
+    this.fileLabelsEl = document.createElement('div')
+    this.fileLabelsEl.className = 'jchess-file-labels'
+    this.outerEl.appendChild(this.fileLabelsEl)
 
     this.buildSquares()
   }
 
   private buildSquares(): void {
     this.boardEl.innerHTML = ''
+    this.rankLabelsEl.innerHTML = ''
+    this.fileLabelsEl.innerHTML = ''
     this.squares = []
+
+    const ranks = this.flipped ? '12345678' : '87654321'
+    const files  = this.flipped ? 'hgfedcba' : 'abcdefgh'
+
+    for (const rank of ranks) {
+      const label = document.createElement('span')
+      label.className = 'jchess-coord-label'
+      label.textContent = rank
+      this.rankLabelsEl.appendChild(label)
+    }
+
+    for (const file of files) {
+      const label = document.createElement('span')
+      label.className = 'jchess-coord-label'
+      label.textContent = file
+      this.fileLabelsEl.appendChild(label)
+    }
 
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
@@ -95,26 +154,6 @@ export class Renderer {
         this.boardEl.appendChild(sq)
         this.squares.push(sq)
       }
-    }
-    this.addCoordLabels()
-  }
-
-  private addCoordLabels(): void {
-    const files = 'abcdefgh'
-    const ranks = '87654321'
-
-    for (let i = 0; i < 8; i++) {
-      // Rank label on the left edge of each row (col 0)
-      const rankLabel = document.createElement('span')
-      rankLabel.className = 'jchess-coords jchess-coord-rank'
-      rankLabel.textContent = this.flipped ? String(i + 1) : ranks[i]!
-      this.squareEl(i, 0).appendChild(rankLabel)
-
-      // File label on the bottom edge of each column (row 7)
-      const fileLabel = document.createElement('span')
-      fileLabel.className = 'jchess-coords jchess-coord-file'
-      fileLabel.textContent = this.flipped ? files[7 - i]! : files[i]!
-      this.squareEl(7, i).appendChild(fileLabel)
     }
   }
 
