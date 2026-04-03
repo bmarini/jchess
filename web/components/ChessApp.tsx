@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import Board from './Board'
 import Controls from './Controls'
 import MoveList from './MoveList'
@@ -10,6 +10,7 @@ import GameInfo from './GameInfo'
 import { useChessGame } from '@/hooks/useChessGame'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { EXAMPLE_GAMES } from '@/lib/examples'
+import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
 import type { GameEntry } from '@/lib/parseMultiPGN'
 
 type Props = {
@@ -23,20 +24,18 @@ function parseFirstExample(): GameEntry | null {
 }
 
 export default function ChessApp({ initialPgn }: Props) {
-  // The active game entry (for headers, annotations, preAnnotation)
   const [activeGame, setActiveGame] = useState<GameEntry | null>(() =>
     initialPgn ? (parseMultiPGN(initialPgn)[0] ?? null) : parseFirstExample()
   )
-  // Games from a user-loaded multi-game PGN (for the sidebar Games section)
   const [loadedGames, setLoadedGames] = useState<GameEntry[]>(() =>
     initialPgn ? parseMultiPGN(initialPgn) : []
   )
   const [activeLoadedIndex, setActiveLoadedIndex] = useState(0)
-  // Which example is highlighted (-1 if a loaded game is active)
   const [activeExampleIndex, setActiveExampleIndex] = useState<number>(
     initialPgn ? -1 : 0
   )
   const [showInput, setShowInput] = useState(false)
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
 
   const chess = useChessGame(activeGame?.game ?? undefined)
 
@@ -78,6 +77,35 @@ export default function ChessApp({ initialPgn }: Props) {
     chess.loadGame(entry.game)
   }, [chess])
 
+  // Load PGN from URL hash on mount
+  useEffect(() => {
+    const encoded = getEncodedPGNFromHash()
+    if (!encoded) return
+    decompressPGN(encoded).then(pgn => {
+      const games = parseMultiPGN(pgn)
+      if (games.length === 0) return
+      const first = games[0]!
+      setLoadedGames(games)
+      setActiveLoadedIndex(0)
+      setActiveExampleIndex(-1)
+      setActiveGame(first)
+      chess.loadGame(first.game)
+    }).catch(() => {
+      // Ignore bad hash data
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleShare = useCallback(async () => {
+    const raw = activeGame?.raw
+    if (!raw) return
+    const encoded = await compressPGN(raw)
+    const url = buildShareUrl(encoded)
+    window.history.replaceState(null, '', url)
+    await navigator.clipboard.writeText(url)
+    setShareStatus('copied')
+    setTimeout(() => setShareStatus('idle'), 2000)
+  }, [activeGame])
+
   const headers = activeGame?.game.headers ?? {}
   const white = headers['White']
   const black = headers['Black']
@@ -93,6 +121,13 @@ export default function ChessApp({ initialPgn }: Props) {
           {white && black ? `${white} – ${black}` : event ?? ''}
           {date && <span className="ml-2 text-xs text-neutral-400">{date}</span>}
         </div>
+        <button
+          onClick={handleShare}
+          className="text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+            hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          {shareStatus === 'copied' ? 'Copied!' : 'Share'}
+        </button>
         <button
           onClick={() => setShowInput(v => !v)}
           className="text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
