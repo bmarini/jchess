@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { Position } from '@chess/board'
 import { buildTransitions, GamePlayer } from '@chess/transitions'
 import type { Transition } from '@chess/types'
 import type { ParsedGame } from '@chess/types'
 
 export type ChessGameState = {
-  player: GamePlayer | null
   position: Position | null
   halfmove: number
   totalMoves: number
@@ -21,7 +20,7 @@ export type ChessGameState = {
   next: () => void
   prev: () => void
   jumpTo: (n: number) => void
-  /** Jump to a position in the main line, then enter a variation, then jump within it. */
+  /** Jump into a variation from the main line. */
   jumpToVariation: (mainHalfmove: number, variationIndex: number, varHalfmove: number) => void
   flip: () => void
   enterVariation: (index: number) => void
@@ -29,96 +28,109 @@ export type ChessGameState = {
   loadGame: (game: ParsedGame, fen?: string) => void
 }
 
-type GameState = {
-  player: GamePlayer
-  halfmove: number
-  warnings: string[]
-}
-
-function initGameState(game: ParsedGame, fen?: string): GameState {
+function makePlayer(game: ParsedGame, fen?: string): { player: GamePlayer; warnings: string[] } {
   const initial = fen ? Position.fromFEN(fen) : Position.starting()
   const result = buildTransitions(game, initial)
-  return { player: new GamePlayer(result), halfmove: 0, warnings: result.warnings }
+  return { player: new GamePlayer(result), warnings: result.warnings }
 }
 
 export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameState {
-  const [state, setState] = useState<GameState | null>(() =>
-    initialGame ? initGameState(initialGame, fen) : null
-  )
+  // Player lives in a ref — it's mutable, not React-managed state.
+  // We drive re-renders via halfmove + tick below.
+  const playerRef = useRef<GamePlayer | null>(null)
+  const warningsRef = useRef<string[]>([])
+
+  // Initialize synchronously on first render. The `if` guard ensures this
+  // runs only once even under React Strict Mode's double-invoke of the component body.
+  if (playerRef.current === null && initialGame) {
+    const { player, warnings } = makePlayer(initialGame, fen)
+    playerRef.current = player
+    warningsRef.current = warnings
+  }
+
+  // halfmove is React state — changing it triggers a re-render.
+  const [halfmove, setHalfmove] = useState(0)
+  // tick forces a re-render when variation stack changes (isInVariation, transitions).
+  const [tick, setTick] = useState(0)
   const [flipped, setFlipped] = useState(false)
 
+  // All callbacks mutate playerRef.current directly (not inside a setState updater).
+  // React Strict Mode only double-invokes updater functions — callbacks are safe.
+
   const next = useCallback(() => {
-    setState(prev => {
-      if (!prev || !prev.player.canGoForward()) return prev
-      prev.player.stepForward()
-      return { ...prev, halfmove: prev.player.halfmove }
-    })
+    const p = playerRef.current
+    if (!p || !p.canGoForward()) return
+    p.stepForward()
+    setHalfmove(p.halfmove)
   }, [])
 
   const prev = useCallback(() => {
-    setState(s => {
-      if (!s || !s.player.canGoBackward()) return s
-      s.player.stepBackward()
-      return { ...s, halfmove: s.player.halfmove }
-    })
+    const p = playerRef.current
+    if (!p || !p.canGoBackward()) return
+    p.stepBackward()
+    setHalfmove(p.halfmove)
   }, [])
 
   const jumpTo = useCallback((n: number) => {
-    setState(s => {
-      if (!s) return s
-      s.player.jumpTo(n)
-      return { ...s, halfmove: s.player.halfmove }
-    })
+    const p = playerRef.current
+    if (!p) return
+    p.jumpTo(n)
+    setHalfmove(p.halfmove)
+  }, [])
+
+  const enterVariation = useCallback((index: number) => {
+    const p = playerRef.current
+    if (!p) return
+    p.enterVariation(index)
+    setHalfmove(p.halfmove)
+    setTick(t => t + 1)
+  }, [])
+
+  const exitVariation = useCallback(() => {
+    const p = playerRef.current
+    if (!p) return
+    p.exitVariation()
+    setHalfmove(p.halfmove)
+    setTick(t => t + 1)
+  }, [])
+
+  const jumpToVariation = useCallback((mainHalfmove: number, variationIndex: number, varHalfmove: number) => {
+    const p = playerRef.current
+    if (!p) return
+    while (p.isInVariation) p.exitVariation()
+    p.jumpTo(mainHalfmove)
+    p.enterVariation(variationIndex)
+    p.jumpTo(varHalfmove)
+    setHalfmove(p.halfmove)
+    setTick(t => t + 1)
   }, [])
 
   const flip = useCallback(() => setFlipped(f => !f), [])
 
-  const enterVariation = useCallback((index: number) => {
-    setState(s => {
-      if (!s) return s
-      s.player.enterVariation(index)
-      return { ...s, halfmove: s.player.halfmove }
-    })
-  }, [])
-
-  const exitVariation = useCallback(() => {
-    setState(s => {
-      if (!s) return s
-      s.player.exitVariation()
-      return { ...s, halfmove: s.player.halfmove }
-    })
-  }, [])
-
-  const jumpToVariation = useCallback((mainHalfmove: number, variationIndex: number, varHalfmove: number) => {
-    setState(s => {
-      if (!s) return s
-      // Exit any current variation first, go to main line position, enter the variation
-      while (s.player.isInVariation) s.player.exitVariation()
-      s.player.jumpTo(mainHalfmove)
-      s.player.enterVariation(variationIndex)
-      s.player.jumpTo(varHalfmove)
-      return { ...s, halfmove: s.player.halfmove }
-    })
-  }, [])
-
   const loadGame = useCallback((game: ParsedGame, fenStr?: string) => {
-    setState(initGameState(game, fenStr))
+    const { player, warnings } = makePlayer(game, fenStr)
+    playerRef.current = player
+    warningsRef.current = warnings
+    setHalfmove(0)
+    setTick(t => t + 1)
   }, [])
 
-  const player = state?.player ?? null
-  const halfmove = state?.halfmove ?? 0
+  const p = playerRef.current
 
   return {
-    player,
-    position: player ? player.positionAt(halfmove) : null,
+    position: p ? p.positionAt(halfmove) : null,
     halfmove,
-    totalMoves: player?.totalMoves ?? 0,
-    currentSAN: player?.currentSAN ?? null,
-    annotation: player?.currentAnnotation,
-    transitions: player?.transitions ?? [],
-    isInVariation: player?.isInVariation ?? false,
+    totalMoves: p?.totalMoves ?? 0,
+    currentSAN: p ? (halfmove > 0 ? (p.transitions[halfmove - 1]?.san ?? null) : null) : null,
+    annotation: p
+      ? halfmove > 0
+        ? p.transitions[halfmove - 1]?.annotation
+        : p.transitions[0]?.annotation
+      : undefined,
+    transitions: p?.transitions ?? [],
+    isInVariation: p?.isInVariation ?? false,
     flipped,
-    warnings: state?.warnings ?? [],
+    warnings: warningsRef.current,
     next,
     prev,
     jumpTo,
