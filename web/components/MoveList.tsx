@@ -2,13 +2,14 @@
 
 import { useEffect, useRef } from 'react'
 import type { Transition } from '@chess/types'
+import type { VarStep } from '@/hooks/useChessGame'
 
 type Props = {
   transitions: Transition[]
   halfmove: number
   isInVariation: boolean
   onJump: (n: number) => void
-  onJumpToVariation: (mainHalfmove: number, varIndex: number, varHalfmove: number) => void
+  onJumpToVariation: (path: VarStep[], varHalfmove: number) => void
   preAnnotation?: string
 }
 
@@ -41,6 +42,7 @@ export default function MoveList({
         onJump={onJump}
         onJumpToVariation={onJumpToVariation}
         activeRef={activeRef}
+        varPath={[]}
       />
     </div>
   )
@@ -52,10 +54,10 @@ type TreeProps = {
   currentHalfmove: number
   isInVariation: boolean
   onJump: (n: number) => void
-  onJumpToVariation: (mainHalfmove: number, varIndex: number, varHalfmove: number) => void
+  onJumpToVariation: (path: VarStep[], varHalfmove: number) => void
   activeRef: React.MutableRefObject<HTMLButtonElement | null>
-  /** When non-null, clicking any move in this tree calls onJumpToVariation with these args */
-  varContext?: { mainHalfmove: number; varIndex: number }
+  /** Path of variation steps from the main line to reach this tree. Empty = main line. */
+  varPath: VarStep[]
 }
 
 function MoveTree({
@@ -66,8 +68,9 @@ function MoveTree({
   onJump,
   onJumpToVariation,
   activeRef,
-  varContext,
+  varPath,
 }: TreeProps) {
+  const isVariation = varPath.length > 0
   const items: React.ReactNode[] = []
 
   for (let i = 0; i < transitions.length; i++) {
@@ -75,7 +78,7 @@ function MoveTree({
     const hm = startHalfmove + i
     const moveNum = Math.ceil(hm / 2)
     const isWhite = hm % 2 === 1
-    const isCurrent = !varContext && hm === currentHalfmove
+    const isCurrent = !isVariation && hm === currentHalfmove
 
     // Move number
     if (isWhite) {
@@ -93,8 +96,8 @@ function MoveTree({
     }
 
     // Move button
-    const handleClick = varContext
-      ? () => onJumpToVariation(varContext.mainHalfmove, varContext.varIndex, hm - startHalfmove + 1)
+    const handleClick = isVariation
+      ? () => onJumpToVariation(varPath, hm - startHalfmove + 1)
       : () => onJump(hm)
 
     items.push(
@@ -106,7 +109,7 @@ function MoveTree({
           'px-1 py-0.5 rounded transition-colors mr-0.5',
           isCurrent
             ? 'bg-blue-600 text-white font-semibold'
-            : varContext
+            : isVariation
               ? 'text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400'
               : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200',
         ].join(' ')}
@@ -124,8 +127,8 @@ function MoveTree({
       )
     }
 
-    // Variations — rendered as indented block elements (not inline)
-    if (!varContext && t.variations.length > 0) {
+    // Variations — rendered as indented block elements
+    if (t.variations.length > 0) {
       const varBlocks: React.ReactNode[] = []
       for (let v = 0; v < t.variations.length; v++) {
         const varTransitions = t.variations[v]!
@@ -143,7 +146,7 @@ function MoveTree({
               onJump={onJump}
               onJumpToVariation={onJumpToVariation}
               activeRef={activeRef}
-              varContext={{ mainHalfmove: hm - 1, varIndex: v }}
+              varPath={[...varPath, { halfmove: hm - 1, varIndex: v }]}
             />
           </div>
         )

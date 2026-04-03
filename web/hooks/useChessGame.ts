@@ -6,6 +6,8 @@ import { buildTransitions, GamePlayer } from '@chess/transitions'
 import type { Transition } from '@chess/types'
 import type { ParsedGame } from '@chess/types'
 
+export type VarStep = { halfmove: number; varIndex: number }
+
 export type ChessGameState = {
   position: Position | null
   halfmove: number
@@ -20,8 +22,8 @@ export type ChessGameState = {
   next: () => void
   prev: () => void
   jumpTo: (n: number) => void
-  /** Jump into a variation from the main line. */
-  jumpToVariation: (mainHalfmove: number, variationIndex: number, varHalfmove: number) => void
+  /** Jump into a variation (possibly nested) by following a path of steps from the main line. */
+  jumpToVariation: (path: VarStep[], varHalfmove: number) => void
   flip: () => void
   enterVariation: (index: number) => void
   exitVariation: () => void
@@ -94,12 +96,14 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     setTick(t => t + 1)
   }, [])
 
-  const jumpToVariation = useCallback((mainHalfmove: number, variationIndex: number, varHalfmove: number) => {
+  const jumpToVariation = useCallback((path: VarStep[], varHalfmove: number) => {
     const p = playerRef.current
     if (!p) return
     while (p.isInVariation) p.exitVariation()
-    p.jumpTo(mainHalfmove)
-    p.enterVariation(variationIndex)
+    for (const step of path) {
+      p.jumpTo(step.halfmove)
+      p.enterVariation(step.varIndex)
+    }
     p.jumpTo(varHalfmove)
     setHalfmove(p.halfmove)
     setTick(t => t + 1)
