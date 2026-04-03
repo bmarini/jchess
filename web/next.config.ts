@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
   basePath: isProd ? '/jchess' : '',
   // next/image requires a server for optimization; disable for static export
   images: { unoptimized: true },
+  // Expose basePath to client components via process.env.NEXT_PUBLIC_BASE_PATH
+  env: {
+    NEXT_PUBLIC_BASE_PATH: isProd ? '/jchess' : '',
+  },
   webpack(config) {
     config.resolve.alias = {
       ...config.resolve.alias,

@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import Image from 'next/image'
 import { coordToSquare } from '@chess/board'
+
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 import type { Position } from '@chess/board'
 import type { Piece, TransitionCommand } from '@chess/types'
 
@@ -55,7 +56,7 @@ export default function Board({
   position,
   flipped = false,
   lastCommands,
-  pieceBase = '/pieces/mpchess/',
+  pieceBase = `${BASE_PATH}/pieces/mpchess/`,
 }: Props) {
   const highlightedSquares = getLastMoveSquares(lastCommands)
   const pieces = position ? getPieces(position) : []
@@ -143,11 +144,12 @@ export default function Board({
                     willChange: 'left, top',
                   }}
                 >
-                  <Image
+                  {/* Plain img — SVGs need no Next.js optimization, and src is already prefixed */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={`${pieceBase}${piece.color}${piece.type}.svg`}
                     alt={`${piece.color}${piece.type}`}
-                    fill
-                    className="p-[6%] drop-shadow-sm"
+                    className="w-full h-full p-[6%] drop-shadow-sm"
                     draggable={false}
                   />
                 </div>
