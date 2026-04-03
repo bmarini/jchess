@@ -188,14 +188,31 @@
       flex-shrink: 0;
     }
 
+    .annotation-panel {
+      position: relative;
+    }
+
+    .annotation-panel.has-annotation::before {
+      content: '\201C';
+      position: absolute;
+      top: -0.1em;
+      left: -0.15em;
+      font-size: 5rem;
+      line-height: 1;
+      color: #2e2e2e;
+      font-style: italic;
+      pointer-events: none;
+    }
+
     .annotation {
       height: var(--jchess-size, min(480px, 75dvh));
-      font-size: 0.85rem;
-      line-height: 1.6;
+      font-size: 0.95rem;
+      line-height: 1.7;
       color: #888;
       font-style: italic;
       white-space: normal;
       overflow-y: auto;
+      padding-top: 1.5rem;
     }
 
     /* ── PGN paste input ── */
@@ -384,7 +401,9 @@
           ? `${fullMove}. ${hm % 2 === 0 ? '...' : ''}${move}`
           : '(start)'
         hmDisplay.textContent   = `Move ${hm} / ${total}`
-        annotation.textContent  = (viewer.getAnnotation() ?? '').replace(/\s+/g, ' ').trim()
+        const annotationText = (viewer.getAnnotation() ?? '').replace(/\s+/g, ' ').trim()
+        annotation.textContent = annotationText
+        annotationPanel.classList.toggle('has-annotation', annotationText.length > 0)
         backBtn.disabled = hm === 0
         nextBtn.disabled = hm >= total
       }
@@ -451,7 +470,6 @@
       viewer.loadPGN(pgn)
       buildMoveList()
       updateControls()
-      annotation.textContent = (viewer.getAnnotation() ?? '').replace(/\s+/g, ' ').trim()
     }
 
     pgnLoadBtn.addEventListener('click', () => loadPGNText(pgnTextarea.value))
