@@ -1,11 +1,10 @@
 import { coordToSquare, Position, squareToCoord } from './board.js'
 import type { Color, Piece, PieceType, Square, TransitionCommand } from './types.js'
 
-// ── Unicode piece glyphs ──────────────────────────────────────────────────────
+// ── Piece image path ──────────────────────────────────────────────────────────
 
-const GLYPHS: Record<Color, Record<PieceType, string>> = {
-  w: { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙' },
-  b: { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' },
+function pieceImageUrl(color: Color, type: PieceType, base: string): string {
+  return `${base}${color}${type}.svg`
 }
 
 // ── CSS injected once ─────────────────────────────────────────────────────────
@@ -29,23 +28,9 @@ const CSS = `
 .jchess-piece {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(var(--jchess-size, 400px) / 9);
-  line-height: 1;
+  background-size: cover;
   cursor: default;
   pointer-events: none;
-}
-.jchess-piece.white {
-  color: #fff;
-  -webkit-text-stroke: 1.2px #333;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-}
-.jchess-piece.black {
-  color: #1a1a1a;
-  -webkit-text-stroke: 0.5px rgba(255,255,255,0.3);
-  text-shadow: 0 1px 3px rgba(255,255,255,0.25);
 }
 .jchess-piece.animating {
   transition: transform var(--jchess-anim, 120ms) ease;
@@ -83,8 +68,10 @@ export class Renderer {
   private pieces: Map<number, HTMLElement> = new Map()  // pieceId → element
   private pieceSquares: Map<number, Square> = new Map() // pieceId → square name
   private flipped: boolean = false
+  private pieceBase: string
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, pieceBase = './pieces/mpchess/') {
+    this.pieceBase = pieceBase
     injectCSS()
     this.container = container
     this.container.innerHTML = ''
@@ -168,9 +155,9 @@ export class Renderer {
 
   private createPieceEl(piece: Piece): HTMLElement {
     const el = document.createElement('div')
-    el.className = `jchess-piece ${piece.color === 'w' ? 'white' : 'black'}`
+    el.className = 'jchess-piece'
     el.dataset['pieceId'] = String(piece.id)
-    el.textContent = GLYPHS[piece.color][piece.type]
+    el.style.backgroundImage = `url('${pieceImageUrl(piece.color, piece.type, this.pieceBase)}')`
     return el
   }
 

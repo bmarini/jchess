@@ -32,7 +32,7 @@ export class ChessViewer {
   private animateSteps: boolean = true
 
   constructor(container: HTMLElement, options: ChessViewerOptions = {}) {
-    this.renderer = new Renderer(container)
+    this.renderer = new Renderer(container, options.pieceBase)
 
     const initial = options.fen ? Position.fromFEN(options.fen) : Position.starting()
 

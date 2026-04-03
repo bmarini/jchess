@@ -57,4 +57,6 @@ export type ChessViewerOptions = {
   pgn?: string
   /** Starting position as FEN. Defaults to the standard starting position. */
   fen?: string
+  /** Base URL for piece SVGs, e.g. '/pieces/mpchess/'. Defaults to '/pieces/mpchess/'. */
+  pieceBase?: string
 }
