@@ -56,14 +56,22 @@ export function boardToFENRanks(board: Board): string {
 }
 
 // ── Piece ID counter ──────────────────────────────────────────────────────────
-// Still a global for now; will be refactored in a follow-up commit.
 
-let nextId = 0
+/**
+ * A mutable counter passed by reference so callers share one sequence
+ * without relying on module-level state.
+ *
+ * Usage:
+ *   const ids = makeIdCounter()
+ *   Position.fromFEN(fen, ids)
+ *   // ids.next() for subsequent allocations (e.g. promotions)
+ */
+export type IdCounter = { next: () => number }
 
-/** Reset the piece-ID counter. Required in tests and before building a game. */
-export function resetPieceIds(): void { nextId = 0 }
-
-export function allocatePieceId(): number { return nextId++ }
+export function makeIdCounter(): IdCounter {
+  let n = 0
+  return { next: () => n++ }
+}
 
 // ── Position ──────────────────────────────────────────────────────────────────
 
@@ -82,7 +90,7 @@ export class Position {
     readonly fullmoveNumber: number,
   ) {}
 
-  static fromFEN(fen: string): Position {
+  static fromFEN(fen: string, ids: IdCounter = makeIdCounter()): Position {
     const parts = fen.trim().split(/\s+/)
 
     const rankStrings = parts[0]!.split('/')
@@ -100,7 +108,7 @@ export class Position {
         } else {
           const color: Color = ch === ch.toUpperCase() ? 'w' : 'b'
           const type = ch.toUpperCase() as PieceType
-          board[row]![col] = { color, type, id: allocatePieceId() }
+          board[row]![col] = { color, type, id: ids.next() }
           col++
         }
       }
@@ -126,8 +134,8 @@ export class Position {
     return new Position(board, activeColor, castlingRights, enPassantSquare, halfmoveClock, fullmoveNumber)
   }
 
-  static starting(): Position {
-    return Position.fromFEN(STARTING_FEN)
+  static starting(ids?: IdCounter): Position {
+    return Position.fromFEN(STARTING_FEN, ids)
   }
 
   /** Get the piece on a square, or null if empty. */

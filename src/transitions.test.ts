@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { Position, resetPieceIds, STARTING_FEN } from './board.js'
+import { describe, it, expect } from 'vitest'
+import { Position } from './board.js'
 import { parsePGN } from './pgn.js'
 import { buildTransitions, GamePlayer } from './transitions.js'
 import { readFileSync } from 'fs'
@@ -8,8 +8,6 @@ import { join } from 'path'
 function loadExample(name: string): string {
   return readFileSync(join(__dirname, '..', 'examples', name), 'utf-8')
 }
-
-beforeEach(() => resetPieceIds())
 
 function makePlayer(pgn: string): GamePlayer {
   const result = buildTransitions(parsePGN(pgn), Position.starting())

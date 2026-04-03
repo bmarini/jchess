@@ -1,8 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { Position, resetPieceIds, STARTING_FEN } from './board.js'
+import { describe, it, expect } from 'vitest'
+import { Position, STARTING_FEN } from './board.js'
 import { findMoveSource, findPawnMoveSource, parseSAN, applyMove } from './moves.js'
-
-beforeEach(() => resetPieceIds())
 
 // ── parseSAN ──────────────────────────────────────────────────────────────────
 

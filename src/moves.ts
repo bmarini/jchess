@@ -258,67 +258,29 @@ export type ParsedMove =
       checkmate: boolean
     }
 
-const SAN_PIECE = /^([NBRQK])/
-const SAN_CASTLE_K = /^O-O(?!-O)/
-const SAN_CASTLE_Q = /^O-O-O/
+// One pattern covers all normal SAN moves.
+// Groups: piece? hint-file? hint-rank? capture? dst-file dst-rank promotion? check?
+const SAN_NORMAL = /^([NBRQK])?([a-h])?([1-8])?(x)?([a-h])([1-8])(=[NBRQ])?([+#])?/
 
 /**
  * Parse a SAN string into a structured move description.
- * Strips check/checkmate/annotation suffixes before matching.
  */
 export function parseSAN(san: string): ParsedMove | null {
-  // Strip trailing +, #, !, ?, suffixes
-  const clean = san.replace(/[+#!?]+$/, '')
+  if (/^O-O-O/.test(san)) return { kind: 'castle', side: 'Q' }
+  if (/^O-O/.test(san))   return { kind: 'castle', side: 'K' }
 
-  const check = san.includes('+')
-  const checkmate = san.includes('#')
+  const m = SAN_NORMAL.exec(san)
+  if (!m) return null
 
-  if (SAN_CASTLE_Q.test(clean)) return { kind: 'castle', side: 'Q' }
-  if (SAN_CASTLE_K.test(clean)) return { kind: 'castle', side: 'K' }
+  const [, piece, hintFile, hintRank, captureX, dstFile, dstRank, promoStr, checkStr] = m
+  if (!dstFile || !dstRank) return null
 
-  // Promotion: e.g. e8=Q, exd8=R
-  const promotionMatch = clean.match(/=([NBRQ])$/)
-  const promotion = promotionMatch ? (promotionMatch[1] as PieceType) : undefined
-  const withoutPromotion = promotionMatch ? clean.slice(0, clean.indexOf('=')) : clean
-
-  // Piece type
-  const isPieceMoveMatch = SAN_PIECE.exec(withoutPromotion)
-  const pieceType: PieceType = isPieceMoveMatch ? (isPieceMoveMatch[1] as PieceType) : 'P'
-  const rest = isPieceMoveMatch ? withoutPromotion.slice(1) : withoutPromotion
-
-  // Parse destination and optional disambiguation
-  // Patterns: [file][rank], [file]x[file][rank], [file][rank]x[file][rank], [rank]x[file][rank]
-  const fileRankCapture = rest.match(/^([a-h])([1-8])x([a-h])([1-8])$/) // Ra1xb1 (full disambig)
-  const fileCapture     = rest.match(/^([a-h])x([a-h])([1-8])$/)        // Nfxd5
-  const rankCapture     = rest.match(/^([1-8])x([a-h])([1-8])$/)        // N2xd5
-  const simpleCapture   = rest.match(/^x([a-h])([1-8])$/)               // Nxd5 / exd5
-  const fileMove        = rest.match(/^([a-h])([a-h])([1-8])$/)         // Nfe5
-  const rankMove        = rest.match(/^([1-8])([a-h])([1-8])$/)         // N2e5
-  const simpleMove      = rest.match(/^([a-h])([1-8])$/)                // Ne5 / e4
-
-  let hintFile: string | undefined
-  let hintRank: string | undefined
-  let dstSquare: Square
-  let capture = false
-
-  if (fileRankCapture) {
-    hintFile = fileRankCapture[1]; hintRank = fileRankCapture[2]
-    dstSquare = fileRankCapture[3]! + fileRankCapture[4]!; capture = true
-  } else if (fileCapture) {
-    hintFile = fileCapture[1]; dstSquare = fileCapture[2]! + fileCapture[3]!; capture = true
-  } else if (rankCapture) {
-    hintRank = rankCapture[1]; dstSquare = rankCapture[2]! + rankCapture[3]!; capture = true
-  } else if (simpleCapture) {
-    dstSquare = simpleCapture[1]! + simpleCapture[2]!; capture = true
-  } else if (fileMove) {
-    hintFile = fileMove[1]; dstSquare = fileMove[2]! + fileMove[3]!
-  } else if (rankMove) {
-    hintRank = rankMove[1]; dstSquare = rankMove[2]! + rankMove[3]!
-  } else if (simpleMove) {
-    dstSquare = simpleMove[1]! + simpleMove[2]!
-  } else {
-    return null
-  }
+  const pieceType: PieceType = (piece as PieceType | undefined) ?? 'P'
+  const dstSquare: Square = dstFile + dstRank
+  const capture = captureX === 'x'
+  const promotion = promoStr ? (promoStr[1] as PieceType) : undefined
+  const check = checkStr === '+' || san.includes('+')
+  const checkmate = checkStr === '#' || san.includes('#')
 
   return { kind: 'normal', pieceType, dstSquare, hintFile, hintRank, capture, promotion, check, checkmate }
 }
@@ -332,6 +294,8 @@ export type MoveApplication = {
   captured: Piece | null
   /** The square from which the piece moved */
   fromSquare: Square
+  /** The parsed move (avoids re-parsing in callers that need structural info) */
+  parsed: ParsedMove
 }
 
 export function applyMove(position: Position, san: string): MoveApplication | null {
@@ -342,7 +306,7 @@ export function applyMove(position: Position, san: string): MoveApplication | nu
   const color = activeColor
 
   if (parsed.kind === 'castle') {
-    return applyCastle(position, parsed.side)
+    return { ...applyCastle(position, parsed.side), parsed }
   }
 
   const { pieceType, dstSquare, hintFile, hintRank, promotion } = parsed
@@ -417,10 +381,11 @@ export function applyMove(position: Position, san: string): MoveApplication | nu
     ),
     captured,
     fromSquare,
+    parsed,
   }
 }
 
-function applyCastle(position: Position, side: 'K' | 'Q'): MoveApplication {
+function applyCastle(position: Position, side: 'K' | 'Q'): Omit<MoveApplication, 'parsed'> {
   const color = position.activeColor
   const rank = color === 'w' ? '1' : '8'
 

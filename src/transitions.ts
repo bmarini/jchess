@@ -1,5 +1,6 @@
-import { allocatePieceId, boardGet, Position, resetPieceIds } from './board.js'
-import { applyMove, parseSAN } from './moves.js'
+import { makeIdCounter, Position } from './board.js'
+import { applyMove } from './moves.js'
+import { parsePGN } from './pgn.js'
 import type { ParsedGame, Piece, Square, Transition, TransitionCommand } from './types.js'
 
 // ── Build transition list from a parsed game ──────────────────────────────────
@@ -15,10 +16,11 @@ export type BuildResult = {
  * and record the forward/backward TransitionCommands needed to drive the renderer.
  */
 export function buildTransitions(game: ParsedGame, initial: Position): BuildResult {
-  // Re-parse the FEN with a fresh ID sequence so piece IDs are contiguous from 0.
-  // This guarantees the IDs embedded in transitions match what the renderer starts with.
-  resetPieceIds()
-  const initialPosition = Position.fromFEN(initial.toFEN())
+  // Use a single IdCounter for the whole build so all piece IDs — including
+  // those assigned during fromFEN and any promotion pieces — form one contiguous
+  // sequence that the renderer can rely on.
+  const ids = makeIdCounter()
+  const initialPosition = Position.fromFEN(initial.toFEN(), ids)
 
   const transitions: Transition[] = []
   const warnings: string[] = []
@@ -38,13 +40,13 @@ export function buildTransitions(game: ParsedGame, initial: Position): BuildResu
     const forward: TransitionCommand[] = []
     const backward: TransitionCommand[] = []
 
-    const parsed = parseSAN(san)!
+    const { parsed } = result
 
     if (parsed.kind === 'castle') {
       buildCastleCommands(position, parsed.side, forward, backward)
     } else {
       const { fromSquare } = result
-      const movingPiece = boardGet(position.board, fromSquare)!
+      const movingPiece = position.get(fromSquare)!
       const { captured } = result
 
       if (captured) {
@@ -57,7 +59,7 @@ export function buildTransitions(game: ParsedGame, initial: Position): BuildResu
         const promotedPiece: Piece = {
           color: movingPiece.color,
           type: parsed.promotion,
-          id: allocatePieceId(),
+          id: ids.next(),
         }
         forward.push({ op: 'remove', pieceId: movingPiece.id, piece: movingPiece, square: fromSquare })
         forward.push({ op: 'add',    pieceId: promotedPiece.id, piece: promotedPiece, square: parsed.dstSquare })
@@ -119,10 +121,24 @@ export class GamePlayer {
   readonly transitions: Transition[]
   readonly initialPosition: Position
   private _halfmove: number = 0
+  private _positions: Position[]
 
   constructor(result: BuildResult) {
     this.transitions = result.transitions
     this.initialPosition = result.initialPosition
+    // Pre-compute all positions so positionAt() is O(1)
+    this._positions = [result.initialPosition]
+    let pos = result.initialPosition
+    for (const t of result.transitions) {
+      const r = applyMove(pos, t.san)
+      if (r) pos = r.position
+      this._positions.push(pos)
+    }
+  }
+
+  static fromPGN(pgn: string, options?: { fen?: string }): GamePlayer {
+    const initial = options?.fen ? Position.fromFEN(options.fen) : Position.starting()
+    return new GamePlayer(buildTransitions(parsePGN(pgn), initial))
   }
 
   get halfmove(): number { return this._halfmove }
@@ -159,17 +175,9 @@ export class GamePlayer {
     this._halfmove = Math.max(0, Math.min(n, this.transitions.length))
   }
 
-  /**
-   * Compute the position at half-move `n` by replaying moves from the initial position.
-   * Used by `jumpTo` so the renderer can re-render without animating each step.
-   */
+  /** Return the position at half-move `n` in O(1). */
   positionAt(n: number): Position {
-    let pos = this.initialPosition
-    const limit = Math.min(n, this.transitions.length)
-    for (let i = 0; i < limit; i++) {
-      const result = applyMove(pos, this.transitions[i]!.san)
-      if (result) pos = result.position
-    }
-    return pos
+    const i = Math.max(0, Math.min(n, this._positions.length - 1))
+    return this._positions[i]!
   }
 }

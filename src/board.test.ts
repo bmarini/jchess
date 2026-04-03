@@ -1,10 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   Position, boardGet, boardSet, boardToFENRanks,
-  squareToCoord, coordToSquare, STARTING_FEN, resetPieceIds,
+  squareToCoord, coordToSquare, STARTING_FEN,
 } from './board.js'
-
-beforeEach(() => resetPieceIds())
 
 describe('squareToCoord / coordToSquare', () => {
   it('a1 is bottom-left (row 7, col 0)', () => {
@@ -59,7 +57,6 @@ describe('Position.fromFEN – starting position', () => {
 describe('Position.starting()', () => {
   it('is equivalent to fromFEN(STARTING_FEN)', () => {
     const a = Position.fromFEN(STARTING_FEN)
-    resetPieceIds()
     const b = Position.starting()
     expect(boardToFENRanks(a.board)).toBe(boardToFENRanks(b.board))
     expect(a.activeColor).toBe(b.activeColor)

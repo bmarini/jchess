@@ -81,6 +81,7 @@ export class Renderer {
   private boardEl: HTMLElement
   private squares: HTMLElement[] = []  // indexed [row * 8 + col]
   private pieces: Map<number, HTMLElement> = new Map()  // pieceId → element
+  private pieceSquares: Map<number, Square> = new Map() // pieceId → square name
   private flipped: boolean = false
 
   constructor(container: HTMLElement) {
@@ -155,12 +156,14 @@ export class Renderer {
   private clearPieces(): void {
     this.pieces.forEach(el => el.remove())
     this.pieces.clear()
+    this.pieceSquares.clear()
   }
 
   private placePiece(piece: Piece, sq: Square): void {
     const el = this.createPieceEl(piece)
     this.squareElByName(sq).appendChild(el)
     this.pieces.set(piece.id, el)
+    this.pieceSquares.set(piece.id, sq)
   }
 
   private createPieceEl(piece: Piece): HTMLElement {
@@ -184,11 +187,12 @@ export class Renderer {
           const el = this.createPieceEl(cmd.piece)
           this.squareElByName(cmd.square).appendChild(el)
           this.pieces.set(cmd.pieceId, el)
+          this.pieceSquares.set(cmd.pieceId, cmd.square)
           break
         }
         case 'remove': {
           const el = this.pieces.get(cmd.pieceId)
-          if (el) { el.remove(); this.pieces.delete(cmd.pieceId) }
+          if (el) { el.remove(); this.pieces.delete(cmd.pieceId); this.pieceSquares.delete(cmd.pieceId) }
           break
         }
         case 'move': {
@@ -199,6 +203,7 @@ export class Renderer {
           } else {
             this.squareElByName(cmd.to).appendChild(el)
           }
+          this.pieceSquares.set(cmd.pieceId, cmd.to)
           // Highlight destination square
           this.squareElByName(cmd.to).classList.add('last-move')
           break
@@ -248,29 +253,18 @@ export class Renderer {
 
   flip(): void {
     this.flipped = !this.flipped
-    // Rebuild square grid then re-seat all piece elements
-    const pieceSquares = new Map<number, Square>()
-    this.pieces.forEach((el, id) => {
-      const sq = el.parentElement
-      if (sq) {
-        const idx = this.squares.indexOf(sq)
-        if (idx !== -1) {
-          const row = this.flipped ? 7 - Math.floor(idx / 8) : Math.floor(idx / 8)
-          const col = this.flipped ? 7 - (idx % 8) : idx % 8
-          pieceSquares.set(id, coordToSquare(row, col))
-        }
-      }
-    })
-
     const savedPieces = new Map(this.pieces)
+    const savedSquares = new Map(this.pieceSquares)
     this.buildSquares()
     this.pieces.clear()
+    this.pieceSquares.clear()
 
     savedPieces.forEach((el, id) => {
-      const sq = pieceSquares.get(id)
+      const sq = savedSquares.get(id)
       if (sq) {
         this.squareElByName(sq).appendChild(el)
         this.pieces.set(id, el)
+        this.pieceSquares.set(id, sq)
       }
     })
   }
