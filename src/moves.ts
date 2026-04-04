@@ -450,6 +450,73 @@ export function toSAN(
   return result && result.fromSquare === from ? san : null
 }
 
+/**
+ * Return all legal destination squares for the piece on `from`.
+ * Returns an empty array if the square is empty or it's not that color's turn.
+ */
+export function legalMovesFrom(position: Position, from: Square): Square[] {
+  const piece = position.get(from)
+  if (!piece || piece.color !== position.activeColor) return []
+
+  const candidates: Square[] = []
+  const [row, col] = squareToCoord(from)
+  const color = piece.color
+
+  if (piece.type === 'P') {
+    // Pawn candidates: forward 1, forward 2, diagonal captures
+    const dir = color === 'w' ? -1 : 1 // row direction (white goes up = lower row)
+    const startRow = color === 'w' ? 6 : 1
+
+    // Forward 1
+    const r1 = row + dir
+    if (isOnBoard(r1, col) && !boardGet(position.board, coordToSquare(r1, col))) {
+      candidates.push(coordToSquare(r1, col))
+      // Forward 2 from starting position
+      const r2 = row + dir * 2
+      if (row === startRow && isOnBoard(r2, col) && !boardGet(position.board, coordToSquare(r2, col))) {
+        candidates.push(coordToSquare(r2, col))
+      }
+    }
+
+    // Diagonal captures (including en passant)
+    for (const dc of [-1, 1]) {
+      const nc = col + dc
+      if (!isOnBoard(r1, nc)) continue
+      const sq = coordToSquare(r1, nc)
+      const target = boardGet(position.board, sq)
+      if ((target && target.color !== color) || sq === position.enPassantSquare) {
+        candidates.push(sq)
+      }
+    }
+  } else {
+    // Piece candidates from vectors
+    const vectors = PIECE_VECTORS[piece.type]
+    for (const vec of vectors) {
+      for (let steps = 1; steps <= vec.limit; steps++) {
+        const nr = row - vec.y * steps // y is rank direction, row is inverted
+        const nc = col + vec.x * steps
+        if (!isOnBoard(nr, nc)) break
+        const sq = coordToSquare(nr, nc)
+        const target = boardGet(position.board, sq)
+        if (target && target.color === color) break // blocked by own piece
+        candidates.push(sq)
+        if (target) break // captured opponent piece, can't go further
+      }
+    }
+
+    // Castling squares for king
+    if (piece.type === 'K') {
+      const rank = color === 'w' ? '1' : '8'
+      if (from === 'e' + rank) {
+        candidates.push('g' + rank, 'c' + rank)
+      }
+    }
+  }
+
+  // Filter to only legal moves (handles pins, checks, castling through check)
+  return candidates.filter(to => toSAN(position, from, to) !== null)
+}
+
 function applyCastle(position: Position, side: 'K' | 'Q'): Omit<MoveApplication, 'parsed'> {
   const color = position.activeColor
   const rank = color === 'w' ? '1' : '8'

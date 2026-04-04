@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { coordToSquare } from '@chess/board'
+import { legalMovesFrom } from '@chess/moves'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 import type { Position } from '@chess/board'
@@ -75,13 +76,14 @@ export default function Board({
   const ranks = flipped ? [...RANKS].reverse() : RANKS
 
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
+  const [legalTargets, setLegalTargets] = useState<Set<string>>(new Set())
   const [promotionPending, setPromotionPending] = useState<{ from: string; to: string } | null>(null)
 
   // Clear selection when position changes
   const posRef = useRef(position)
   if (posRef.current !== position) {
     posRef.current = position
-    if (selectedSquare) setSelectedSquare(null)
+    if (selectedSquare) { setSelectedSquare(null); setLegalTargets(new Set()) }
     if (promotionPending) setPromotionPending(null)
   }
 
@@ -98,6 +100,12 @@ export default function Board({
     }
   })
 
+  const selectPiece = useCallback((square: string) => {
+    if (!position) return
+    setSelectedSquare(square)
+    setLegalTargets(new Set(legalMovesFrom(position, square)))
+  }, [position])
+
   const handleSquareClick = useCallback((square: string) => {
     if (!onMove || !position) return
 
@@ -109,13 +117,21 @@ export default function Board({
     if (selectedSquare) {
       if (square === selectedSquare) {
         setSelectedSquare(null)
+        setLegalTargets(new Set())
         return
       }
 
       // Clicking another piece of the same color — switch selection
       const clickedPiece = position.get(square)
-      if (clickedPiece && clickedPiece.color === activeColor) {
-        setSelectedSquare(square)
+      if (clickedPiece && clickedPiece.color === activeColor && !legalTargets.has(square)) {
+        selectPiece(square)
+        return
+      }
+
+      // Only allow moves to legal targets
+      if (!legalTargets.has(square)) {
+        setSelectedSquare(null)
+        setLegalTargets(new Set())
         return
       }
 
@@ -125,15 +141,15 @@ export default function Board({
       } else {
         onMove(selectedSquare, square)
         setSelectedSquare(null)
+        setLegalTargets(new Set())
       }
     } else {
-      // No selection — select a piece of the active color
       const piece = position.get(square)
       if (piece && piece.color === activeColor) {
-        setSelectedSquare(square)
+        selectPiece(square)
       }
     }
-  }, [onMove, position, selectedSquare, promotionPending, activeColor])
+  }, [onMove, position, selectedSquare, promotionPending, activeColor, legalTargets, selectPiece])
 
   const handlePromotion = useCallback((pieceType: PieceType) => {
     if (!promotionPending || !onMove) return
@@ -179,17 +195,28 @@ export default function Board({
                   const isLight = (FILES.indexOf(file) + RANKS.indexOf(rank)) % 2 === 0
                   const isHighlighted = highlightedSquares.has(square)
                   const isSelected = square === selectedSquare
+                  const isLegalTarget = legalTargets.has(square)
+                  const hasOccupant = position?.get(square) !== null
                   return (
                     <div
                       key={square}
-                      className={
+                      className={[
+                        'relative',
                         isSelected
                           ? 'bg-blue-400/60'
                           : isHighlighted
                             ? isLight ? 'bg-yellow-200' : 'bg-yellow-500'
-                            : isLight ? 'bg-amber-100' : 'bg-amber-800'
-                      }
-                    />
+                            : isLight ? 'bg-amber-100' : 'bg-amber-800',
+                      ].join(' ')}
+                    >
+                      {isLegalTarget && (
+                        hasOccupant
+                          ? <div className="absolute inset-0 rounded-full border-[3px] border-neutral-900/25 m-[4%]" />
+                          : <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-[30%] h-[30%] rounded-full bg-neutral-900/25" />
+                            </div>
+                      )}
+                    </div>
                   )
                 })
               )}
