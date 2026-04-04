@@ -203,13 +203,18 @@ export default function ChessApp() {
                     <button
                       onClick={() => handleSelectGame(i)}
                       className={[
-                        'text-left px-2 py-1.5 rounded text-sm transition-colors leading-snug flex-1 min-w-0 truncate',
+                        'text-left px-2 py-1.5 rounded text-sm transition-colors leading-snug flex-1 min-w-0',
                         activeIndex === i
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
                           : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
                       ].join(' ')}
                     >
-                      {entry.label}
+                      <div className="truncate">{entry.label}</div>
+                      {entry.game.headers['Date'] && (
+                        <div className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-0.5">
+                          {entry.game.headers['Date']}
+                        </div>
+                      )}
                     </button>
                     <button
                       onClick={() => handleRemoveGame(i)}
