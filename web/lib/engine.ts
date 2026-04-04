@@ -12,17 +12,20 @@ export type EngineEval = {
 
 export type EngineState = 'idle' | 'loading' | 'ready' | 'analyzing'
 
-type Listener = (eval_: EngineEval) => void
+type EvalListener = (eval_: EngineEval) => void
+type BestMoveListener = (eval_: EngineEval | null) => void
 
 /**
  * Wrapper around a Stockfish WASM Web Worker.
- * Manages UCI protocol, provides a clean async interface.
+ * Manages UCI protocol, provides both streaming and promise-based interfaces.
  */
 export class StockfishEngine {
   private worker: Worker | null = null
   private state: EngineState = 'idle'
-  private onEval: Listener | null = null
+  private onEval: EvalListener | null = null
+  private onBestMove: BestMoveListener | null = null
   private onReady: (() => void) | null = null
+  private lastEval: EngineEval | null = null
 
   /** Start the engine. Resolves when UCI handshake completes. */
   async init(): Promise<void> {
@@ -46,15 +49,37 @@ export class StockfishEngine {
     })
   }
 
-  /** Analyze a position. Calls `onEval` with progressive updates. */
-  analyze(fen: string, depth: number, onEval: Listener): void {
+  /** Analyze a position with streaming eval updates. */
+  analyze(fen: string, depth: number, onEval: EvalListener): void {
     if (!this.worker || this.state === 'idle' || this.state === 'loading') return
 
     this.stop()
     this.onEval = onEval
+    this.onBestMove = null
+    this.lastEval = null
     this.state = 'analyzing'
     this.send(`position fen ${fen}`)
     this.send(`go depth ${depth}`)
+  }
+
+  /** Analyze a position and return the final eval. */
+  analyzePosition(fen: string, depth: number): Promise<EngineEval> {
+    return new Promise((resolve, reject) => {
+      if (!this.worker || this.state === 'idle' || this.state === 'loading') {
+        reject(new Error('Engine not ready'))
+        return
+      }
+
+      this.stop()
+      this.lastEval = null
+      this.onEval = null
+      this.onBestMove = (eval_) => {
+        resolve(eval_ ?? { depth: 0, score: 0, mate: null, pv: [] })
+      }
+      this.state = 'analyzing'
+      this.send(`position fen ${fen}`)
+      this.send(`go depth ${depth}`)
+    })
   }
 
   /** Stop current analysis. */
@@ -64,6 +89,7 @@ export class StockfishEngine {
       this.state = 'ready'
     }
     this.onEval = null
+    this.onBestMove = null
   }
 
   /** Shut down the engine. */
@@ -94,12 +120,17 @@ export class StockfishEngine {
 
     if (line.startsWith('info') && line.includes('score') && line.includes(' pv ')) {
       const eval_ = parseInfoLine(line)
-      if (eval_) this.onEval?.(eval_)
+      if (eval_) {
+        this.lastEval = eval_
+        this.onEval?.(eval_)
+      }
       return
     }
 
     if (line.startsWith('bestmove')) {
       this.state = 'ready'
+      this.onBestMove?.(this.lastEval)
+      this.onBestMove = null
       return
     }
   }
@@ -121,7 +152,6 @@ function parseInfoLine(line: string): EngineEval | null {
   }
   if (mateMatch) {
     const mate = parseInt(mateMatch[1]!, 10)
-    // Represent mate scores as large centipawn values for the eval bar
     return { depth, score: mate > 0 ? 10000 : -10000, mate, pv }
   }
 

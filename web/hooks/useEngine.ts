@@ -17,6 +17,10 @@ export type UseEngineResult = {
  * Hook that manages a Stockfish engine instance.
  * Automatically analyzes the given FEN when enabled.
  */
+function isBlackToMove(fen: string): boolean {
+  return fen.split(' ')[1] === 'b'
+}
+
 export function useEngine(fen: string | null): UseEngineResult {
   const engineRef = useRef<StockfishEngine | null>(null)
   const [eval_, setEval] = useState<EngineEval | null>(null)
@@ -55,8 +59,13 @@ export function useEngine(fen: string | null): UseEngineResult {
     if (engine.currentState === 'loading') return
 
     setEval(null)
+    const flip = isBlackToMove(fen)
     engine.analyze(fen, DEFAULT_DEPTH, (e) => {
-      setEval(e)
+      // Normalize score to white's perspective
+      setEval(flip
+        ? { ...e, score: -e.score, mate: e.mate !== null ? -e.mate : null }
+        : e
+      )
     })
 
     return () => {

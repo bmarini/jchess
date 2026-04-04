@@ -8,12 +8,15 @@ import PGNInput from './PGNInput'
 import GameInfo from './GameInfo'
 import Icon from './Icon'
 import EvalBar from './EvalBar'
+import { Position } from '@chess/board'
 import { useChessGame } from '@/hooks/useChessGame'
 import { useEngine } from '@/hooks/useEngine'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
 import { loadLibrary, saveLibrary, loadActiveState, saveActiveState } from '@/lib/storage'
 import { exportPGN } from '@chess/export'
+import { analyzeGame } from '@/lib/analyze'
+import type { AnalysisProgress } from '@/lib/analyze'
 import type { GameEntry } from '@/lib/parseMultiPGN'
 
 export default function ChessApp() {
@@ -23,6 +26,7 @@ export default function ChessApp() {
   const [showInput, setShowInput] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
+  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null)
   const initializedRef = useRef(false)
 
   const activeGame = activeIndex >= 0 ? savedGames[activeIndex] ?? null : null
@@ -191,6 +195,32 @@ export default function ChessApp() {
     URL.revokeObjectURL(url)
   }, [activeGame, chess.mainTransitions])
 
+  const handleAnalyzeGame = useCallback(async () => {
+    const transitions = chess.mainTransitions
+    if (transitions.length === 0 || analysisProgress) return
+
+    // Build positions by replaying moves from starting position
+    const positions: Position[] = [Position.starting()]
+    let pos = positions[0]!
+    for (const t of transitions) {
+      const result = pos.applyMove(t.san)
+      if (result) pos = result.position
+      positions.push(pos)
+    }
+
+    setAnalysisProgress({ current: 0, total: transitions.length, done: false })
+
+    await analyzeGame(transitions, (n) => positions[n]!, (progress) => {
+      setAnalysisProgress(progress)
+      if (progress.done) {
+        setTimeout(() => {
+          setAnalysisProgress(null)
+          persistCurrentGame()
+        }, 500)
+      }
+    })
+  }, [chess.mainTransitions, analysisProgress, persistCurrentGame])
+
   const headers = activeGame?.game.headers ?? {}
   const white = headers['White']
   const black = headers['Black']
@@ -285,6 +315,17 @@ export default function ChessApp() {
                 >
                   <Icon name="copy" size={14} className="dark:invert" />
                   {copyStatus === 'copied' ? 'Copied!' : 'Copy PGN'}
+                </button>
+                <button
+                  onClick={handleAnalyzeGame}
+                  disabled={!!analysisProgress}
+                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                >
+                  <Icon name="magnifying-glass" size={14} className="dark:invert" />
+                  {analysisProgress
+                    ? `Analyzing ${analysisProgress.current}/${analysisProgress.total}...`
+                    : 'Analyze Game'}
                 </button>
                 <button
                   onClick={handleDownloadPGN}
