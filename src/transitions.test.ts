@@ -366,3 +366,58 @@ describe('full game: fischer-spassky', () => {
     expect(pos.get('b3')).toMatchObject({ type: 'P', color: 'w' })
   })
 })
+
+// ── GamePlayer – makeMove ────────────────────────────────────────────────────
+
+describe('GamePlayer – makeMove', () => {
+  it('appends a move at end of line', () => {
+    const player = makePlayer('1. e4 e5')
+    player.jumpTo(2)
+    const cmds = player.makeMove('Nf3')
+    expect(cmds).not.toBeNull()
+    expect(player.halfmove).toBe(3)
+    expect(player.currentSAN).toBe('Nf3')
+    expect(player.totalMoves).toBe(3)
+  })
+
+  it('advances if the move matches the next transition', () => {
+    const player = makePlayer('1. e4 e5 2. Nf3')
+    const cmds = player.makeMove('e4')
+    expect(cmds).not.toBeNull()
+    expect(player.halfmove).toBe(1)
+    expect(player.isInVariation).toBe(false)
+  })
+
+  it('creates a variation when a different move is played mid-game', () => {
+    const player = makePlayer('1. e4 e5 2. Nf3')
+    player.stepForward() // after e4, halfmove=1
+    const cmds = player.makeMove('d5')
+    expect(cmds).not.toBeNull()
+    expect(player.isInVariation).toBe(true)
+    expect(player.currentSAN).toBe('d5')
+    // The main line should now have a variation on the e5 transition
+    expect(player.mainTransitions[1]!.variations).toHaveLength(1)
+    expect(player.mainTransitions[1]!.variations[0]![0]!.san).toBe('d5')
+  })
+
+  it('enters an existing variation if the move matches', () => {
+    const player = makePlayer('1. e4 e5 (1... d5) 2. Nf3')
+    player.stepForward() // after e4
+    const cmds = player.makeMove('d5')
+    expect(cmds).not.toBeNull()
+    expect(player.isInVariation).toBe(true)
+    expect(player.currentSAN).toBe('d5')
+  })
+
+  it('returns null for illegal moves', () => {
+    const player = makePlayer('1. e4 e5')
+    expect(player.makeMove('Nf6')).toBeNull() // black move on white's turn
+  })
+
+  it('variationPath reflects the current variation stack', () => {
+    const player = makePlayer('1. e4 e5 2. Nf3')
+    player.stepForward() // after e4
+    player.makeMove('d5') // creates variation, enters it
+    expect(player.variationPath).toEqual([{ halfmove: 1, varIndex: 0 }])
+  })
+})

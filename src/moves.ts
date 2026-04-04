@@ -385,6 +385,71 @@ export function applyMove(position: Position, san: string): MoveApplication | nu
   }
 }
 
+/**
+ * Convert a board move (from/to squares) to SAN notation.
+ * Returns null if the move is illegal.
+ */
+export function toSAN(
+  position: Position,
+  from: Square,
+  to: Square,
+  promotion?: PieceType,
+): string | null {
+  const piece = position.get(from)
+  if (!piece || piece.color !== position.activeColor) return null
+
+  const { board, activeColor } = position
+  const rank = activeColor === 'w' ? '1' : '8'
+
+  // Castling
+  if (piece.type === 'K') {
+    if (from === 'e' + rank && to === 'g' + rank) {
+      return applyMove(position, 'O-O') ? 'O-O' : null
+    }
+    if (from === 'e' + rank && to === 'c' + rank) {
+      return applyMove(position, 'O-O-O') ? 'O-O-O' : null
+    }
+  }
+
+  const target = position.get(to)
+  const isCapture = target !== null || (piece.type === 'P' && from[0] !== to[0])
+  const x = isCapture ? 'x' : ''
+
+  // Pawn
+  if (piece.type === 'P') {
+    const fileStr = isCapture ? from[0]! : ''
+    const promoStr = promotion ? `=${promotion}` : ''
+    const san = `${fileStr}${x}${to}${promoStr}`
+    return applyMove(position, san) ? san : null
+  }
+
+  // Pieces — find minimal disambiguation
+  const p = piece.type
+
+  // Check if other pieces of the same type can also reach `to`
+  // by temporarily removing the moving piece and calling findMoveSource
+  const tempBoard = board.map(r => r.slice()) as typeof board
+  const [fromRow, fromCol] = squareToCoord(from)
+  tempBoard[fromRow]![fromCol] = null
+
+  const competitor = findMoveSource(tempBoard, p, activeColor, to)
+  let disambig = ''
+  if (competitor) {
+    // Another piece can reach the same square — disambiguate
+    if (competitor[0] !== from[0]) {
+      disambig = from[0]! // file is enough
+    } else if (competitor[1] !== from[1]) {
+      disambig = from[1]! // rank is enough
+    } else {
+      disambig = from // full square (shouldn't happen with 2 pieces, but covers edge cases)
+    }
+  }
+
+  const san = `${p}${disambig}${x}${to}`
+  const result = applyMove(position, san)
+  return result && result.fromSquare === from ? san : null
+}
+
 function applyCastle(position: Position, side: 'K' | 'Q'): Omit<MoveApplication, 'parsed'> {
   const color = position.activeColor
   const rank = color === 'w' ? '1' : '8'

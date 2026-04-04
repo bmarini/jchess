@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Position, STARTING_FEN } from './board.js'
-import { findMoveSource, findPawnMoveSource, parseSAN, applyMove } from './moves.js'
+import { findMoveSource, findPawnMoveSource, parseSAN, applyMove, toSAN } from './moves.js'
 
 // ── parseSAN ──────────────────────────────────────────────────────────────────
 
@@ -198,5 +198,54 @@ describe('applyMove', () => {
     const result = applyMove(pos, 'a8=Q')
     expect(result).not.toBeNull()
     expect(result!.position.get('a8')).toMatchObject({ type: 'Q', color: 'w' })
+  })
+})
+
+// ── toSAN ────────────────────────────────────────────────────────────────────
+
+describe('toSAN', () => {
+  it('converts a pawn push', () => {
+    expect(toSAN(Position.starting(), 'e2', 'e4')).toBe('e4')
+  })
+
+  it('converts a pawn capture', () => {
+    const pos = applyMove(
+      applyMove(Position.starting(), 'e4')!.position,
+      'd5',
+    )!.position
+    expect(toSAN(pos, 'e4', 'd5')).toBe('exd5')
+  })
+
+  it('converts a knight move', () => {
+    expect(toSAN(Position.starting(), 'g1', 'f3')).toBe('Nf3')
+  })
+
+  it('adds file disambiguation for knights', () => {
+    // Two white knights that can reach f3: Nd4 and Ng1
+    const pos = Position.fromFEN('8/8/8/8/3N4/8/8/4K1N1 w - - 0 1')
+    expect(toSAN(pos, 'd4', 'f3')).toBe('Ndf3')
+  })
+
+  it('converts kingside castling', () => {
+    const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
+    expect(toSAN(pos, 'e1', 'g1')).toBe('O-O')
+  })
+
+  it('converts queenside castling', () => {
+    const pos = Position.fromFEN('r3k2r/pppq1ppp/2n1bn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 b kq - 0 7')
+    expect(toSAN(pos, 'e8', 'c8')).toBe('O-O-O')
+  })
+
+  it('converts promotion', () => {
+    const pos = Position.fromFEN('8/P7/8/8/8/8/8/4K2k w - - 0 1')
+    expect(toSAN(pos, 'a7', 'a8', 'Q')).toBe('a8=Q')
+  })
+
+  it('returns null for illegal moves', () => {
+    expect(toSAN(Position.starting(), 'e2', 'e5')).toBeNull()
+  })
+
+  it('returns null for wrong color', () => {
+    expect(toSAN(Position.starting(), 'e7', 'e5')).toBeNull()
   })
 })

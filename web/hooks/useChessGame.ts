@@ -2,9 +2,10 @@
 
 import { useRef, useState, useCallback } from 'react'
 import { Position } from '@chess/board'
+import { toSAN } from '@chess/moves'
 import { buildTransitions, GamePlayer } from '@chess/transitions'
 import type { Transition } from '@chess/types'
-import type { ParsedGame } from '@chess/types'
+import type { ParsedGame, PieceType, Square } from '@chess/types'
 
 export type VarStep = { halfmove: number; varIndex: number }
 
@@ -14,16 +15,11 @@ export type ChessGameState = {
   totalMoves: number
   currentSAN: string | null
   annotation: string | undefined
-  /** Always the main line transitions (for MoveList to render the full tree). */
   mainTransitions: Transition[]
-  /** Current line transitions (main or variation — for Controls canNext/canPrev). */
   transitions: Transition[]
   isInVariation: boolean
-  /** Path to the active variation (empty when on main line). */
   activeVarPath: VarStep[]
-  /** Halfmove within the active variation (only meaningful when activeVarPath is non-empty). */
   varHalfmove: number
-  /** Halfmove on the main line (branch point when inside a variation). */
   mainHalfmove: number
   flipped: boolean
   warnings: string[]
@@ -32,8 +28,9 @@ export type ChessGameState = {
   prev: () => void
   jumpTo: (n: number) => void
   jumpToVariation: (path: VarStep[], varHalfmove: number) => void
-  flip: () => void
   setAnnotation: (text: string) => void
+  makeMove: (from: Square, to: Square, promotion?: PieceType) => void
+  flip: () => void
   enterVariation: (index: number) => void
   exitVariation: () => void
   loadGame: (game: ParsedGame, fen?: string) => void
@@ -58,7 +55,6 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
   const [halfmove, setHalfmove] = useState(0)
   const [tick, setTick] = useState(0)
   const [flipped, setFlipped] = useState(false)
-  const [activeVarPath, setActiveVarPath] = useState<VarStep[]>([])
 
   const next = useCallback(() => {
     const p = playerRef.current
@@ -77,10 +73,8 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
   const jumpTo = useCallback((n: number) => {
     const p = playerRef.current
     if (!p) return
-    // If clicking a main line move while in a variation, exit first
     if (p.isInVariation) {
       while (p.isInVariation) p.exitVariation()
-      setActiveVarPath([])
       setTick(t => t + 1)
     }
     p.jumpTo(n)
@@ -99,7 +93,6 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     const p = playerRef.current
     if (!p) return
     while (p.isInVariation) p.exitVariation()
-    setActiveVarPath([])
     setHalfmove(p.halfmove)
     setTick(t => t + 1)
   }, [])
@@ -113,7 +106,6 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
       p.enterVariation(step.varIndex)
     }
     p.jumpTo(varHalfmove)
-    setActiveVarPath(path)
     setHalfmove(p.halfmove)
     setTick(t => t + 1)
   }, [])
@@ -127,13 +119,24 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     setTick(t => t + 1)
   }, [halfmove])
 
+  const makeMove = useCallback((from: Square, to: Square, promotion?: PieceType) => {
+    const p = playerRef.current
+    if (!p) return
+    const position = p.positionAt(p.halfmove)
+    const san = toSAN(position, from, to, promotion)
+    if (!san) return
+    const cmds = p.makeMove(san)
+    if (!cmds) return
+    setHalfmove(p.halfmove)
+    setTick(t => t + 1)
+  }, [])
+
   const flip = useCallback(() => setFlipped(f => !f), [])
 
   const loadGame = useCallback((game: ParsedGame, fenStr?: string) => {
     const { player, warnings } = makePlayer(game, fenStr)
     playerRef.current = player
     warningsRef.current = warnings
-    setActiveVarPath([])
     setHalfmove(0)
     setTick(t => t + 1)
   }, [])
@@ -153,7 +156,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     mainTransitions: p?.mainTransitions ?? [],
     transitions: p?.transitions ?? [],
     isInVariation: p?.isInVariation ?? false,
-    activeVarPath,
+    activeVarPath: p?.variationPath ?? [],
     varHalfmove: halfmove,
     mainHalfmove: p?.mainHalfmove ?? 0,
     flipped,
@@ -163,6 +166,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     jumpTo,
     jumpToVariation,
     setAnnotation,
+    makeMove,
     flip,
     enterVariation,
     exitVariation,

@@ -126,6 +126,11 @@ export default function ChessApp() {
     }
   }, [activeIndex])
 
+  const handleMove = useCallback((from: string, to: string, promotion?: import('@chess/types').PieceType) => {
+    chess.makeMove(from, to, promotion)
+    setTimeout(persistCurrentGame, 0)
+  }, [chess, persistCurrentGame])
+
   const handleAnnotationBlur = useCallback((text: string) => {
     chess.setAnnotation(text)
     setTimeout(persistCurrentGame, 0)
@@ -258,6 +263,7 @@ export default function ChessApp() {
                   position={chess.position}
                   flipped={chess.flipped}
                   lastCommands={lastCommands}
+                  onMove={handleMove}
                 />
               </div>
               <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
