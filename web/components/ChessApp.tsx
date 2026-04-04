@@ -7,7 +7,9 @@ import MoveList from './MoveList'
 import PGNInput from './PGNInput'
 import GameInfo from './GameInfo'
 import Icon from './Icon'
+import EvalBar from './EvalBar'
 import { useChessGame } from '@/hooks/useChessGame'
+import { useEngine } from '@/hooks/useEngine'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
 import { loadLibrary, saveLibrary, loadActiveState, saveActiveState } from '@/lib/storage'
@@ -73,6 +75,9 @@ export default function ChessApp() {
       saveActiveState({ source: 'saved', index: activeIndex })
     }
   }, [activeIndex])
+
+  const currentFEN = chess.position?.toFEN() ?? null
+  const engine = useEngine(currentFEN)
 
   const lastCommands = useMemo(() => {
     const t = chess.transitions
@@ -305,19 +310,32 @@ export default function ChessApp() {
         <main className="flex flex-col items-center justify-center flex-1 p-4 gap-3 min-w-0">
           {activeGame ? (
             <>
-              <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
-                <Board
-                  position={chess.position}
-                  flipped={chess.flipped}
-                  lastCommands={lastCommands}
-                  onMove={handleMove}
-                />
+              <div className="w-full flex justify-center gap-2" style={{ maxWidth: 'min(100%, 560px)' }}>
+                {engine.enabled && (
+                  <EvalBar eval_={engine.eval_} flipped={chess.flipped} />
+                )}
+                <div className="flex-1" style={{ maxWidth: '520px' }}>
+                  <Board
+                    position={chess.position}
+                    flipped={chess.flipped}
+                    lastCommands={lastCommands}
+                    onMove={handleMove}
+                  />
+                </div>
               </div>
               {chess.metadata?.clk && (
-                <div className="w-full flex justify-center" style={{ maxWidth: 'min(100%, 520px)' }}>
-                  <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded">
-                    {chess.metadata.clk}
-                  </div>
+                <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded">
+                  {chess.metadata.clk}
+                </div>
+              )}
+              {engine.enabled && engine.eval_ && (
+                <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400">
+                  depth {engine.eval_.depth}
+                  {engine.eval_.pv.length > 0 && (
+                    <span className="ml-2 text-neutral-400 dark:text-neutral-500">
+                      {engine.eval_.pv.slice(0, 8).join(' ')}
+                    </span>
+                  )}
                 </div>
               )}
               <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
@@ -331,6 +349,9 @@ export default function ChessApp() {
                   canNext={chess.halfmove < chess.totalMoves}
                   isInVariation={chess.isInVariation}
                   onExitVariation={chess.exitVariation}
+                  engineEnabled={engine.enabled}
+                  engineState={engine.state}
+                  onToggleEngine={engine.toggle}
                 />
               </div>
               {chess.warnings.length > 0 && (

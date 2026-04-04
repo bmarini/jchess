@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Icon from './Icon'
+import type { EngineState } from '@/lib/engine'
 
 type Props = {
   onPrev: () => void
@@ -13,11 +14,15 @@ type Props = {
   canNext: boolean
   isInVariation: boolean
   onExitVariation: () => void
+  engineEnabled?: boolean
+  engineState?: EngineState
+  onToggleEngine?: () => void
 }
 
 export default function Controls({
   onPrev, onNext, onFlip, onStart, onEnd,
   canPrev, canNext, isInVariation, onExitVariation,
+  engineEnabled, engineState, onToggleEngine,
 }: Props) {
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -51,6 +56,23 @@ export default function Controls({
         {btn('caret-right', onNext, !canNext, 'Next (→)')}
         {btn('skip-forward', onEnd, !canNext, 'End')}
         {btn('arrows-counter-clockwise', onFlip, false, 'Flip board')}
+        {onToggleEngine && (
+          <button
+            onClick={onToggleEngine}
+            title={engineEnabled ? 'Disable engine' : 'Enable engine'}
+            className={[
+              'p-2.5 rounded transition-colors',
+              engineEnabled
+                ? 'bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800'
+                : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700',
+            ].join(' ')}
+          >
+            <Icon name="cpu" size={22} className={engineEnabled ? '' : 'dark:invert opacity-50'} />
+            {engineState === 'loading' && (
+              <span className="sr-only">Loading engine...</span>
+            )}
+          </button>
+        )}
       </div>
       {isInVariation && (
         <button
