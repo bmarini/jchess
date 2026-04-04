@@ -58,10 +58,6 @@ export type SingleTransitionResult = {
   newPosition: Position
 }
 
-/**
- * Build a single Transition from a position and a SAN move.
- * Returns the transition and the resulting position, or null if the move is invalid.
- */
 export function buildSingleTransition(
   position: Position,
   san: string,
@@ -110,12 +106,8 @@ export function buildSingleTransition(
   }
 }
 
-// ── Transition list builder (uses buildSingleTransition) ─────────────────────
+// ── Transition list builder ──────────────────────────────────────────────────
 
-/**
- * Build a flat Transition[] for `moves`, starting from `initial`.
- * Recursively builds transitions for each move's variations too.
- */
 function buildTransitionList(
   moves: ParsedMove[],
   initial: Position,
@@ -126,7 +118,6 @@ function buildTransitionList(
   let position = initial
 
   for (const parsedMove of moves) {
-    // Build variation transitions from the position BEFORE this move
     const variationTransitions: Transition[][] = []
     for (const varMoves of parsedMove.variations) {
       const sub = buildTransitionList(varMoves, position, ids)
@@ -155,56 +146,105 @@ function buildTransitionList(
   return { transitions, warnings }
 }
 
-/**
- * Walk all moves in `game`, compute the position after each move,
- * and record the forward/backward TransitionCommands needed to drive the renderer.
- */
 export function buildTransitions(game: ParsedGame, initial: Position): BuildResult {
   const ids = makeIdCounter()
   const initialPosition = Position.fromFEN(initial.toFEN(), ids)
-
   const { transitions, warnings } = buildTransitionList(game.moves, initialPosition, ids)
-
   return { transitions, initialPosition, warnings, ids }
 }
 
-// ── Position computation helper ───────────────────────────────────────────────
-
-/** Replay `transitions` from `startPos` and return the resulting Position[] (index 0 = startPos). */
-function computePositions(transitions: Transition[], startPos: Position): Position[] {
-  const positions: Position[] = [startPos]
-  let pos = startPos
-  for (const t of transitions) {
-    const r = pos.applyMove(t.san)
-    if (r) pos = r.position
-    positions.push(pos)
-  }
-  return positions
-}
-
-// ── GamePlayer: navigate via transitions ──────────────────────────────────────
+// ── Line: a navigable sequence of transitions ────────────────────────────────
 
 type VarStep = { halfmove: number; varIndex: number }
 
-type LineState = {
-  transitions: Transition[]
-  /** positions[n] = board state after n half-moves (positions[0] = start of this line) */
-  positions: Position[]
-  halfmove: number
-  /** How this line was entered from the parent (undefined for the root/main line). */
-  enteredFrom?: VarStep
+/**
+ * A line of play (main line or variation) with its transitions, pre-computed
+ * positions, and a cursor (halfmove) for navigation.
+ */
+export class Line {
+  private _transitions: Transition[]
+  private _positions: Position[]
+  private _halfmove: number
+  /** How this line was entered from the parent (undefined for root). */
+  readonly enteredFrom?: VarStep
+
+  constructor(transitions: Transition[], startPos: Position, enteredFrom?: VarStep) {
+    this._transitions = transitions
+    this._positions = Line._computePositions(transitions, startPos)
+    this._halfmove = 0
+    this.enteredFrom = enteredFrom
+  }
+
+  private static _computePositions(transitions: Transition[], startPos: Position): Position[] {
+    const positions: Position[] = [startPos]
+    let pos = startPos
+    for (const t of transitions) {
+      const r = pos.applyMove(t.san)
+      if (r) pos = r.position
+      positions.push(pos)
+    }
+    return positions
+  }
+
+  get transitions(): Transition[] { return this._transitions }
+  get halfmove(): number { return this._halfmove }
+  get totalMoves(): number { return this._transitions.length }
+
+  get currentSAN(): string | null {
+    return this._halfmove > 0
+      ? (this._transitions[this._halfmove - 1]?.san ?? null)
+      : null
+  }
+
+  get currentAnnotation(): string | undefined {
+    return this._halfmove > 0
+      ? this._transitions[this._halfmove - 1]?.annotation
+      : this._transitions[0]?.annotation
+  }
+
+  canGoForward(): boolean { return this._halfmove < this._transitions.length }
+  canGoBackward(): boolean { return this._halfmove > 0 }
+
+  stepForward(): TransitionCommand[] | null {
+    if (!this.canGoForward()) return null
+    const t = this._transitions[this._halfmove]!
+    this._halfmove++
+    return t.forward
+  }
+
+  stepBackward(): TransitionCommand[] | null {
+    if (!this.canGoBackward()) return null
+    this._halfmove--
+    return this._transitions[this._halfmove]!.backward
+  }
+
+  jumpTo(n: number): void {
+    this._halfmove = Math.max(0, Math.min(n, this._transitions.length))
+  }
+
+  positionAt(n: number): Position {
+    const i = Math.max(0, Math.min(n, this._positions.length - 1))
+    return this._positions[i]!
+  }
+
+  /** Append a transition at the end of this line. */
+  append(transition: Transition, newPosition: Position): void {
+    this._transitions.push(transition)
+    this._positions.push(newPosition)
+  }
 }
+
+// ── GamePlayer: stack-based navigation across lines ──────────────────────────
 
 export class GamePlayer {
   readonly initialPosition: Position
-  private _stack: LineState[]
+  private _stack: Line[]
   private _ids: IdCounter
 
   constructor(result: BuildResult) {
     this.initialPosition = result.initialPosition
     this._ids = result.ids
-    const positions = computePositions(result.transitions, result.initialPosition)
-    this._stack = [{ transitions: result.transitions, positions, halfmove: 0 }]
+    this._stack = [new Line(result.transitions, result.initialPosition)]
   }
 
   static fromPGN(pgn: string, options?: { fen?: string }): GamePlayer {
@@ -212,71 +252,33 @@ export class GamePlayer {
     return new GamePlayer(buildTransitions(parsePGN(pgn), initial))
   }
 
-  private get _cur(): LineState { return this._stack[this._stack.length - 1]! }
+  private get _cur(): Line { return this._stack[this._stack.length - 1]! }
 
-  /** The transitions for the currently active line (main line or a variation). */
+  // ── Delegate to current line ───────────────────────────────────────────────
+
   get transitions(): Transition[] { return this._cur.transitions }
-
-  /** The main line transitions (always the root, even when inside a variation). */
-  get mainTransitions(): Transition[] { return this._stack[0]!.transitions }
-
-  /** The main line halfmove (branch point when inside a variation). */
-  get mainHalfmove(): number { return this._stack[0]!.halfmove }
-
   get halfmove(): number { return this._cur.halfmove }
-  get totalMoves(): number { return this._cur.transitions.length }
+  get totalMoves(): number { return this._cur.totalMoves }
+  get currentSAN(): string | null { return this._cur.currentSAN }
+  get currentAnnotation(): string | undefined { return this._cur.currentAnnotation }
+
+  canGoForward(): boolean { return this._cur.canGoForward() }
+  canGoBackward(): boolean { return this._cur.canGoBackward() }
+  stepForward(): TransitionCommand[] | null { return this._cur.stepForward() }
+  stepBackward(): TransitionCommand[] | null { return this._cur.stepBackward() }
+  jumpTo(n: number): void { this._cur.jumpTo(n) }
+  positionAt(n: number): Position { return this._cur.positionAt(n) }
+
+  // ── Stack-level operations ─────────────────────────────────────────────────
+
+  get mainTransitions(): Transition[] { return this._stack[0]!.transitions }
+  get mainHalfmove(): number { return this._stack[0]!.halfmove }
   get isInVariation(): boolean { return this._stack.length > 1 }
 
-  /** The path of variation steps from the main line to the current position. */
   get variationPath(): VarStep[] {
-    return this._stack.slice(1).map(frame => frame.enteredFrom!)
+    return this._stack.slice(1).map(line => line.enteredFrom!)
   }
 
-  get currentSAN(): string | null {
-    return this._cur.halfmove > 0
-      ? (this._cur.transitions[this._cur.halfmove - 1]?.san ?? null)
-      : null
-  }
-
-  get currentAnnotation(): string | undefined {
-    return this._cur.halfmove > 0
-      ? this._cur.transitions[this._cur.halfmove - 1]?.annotation
-      : this._cur.transitions[0]?.annotation
-  }
-
-  canGoForward(): boolean { return this._cur.halfmove < this._cur.transitions.length }
-  canGoBackward(): boolean { return this._cur.halfmove > 0 }
-
-  /** Returns the forward transition commands for this step. */
-  stepForward(): TransitionCommand[] | null {
-    if (!this.canGoForward()) return null
-    const t = this._cur.transitions[this._cur.halfmove]!
-    this._cur.halfmove++
-    return t.forward
-  }
-
-  /** Returns the backward transition commands for this step. */
-  stepBackward(): TransitionCommand[] | null {
-    if (!this.canGoBackward()) return null
-    this._cur.halfmove--
-    return this._cur.transitions[this._cur.halfmove]!.backward
-  }
-
-  /** Jump directly to a half-move within the current line. */
-  jumpTo(n: number): void {
-    this._cur.halfmove = Math.max(0, Math.min(n, this._cur.transitions.length))
-  }
-
-  /** Return the position at half-move `n` within the current line in O(1). */
-  positionAt(n: number): Position {
-    const i = Math.max(0, Math.min(n, this._cur.positions.length - 1))
-    return this._cur.positions[i]!
-  }
-
-  /**
-   * Enter variation `variationIndex` at the current halfmove position.
-   * Returns the starting position of the variation (for the renderer to re-render).
-   */
   enterVariation(variationIndex: number): Position {
     const t = this._cur.transitions[this._cur.halfmove]
     const varTransitions = t?.variations[variationIndex]
@@ -285,45 +287,30 @@ export class GamePlayer {
     }
 
     const startPos = this.positionAt(this._cur.halfmove)
-    const positions = computePositions(varTransitions, startPos)
-    this._stack.push({
-      transitions: varTransitions,
-      positions,
-      halfmove: 0,
-      enteredFrom: { halfmove: this._cur.halfmove, varIndex: variationIndex },
-    })
+    this._stack.push(new Line(
+      varTransitions,
+      startPos,
+      { halfmove: this._cur.halfmove, varIndex: variationIndex },
+    ))
     return startPos
   }
 
-  /**
-   * Exit the current variation and return to the parent line.
-   * Returns the parent line's current position (for the renderer to re-render).
-   */
   exitVariation(): Position {
     if (this._stack.length > 1) this._stack.pop()
     return this.positionAt(this._cur.halfmove)
   }
 
-  /**
-   * Make a move at the current position. Handles:
-   * - Advancing if the move matches the next transition
-   * - Entering an existing variation that starts with this move
-   * - Appending at end of line
-   * - Creating a new variation mid-line
-   * Returns the forward commands, or null if the move is invalid.
-   */
   makeMove(san: string): TransitionCommand[] | null {
     const cur = this._cur
     const nextTransition = cur.transitions[cur.halfmove]
 
-    // If there's a next move in the current line...
     if (nextTransition) {
-      // Case 1: matches the existing next move — just advance
+      // Case 1: matches the existing next move
       if (nextTransition.san === san) {
         return this.stepForward()
       }
 
-      // Case 2: matches an existing variation — enter it and advance
+      // Case 2: matches an existing variation
       for (let i = 0; i < nextTransition.variations.length; i++) {
         const varLine = nextTransition.variations[i]!
         if (varLine.length > 0 && varLine[0]!.san === san) {
@@ -348,8 +335,7 @@ export class GamePlayer {
     const result = buildSingleTransition(position, san, this._ids)
     if (!result) return null
 
-    cur.transitions.push(result.transition)
-    cur.positions.push(result.newPosition)
+    cur.append(result.transition, result.newPosition)
     return this.stepForward()
   }
 }
