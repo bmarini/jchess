@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Icon from './Icon'
 
 type Props = {
   onPrev: () => void
@@ -28,45 +29,38 @@ export default function Controls({
     return () => window.removeEventListener('keydown', handleKey)
   }, [onNext, onPrev])
 
-  const btn = (label: string, onClick: () => void, disabled: boolean, title?: string) => (
+  const btn = (icon: string, onClick: () => void, disabled: boolean, title: string) => (
     <button
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="px-4 py-2.5 rounded text-base font-medium transition-colors
+      className="p-2.5 rounded transition-colors
         disabled:opacity-30 disabled:cursor-not-allowed
         bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
         dark:bg-neutral-800 dark:hover:bg-neutral-700"
     >
-      {label}
+      <Icon name={icon} size={22} className="dark:invert" />
     </button>
   )
 
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex items-center justify-center gap-2">
-        {btn('⟨⟨', onStart, !canPrev, 'Start')}
-        {btn('◀', onPrev, !canPrev, 'Previous (←)')}
-        {btn('▶', onNext, !canNext, 'Next (→)')}
-        {btn('⟩⟩', onEnd, !canNext, 'End')}
-        <button
-          onClick={onFlip}
-          title="Flip board"
-          className="px-4 py-2.5 rounded text-base font-medium
-            bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
-            dark:bg-neutral-800 dark:hover:bg-neutral-700"
-        >
-          ⟲
-        </button>
+        {btn('skip-back', onStart, !canPrev, 'Start')}
+        {btn('caret-left', onPrev, !canPrev, 'Previous (←)')}
+        {btn('caret-right', onNext, !canNext, 'Next (→)')}
+        {btn('skip-forward', onEnd, !canNext, 'End')}
+        {btn('arrows-counter-clockwise', onFlip, false, 'Flip board')}
       </div>
       {isInVariation && (
         <button
           onClick={onExitVariation}
-          className="px-4 py-2 rounded text-sm font-medium
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium
             bg-blue-100 text-blue-700 hover:bg-blue-200
             dark:bg-blue-900 dark:text-blue-300"
         >
-          ← main line
+          <Icon name="arrow-bend-up-left" size={16} />
+          main line
         </button>
       )}
     </div>

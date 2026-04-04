@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import Icon from './Icon'
 import type { Transition } from '@chess/types'
 import type { VarStep } from '@/hooks/useChessGame'
 
@@ -171,10 +172,10 @@ function MoveTree({
             </div>
             <button
               onClick={() => onRemoveVariation(childPath)}
-              className="text-neutral-400 hover:text-red-500 text-[10px] leading-none px-0.5 pt-1 opacity-0 group-hover/var:opacity-100 transition-opacity shrink-0"
+              className="opacity-0 group-hover/var:opacity-100 transition-opacity shrink-0 pt-0.5 hover:brightness-0 hover:saturate-100"
               title="Remove variation"
             >
-              &times;
+              <Icon name="x-circle" size={14} className="opacity-40 hover:opacity-100" />
             </button>
           </div>
         )

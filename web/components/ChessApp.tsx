@@ -6,6 +6,7 @@ import Controls from './Controls'
 import MoveList from './MoveList'
 import PGNInput from './PGNInput'
 import GameInfo from './GameInfo'
+import Icon from './Icon'
 import { useChessGame } from '@/hooks/useChessGame'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
@@ -202,10 +203,10 @@ export default function ChessApp() {
                     </button>
                     <button
                       onClick={() => handleRemoveGame(i)}
-                      className="text-neutral-400 hover:text-red-500 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       title="Remove"
                     >
-                      &times;
+                      <Icon name="trash" size={14} className="opacity-40 hover:opacity-70 dark:invert" />
                     </button>
                   </div>
                 ))}
@@ -221,25 +222,28 @@ export default function ChessApp() {
           <div className="border-t border-neutral-200 dark:border-neutral-800 p-2 flex flex-col gap-1.5">
             <button
               onClick={() => setShowInput(v => !v)}
-              className="w-full text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+              className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
                 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
             >
+              <Icon name="plus" size={14} className="dark:invert" />
               {showInput ? 'Close' : 'Load PGN'}
             </button>
             {activeGame && (
               <>
                 <button
                   onClick={handleShare}
-                  className="w-full text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
                     hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
                 >
+                  <Icon name="share" size={14} className="dark:invert" />
                   {shareStatus === 'copied' ? 'Copied!' : 'Share'}
                 </button>
                 <button
                   onClick={handleDownloadPGN}
-                  className="w-full text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
                     hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
                 >
+                  <Icon name="download" size={14} className="dark:invert" />
                   Download PGN
                 </button>
               </>
