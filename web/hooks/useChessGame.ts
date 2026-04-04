@@ -41,6 +41,13 @@ function makePlayer(game: ParsedGame, fen?: string): { player: GamePlayer; warni
   return { player: new GamePlayer(result), warnings: result.warnings }
 }
 
+/** Trigger a re-render by bumping a counter. */
+function useTick(): [number, () => void] {
+  const [tick, setTick] = useState(0)
+  const bump = useCallback(() => setTick(t => t + 1), [])
+  return [tick, bump]
+}
+
 export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameState {
   const playerRef = useRef<GamePlayer | null>(null)
   const warningsRef = useRef<string[]>([])
@@ -52,8 +59,16 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
   }
 
   const [halfmove, setHalfmove] = useState(0)
-  const [tick, setTick] = useState(0)
+  const [tick, bumpTick] = useTick()
   const [flipped, setFlipped] = useState(false)
+
+  /** Sync React state with player's current halfmove + force re-render. */
+  const sync = useCallback(() => {
+    const p = playerRef.current
+    if (!p) return
+    setHalfmove(p.halfmove)
+    bumpTick()
+  }, [bumpTick])
 
   const next = useCallback(() => {
     const p = playerRef.current
@@ -74,49 +89,38 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     if (!p) return
     if (p.isInVariation) {
       while (p.isInVariation) p.exitVariation()
-      setTick(t => t + 1)
     }
     p.jumpTo(n)
-    setHalfmove(p.halfmove)
-  }, [])
+    sync()
+  }, [sync])
 
   const enterVariation = useCallback((index: number) => {
     const p = playerRef.current
     if (!p) return
     p.enterVariation(index)
-    setHalfmove(p.halfmove)
-    setTick(t => t + 1)
-  }, [])
+    sync()
+  }, [sync])
 
   const exitVariation = useCallback(() => {
     const p = playerRef.current
     if (!p) return
     while (p.isInVariation) p.exitVariation()
-    setHalfmove(p.halfmove)
-    setTick(t => t + 1)
-  }, [])
+    sync()
+  }, [sync])
 
   const jumpToVariation = useCallback((path: VarStep[], varHalfmove: number) => {
     const p = playerRef.current
     if (!p) return
-    while (p.isInVariation) p.exitVariation()
-    for (const step of path) {
-      p.jumpTo(step.halfmove)
-      p.enterVariation(step.varIndex)
-    }
-    p.jumpTo(varHalfmove)
-    setHalfmove(p.halfmove)
-    setTick(t => t + 1)
-  }, [])
+    p.jumpToVariation(path, varHalfmove)
+    sync()
+  }, [sync])
 
   const setAnnotation = useCallback((text: string) => {
     const p = playerRef.current
-    if (!p || halfmove === 0) return
-    const t = p.transitions[halfmove - 1]
-    if (!t) return
-    t.annotation = text || undefined
-    setTick(t => t + 1)
-  }, [halfmove])
+    if (!p) return
+    p.setAnnotation(text)
+    bumpTick()
+  }, [bumpTick])
 
   const makeMove = useCallback((from: Square, to: Square, promotion?: PieceType) => {
     const p = playerRef.current
@@ -124,11 +128,9 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     const position = p.positionAt(p.halfmove)
     const san = position.toSAN(from, to, promotion)
     if (!san) return
-    const cmds = p.makeMove(san)
-    if (!cmds) return
-    setHalfmove(p.halfmove)
-    setTick(t => t + 1)
-  }, [])
+    if (!p.makeMove(san)) return
+    sync()
+  }, [sync])
 
   const flip = useCallback(() => setFlipped(f => !f), [])
 
@@ -137,8 +139,8 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     playerRef.current = player
     warningsRef.current = warnings
     setHalfmove(0)
-    setTick(t => t + 1)
-  }, [])
+    bumpTick()
+  }, [bumpTick])
 
   const p = playerRef.current
 
@@ -146,12 +148,8 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     position: p ? p.positionAt(halfmove) : null,
     halfmove,
     totalMoves: p?.totalMoves ?? 0,
-    currentSAN: p ? (halfmove > 0 ? (p.transitions[halfmove - 1]?.san ?? null) : null) : null,
-    annotation: p
-      ? halfmove > 0
-        ? p.transitions[halfmove - 1]?.annotation
-        : p.transitions[0]?.annotation
-      : undefined,
+    currentSAN: p?.currentSAN ?? null,
+    annotation: p?.currentAnnotation,
     mainTransitions: p?.mainTransitions ?? [],
     transitions: p?.transitions ?? [],
     isInVariation: p?.isInVariation ?? false,

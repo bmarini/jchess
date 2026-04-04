@@ -300,6 +300,24 @@ export class GamePlayer {
     return this.positionAt(this._cur.halfmove)
   }
 
+  /** Set the annotation on the current move. Pass empty string to clear. */
+  setAnnotation(text: string): void {
+    if (this._cur.halfmove === 0) return
+    const t = this._cur.transitions[this._cur.halfmove - 1]
+    if (!t) return
+    t.annotation = text || undefined
+  }
+
+  /** Jump to a position within a (possibly nested) variation by following a path. */
+  jumpToVariation(path: VarStep[], varHalfmove: number): void {
+    while (this.isInVariation) this.exitVariation()
+    for (const step of path) {
+      this.jumpTo(step.halfmove)
+      this.enterVariation(step.varIndex)
+    }
+    this.jumpTo(varHalfmove)
+  }
+
   makeMove(san: string): TransitionCommand[] | null {
     const cur = this._cur
     const nextTransition = cur.transitions[cur.halfmove]
