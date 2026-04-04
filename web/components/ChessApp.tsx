@@ -210,9 +210,9 @@ export default function ChessApp() {
                       ].join(' ')}
                     >
                       <div className="truncate">{entry.label}</div>
-                      {entry.game.headers['Date'] && (
+                      {(entry.game.headers['Date'] || entry.result !== '*') && (
                         <div className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-0.5">
-                          {entry.game.headers['Date']}
+                          {[entry.game.headers['Date'], entry.result !== '*' ? entry.result : null].filter(Boolean).join(' · ')}
                         </div>
                       )}
                     </button>
