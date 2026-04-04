@@ -1,44 +1,72 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Board from './Board'
 import Controls from './Controls'
 import MoveList from './MoveList'
-import GameList from './GameList'
 import PGNInput from './PGNInput'
 import GameInfo from './GameInfo'
 import { useChessGame } from '@/hooks/useChessGame'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
-import { EXAMPLE_GAMES } from '@/lib/examples'
 import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
+import { loadLibrary, saveLibrary, loadActiveState, saveActiveState } from '@/lib/storage'
 import { exportPGN } from '@chess/export'
 import type { GameEntry } from '@/lib/parseMultiPGN'
 
-type Props = {
-  initialPgn?: string
-}
-
-function parseFirstExample(): GameEntry | null {
-  const first = EXAMPLE_GAMES[0]
-  if (!first) return null
-  return parseMultiPGN(first.pgn)[0] ?? null
-}
-
-export default function ChessApp({ initialPgn }: Props) {
-  const [activeGame, setActiveGame] = useState<GameEntry | null>(() =>
-    initialPgn ? (parseMultiPGN(initialPgn)[0] ?? null) : parseFirstExample()
-  )
-  const [loadedGames, setLoadedGames] = useState<GameEntry[]>(() =>
-    initialPgn ? parseMultiPGN(initialPgn) : []
-  )
-  const [activeLoadedIndex, setActiveLoadedIndex] = useState(0)
-  const [activeExampleIndex, setActiveExampleIndex] = useState<number>(
-    initialPgn ? -1 : 0
-  )
+export default function ChessApp() {
+  const [savedPGNs, setSavedPGNs] = useState<string[]>([])
+  const [savedGames, setSavedGames] = useState<GameEntry[]>([])
+  const [activeIndex, setActiveIndex] = useState(-1)
   const [showInput, setShowInput] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
+  const initializedRef = useRef(false)
+
+  const activeGame = activeIndex >= 0 ? savedGames[activeIndex] ?? null : null
 
   const chess = useChessGame(activeGame?.game ?? undefined)
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
+    // URL hash takes priority
+    const encoded = getEncodedPGNFromHash()
+    if (encoded) {
+      decompressPGN(encoded).then(pgn => {
+        const entries = parseMultiPGN(pgn)
+        if (entries.length === 0) return
+        setSavedPGNs([pgn])
+        setSavedGames(entries)
+        setActiveIndex(0)
+        saveLibrary([pgn])
+        saveActiveState({ source: 'saved', index: 0 })
+        chess.loadGame(entries[0]!.game)
+      }).catch(() => {})
+      return
+    }
+
+    const pgns = loadLibrary()
+    if (pgns.length > 0) {
+      const entries = pgns.flatMap(p => parseMultiPGN(p))
+      setSavedPGNs(pgns)
+      setSavedGames(entries)
+
+      const active = loadActiveState()
+      const idx = active?.index ?? 0
+      if (idx < entries.length) {
+        setActiveIndex(idx)
+        chess.loadGame(entries[idx]!.game)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist active index
+  useEffect(() => {
+    if (activeIndex >= 0) {
+      saveActiveState({ source: 'saved', index: activeIndex })
+    }
+  }, [activeIndex])
 
   const lastCommands = useMemo(() => {
     const t = chess.transitions
@@ -47,65 +75,73 @@ export default function ChessApp({ initialPgn }: Props) {
     return t[hm - 1]?.forward
   }, [chess.halfmove, chess.transitions])
 
-  const handleLoadPGN = useCallback((pgn: string) => {
-    const newGames = parseMultiPGN(pgn)
-    if (newGames.length === 0) return
-    const first = newGames[0]!
-    setLoadedGames(newGames)
-    setActiveLoadedIndex(0)
-    setActiveExampleIndex(-1)
-    setActiveGame(first)
-    chess.loadGame(first.game)
-    setShowInput(false)
-  }, [chess])
-
-  const handleSelectLoadedGame = useCallback((index: number) => {
-    const entry = loadedGames[index]
-    if (!entry) return
-    setActiveLoadedIndex(index)
-    setActiveExampleIndex(-1)
-    setActiveGame(entry)
-    chess.loadGame(entry.game)
-  }, [loadedGames, chess])
-
-  const handleSelectExample = useCallback((index: number) => {
-    const example = EXAMPLE_GAMES[index]
-    if (!example) return
-    const entry = parseMultiPGN(example.pgn)[0]
-    if (!entry) return
-    setActiveExampleIndex(index)
-    setActiveGame(entry)
-    chess.loadGame(entry.game)
-  }, [chess])
-
-  // Load PGN from URL hash on mount
-  useEffect(() => {
-    const encoded = getEncodedPGNFromHash()
-    if (!encoded) return
-    decompressPGN(encoded).then(pgn => {
-      const games = parseMultiPGN(pgn)
-      if (games.length === 0) return
-      const first = games[0]!
-      setLoadedGames(games)
-      setActiveLoadedIndex(0)
-      setActiveExampleIndex(-1)
-      setActiveGame(first)
-      chess.loadGame(first.game)
-    }).catch(() => {
-      // Ignore bad hash data
+  const persistCurrentGame = useCallback(() => {
+    if (activeIndex < 0) return
+    const game = activeGame?.game
+    if (!game) return
+    const pgn = exportPGN(game.headers, chess.mainTransitions, game.preAnnotation)
+    setSavedPGNs(prev => {
+      const next = [...prev]
+      next[activeIndex] = pgn
+      saveLibrary(next)
+      return next
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeIndex, activeGame, chess.mainTransitions])
+
+  const handleLoadPGN = useCallback((pgn: string) => {
+    const newEntries = parseMultiPGN(pgn)
+    if (newEntries.length === 0) return
+
+    const newIndex = savedGames.length
+    setSavedPGNs(prev => {
+      const next = [...prev, pgn]
+      saveLibrary(next)
+      return next
+    })
+    setSavedGames(prev => [...prev, ...newEntries])
+    setActiveIndex(newIndex)
+    chess.loadGame(newEntries[0]!.game)
+    setShowInput(false)
+  }, [chess, savedGames.length])
+
+  const handleSelectGame = useCallback((index: number) => {
+    const entry = savedGames[index]
+    if (!entry) return
+    setActiveIndex(index)
+    chess.loadGame(entry.game)
+  }, [savedGames, chess])
+
+  const handleRemoveGame = useCallback((index: number) => {
+    setSavedPGNs(prev => {
+      const next = prev.filter((_, i) => i !== index)
+      saveLibrary(next)
+      return next
+    })
+    setSavedGames(prev => prev.filter((_, i) => i !== index))
+
+    if (activeIndex === index) {
+      setActiveIndex(-1)
+    } else if (activeIndex > index) {
+      setActiveIndex(prev => prev - 1)
+    }
+  }, [activeIndex])
+
+  const handleAnnotationBlur = useCallback((text: string) => {
+    chess.setAnnotation(text)
+    setTimeout(persistCurrentGame, 0)
+  }, [chess, persistCurrentGame])
 
   const handleShare = useCallback(async () => {
-    const raw = activeGame?.raw
-    if (!raw) return
-    const encoded = await compressPGN(raw)
+    const game = activeGame?.game
+    if (!game) return
+    const pgn = exportPGN(game.headers, chess.mainTransitions, game.preAnnotation)
+    const encoded = await compressPGN(pgn)
     const url = buildShareUrl(encoded)
     window.history.replaceState(null, '', url)
     await navigator.clipboard.writeText(url)
     setShareStatus('copied')
     setTimeout(() => setShareStatus('idle'), 2000)
-  }, [activeGame])
+  }, [activeGame, chess.mainTransitions])
 
   const handleDownloadPGN = useCallback(() => {
     const game = activeGame?.game
@@ -137,141 +173,156 @@ export default function ChessApp({ initialPgn }: Props) {
           {white && black ? `${white} – ${black}` : event ?? ''}
           {date && <span className="ml-2 text-xs text-neutral-400">{date}</span>}
         </div>
-        <button
-          onClick={handleShare}
-          className="text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-            hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-        >
-          {shareStatus === 'copied' ? 'Copied!' : 'Share'}
-        </button>
-        <button
-          onClick={handleDownloadPGN}
-          className="text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-            hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-        >
-          Download PGN
-        </button>
-        <button
-          onClick={() => setShowInput(v => !v)}
-          className="text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-            hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-        >
-          {showInput ? 'Close' : 'Load PGN'}
-        </button>
       </header>
-
-      {/* PGN input drawer */}
-      {showInput && (
-        <div className="border-b border-neutral-200 dark:border-neutral-800 p-3 bg-neutral-50 dark:bg-neutral-900">
-          <PGNInput onLoad={handleLoadPGN} />
-        </div>
-      )}
 
       {/* Main layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar: examples + loaded games */}
-        <aside className="w-48 shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-3">
-            {/* Loaded games section — only shown when a multi-game PGN is loaded */}
-            {loadedGames.length > 1 && (
-              <div>
-                <GameList
-                  games={loadedGames}
-                  activeIndex={activeExampleIndex === -1 ? activeLoadedIndex : -1}
-                  onSelect={handleSelectLoadedGame}
-                />
-              </div>
-            )}
-
-            {/* Examples section */}
-            <div>
-              <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1 px-2">
-                Examples
-              </div>
+        {/* Left sidebar: game library */}
+        <aside className="w-52 shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-2">
+            {savedGames.length > 0 ? (
               <div className="flex flex-col gap-0.5">
-                {EXAMPLE_GAMES.map((ex, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSelectExample(i)}
-                    className={[
-                      'text-left px-2 py-1.5 rounded text-sm transition-colors leading-snug w-full',
-                      activeExampleIndex === i
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
-                        : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
-                    ].join(' ')}
-                  >
-                    {ex.label}
-                  </button>
+                {savedGames.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-0.5 group">
+                    <button
+                      onClick={() => handleSelectGame(i)}
+                      className={[
+                        'text-left px-2 py-1.5 rounded text-sm transition-colors leading-snug flex-1 min-w-0 truncate',
+                        activeIndex === i
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
+                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
+                      ].join(' ')}
+                    >
+                      {entry.label}
+                    </button>
+                    <button
+                      onClick={() => handleRemoveGame(i)}
+                      className="text-neutral-400 hover:text-red-500 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      title="Remove"
+                    >
+                      &times;
+                    </button>
+                  </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <p className="text-xs text-neutral-400 dark:text-neutral-500 italic px-2 py-4">
+                No games loaded. Use Load PGN below to add games.
+              </p>
+            )}
           </div>
+
+          {/* Sidebar actions */}
+          <div className="border-t border-neutral-200 dark:border-neutral-800 p-2 flex flex-col gap-1.5">
+            <button
+              onClick={() => setShowInput(v => !v)}
+              className="w-full text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+            >
+              {showInput ? 'Close' : 'Load PGN'}
+            </button>
+            {activeGame && (
+              <>
+                <button
+                  onClick={handleShare}
+                  className="w-full text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  {shareStatus === 'copied' ? 'Copied!' : 'Share'}
+                </button>
+                <button
+                  onClick={handleDownloadPGN}
+                  className="w-full text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  Download PGN
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* PGN input drawer */}
+          {showInput && (
+            <div className="border-t border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900">
+              <PGNInput onLoad={handleLoadPGN} />
+            </div>
+          )}
         </aside>
 
         {/* Center: board */}
         <main className="flex flex-col items-center justify-center flex-1 p-4 gap-3 min-w-0">
-          <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
-            <Board
-              position={chess.position}
-              flipped={chess.flipped}
-              lastCommands={lastCommands}
-            />
-          </div>
-          <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
-            <Controls
-              onPrev={chess.prev}
-              onNext={chess.next}
-              onFlip={chess.flip}
-              onStart={() => chess.jumpTo(0)}
-              onEnd={() => chess.jumpTo(chess.totalMoves)}
-              canPrev={chess.halfmove > 0}
-              canNext={chess.halfmove < chess.totalMoves}
-              isInVariation={chess.isInVariation}
-              onExitVariation={chess.exitVariation}
-            />
-          </div>
-          {chess.warnings.length > 0 && (
-            <div className="text-xs text-amber-600 dark:text-amber-400">
-              {chess.warnings.length} parsing warning(s)
-            </div>
+          {activeGame ? (
+            <>
+              <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
+                <Board
+                  position={chess.position}
+                  flipped={chess.flipped}
+                  lastCommands={lastCommands}
+                />
+              </div>
+              <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
+                <Controls
+                  onPrev={chess.prev}
+                  onNext={chess.next}
+                  onFlip={chess.flip}
+                  onStart={() => chess.jumpTo(0)}
+                  onEnd={() => chess.jumpTo(chess.totalMoves)}
+                  canPrev={chess.halfmove > 0}
+                  canNext={chess.halfmove < chess.totalMoves}
+                  isInVariation={chess.isInVariation}
+                  onExitVariation={chess.exitVariation}
+                />
+              </div>
+              {chess.warnings.length > 0 && (
+                <div className="text-xs text-amber-600 dark:text-amber-400">
+                  {chess.warnings.length} parsing warning(s)
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-neutral-400 dark:text-neutral-500">
+              Load a PGN to get started
+            </p>
           )}
         </main>
 
         {/* Right panel: game info + move list + annotation */}
-        <aside className="w-96 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
-          <GameInfo game={activeGame?.game ?? null} />
-          <div className="flex-1 overflow-hidden p-3">
-            <MoveList
-              transitions={chess.mainTransitions}
-              mainHalfmove={chess.mainHalfmove}
-              activeVarPath={chess.activeVarPath}
-              varHalfmove={chess.varHalfmove}
-              onJump={chess.jumpTo}
-              onJumpToVariation={chess.jumpToVariation}
-              preAnnotation={activeGame?.game.preAnnotation}
-            />
-          </div>
-          <div className="h-1/3 shrink-0 border-t border-neutral-200 dark:border-neutral-800 p-3 flex flex-col">
-            <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">
-              Annotation {chess.halfmove > 0 && chess.currentSAN ? `\u2014 ${chess.currentSAN}` : ''}
-            </div>
-            {chess.halfmove > 0 ? (
-              <textarea
-                key={`${chess.isInVariation}-${chess.halfmove}`}
-                defaultValue={chess.annotation ?? ''}
-                onBlur={(e) => chess.setAnnotation(e.target.value.trim())}
-                placeholder="Add annotation..."
-                className="flex-1 text-sm text-amber-700 dark:text-amber-400 leading-relaxed
-                  bg-transparent resize-none focus:outline-none placeholder:text-neutral-300
-                  dark:placeholder:text-neutral-600"
+        {activeGame && (
+          <aside className="w-96 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+            <GameInfo game={activeGame.game} />
+            <div className="flex-1 overflow-hidden p-3">
+              <MoveList
+                transitions={chess.mainTransitions}
+                mainHalfmove={chess.mainHalfmove}
+                activeVarPath={chess.activeVarPath}
+                varHalfmove={chess.varHalfmove}
+                onJump={chess.jumpTo}
+                onJumpToVariation={chess.jumpToVariation}
+                preAnnotation={activeGame.game.preAnnotation}
               />
-            ) : (
-              <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">
-                Navigate to a move to add or edit annotations
-              </p>
-            )}
-          </div>
-        </aside>
+            </div>
+            <div className="h-1/3 shrink-0 border-t border-neutral-200 dark:border-neutral-800 p-3 flex flex-col">
+              <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">
+                Annotation {chess.halfmove > 0 && chess.currentSAN ? `\u2014 ${chess.currentSAN}` : ''}
+              </div>
+              {chess.halfmove > 0 ? (
+                <textarea
+                  key={`${chess.isInVariation}-${chess.halfmove}`}
+                  defaultValue={chess.annotation ?? ''}
+                  onBlur={(e) => handleAnnotationBlur(e.target.value.trim())}
+                  placeholder="Add annotation..."
+                  className="flex-1 text-sm text-amber-700 dark:text-amber-400 leading-relaxed
+                    bg-transparent resize-none focus:outline-none placeholder:text-neutral-300
+                    dark:placeholder:text-neutral-600"
+                />
+              ) : (
+                <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">
+                  Navigate to a move to add or edit annotations
+                </p>
+              )}
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   )
