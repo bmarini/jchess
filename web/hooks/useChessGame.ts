@@ -2,7 +2,6 @@
 
 import { useRef, useState, useCallback } from 'react'
 import { Position } from '@chess/board'
-import { toSAN } from '@chess/moves'
 import { buildTransitions, GamePlayer } from '@chess/transitions'
 import type { Transition } from '@chess/types'
 import type { ParsedGame, PieceType, Square } from '@chess/types'
@@ -123,7 +122,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     const p = playerRef.current
     if (!p) return
     const position = p.positionAt(p.halfmove)
-    const san = toSAN(position, from, to, promotion)
+    const san = position.toSAN(from, to, promotion)
     if (!san) return
     const cmds = p.makeMove(san)
     if (!cmds) return

@@ -1,8 +1,6 @@
 import { makeIdCounter, Position } from './board.js'
-import { applyMove } from './moves.js'
 import { parsePGN } from './pgn.js'
-import type { IdCounter } from './board.js'
-import type { ParsedSAN } from './moves.js'
+import type { IdCounter, ParsedSAN } from './board.js'
 import type { ParsedGame, ParsedMove, Piece, Square, Transition, TransitionCommand } from './types.js'
 
 // ── Build transition list from a parsed game ──────────────────────────────────
@@ -69,7 +67,7 @@ export function buildSingleTransition(
   san: string,
   ids: IdCounter,
 ): SingleTransitionResult | null {
-  const result = applyMove(position, san)
+  const result = position.applyMove(san)
   if (!result) return null
 
   const forward: TransitionCommand[] = []
@@ -177,7 +175,7 @@ function computePositions(transitions: Transition[], startPos: Position): Positi
   const positions: Position[] = [startPos]
   let pos = startPos
   for (const t of transitions) {
-    const r = applyMove(pos, t.san)
+    const r = pos.applyMove(t.san)
     if (r) pos = r.position
     positions.push(pos)
   }
