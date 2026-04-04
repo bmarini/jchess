@@ -33,6 +33,7 @@ export type ChessGameState = {
   jumpTo: (n: number) => void
   jumpToVariation: (path: VarStep[], varHalfmove: number) => void
   flip: () => void
+  setAnnotation: (text: string) => void
   enterVariation: (index: number) => void
   exitVariation: () => void
   loadGame: (game: ParsedGame, fen?: string) => void
@@ -117,6 +118,15 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     setTick(t => t + 1)
   }, [])
 
+  const setAnnotation = useCallback((text: string) => {
+    const p = playerRef.current
+    if (!p || halfmove === 0) return
+    const t = p.transitions[halfmove - 1]
+    if (!t) return
+    t.annotation = text || undefined
+    setTick(t => t + 1)
+  }, [halfmove])
+
   const flip = useCallback(() => setFlipped(f => !f), [])
 
   const loadGame = useCallback((game: ParsedGame, fenStr?: string) => {
@@ -152,6 +162,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     prev,
     jumpTo,
     jumpToVariation,
+    setAnnotation,
     flip,
     enterVariation,
     exitVariation,

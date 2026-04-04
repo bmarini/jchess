@@ -11,6 +11,7 @@ import { useChessGame } from '@/hooks/useChessGame'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { EXAMPLE_GAMES } from '@/lib/examples'
 import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
+import { exportPGN } from '@chess/export'
 import type { GameEntry } from '@/lib/parseMultiPGN'
 
 type Props = {
@@ -106,6 +107,21 @@ export default function ChessApp({ initialPgn }: Props) {
     setTimeout(() => setShareStatus('idle'), 2000)
   }, [activeGame])
 
+  const handleDownloadPGN = useCallback(() => {
+    const game = activeGame?.game
+    if (!game) return
+    const pgn = exportPGN(game.headers, chess.mainTransitions, game.preAnnotation)
+    const blob = new Blob([pgn], { type: 'application/x-chess-pgn' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const white = game.headers['White'] ?? 'game'
+    const black = game.headers['Black'] ?? ''
+    a.download = black ? `${white}-vs-${black}.pgn` : `${white}.pgn`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [activeGame, chess.mainTransitions])
+
   const headers = activeGame?.game.headers ?? {}
   const white = headers['White']
   const black = headers['Black']
@@ -127,6 +143,13 @@ export default function ChessApp({ initialPgn }: Props) {
             hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
         >
           {shareStatus === 'copied' ? 'Copied!' : 'Share'}
+        </button>
+        <button
+          onClick={handleDownloadPGN}
+          className="text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+            hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          Download PGN
         </button>
         <button
           onClick={() => setShowInput(v => !v)}
@@ -228,14 +251,23 @@ export default function ChessApp({ initialPgn }: Props) {
               preAnnotation={activeGame?.game.preAnnotation}
             />
           </div>
-          <div className="h-1/3 shrink-0 border-t border-neutral-200 dark:border-neutral-800 p-3 overflow-y-auto">
-            {chess.annotation ? (
-              <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed italic">
-                &ldquo;{chess.annotation}&rdquo;
-              </p>
+          <div className="h-1/3 shrink-0 border-t border-neutral-200 dark:border-neutral-800 p-3 flex flex-col">
+            <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">
+              Annotation {chess.halfmove > 0 && chess.currentSAN ? `\u2014 ${chess.currentSAN}` : ''}
+            </div>
+            {chess.halfmove > 0 ? (
+              <textarea
+                key={`${chess.isInVariation}-${chess.halfmove}`}
+                defaultValue={chess.annotation ?? ''}
+                onBlur={(e) => chess.setAnnotation(e.target.value.trim())}
+                placeholder="Add annotation..."
+                className="flex-1 text-sm text-amber-700 dark:text-amber-400 leading-relaxed
+                  bg-transparent resize-none focus:outline-none placeholder:text-neutral-300
+                  dark:placeholder:text-neutral-600"
+              />
             ) : (
               <p className="text-xs text-neutral-400 dark:text-neutral-500 italic">
-                Navigate to an annotated move to see commentary
+                Navigate to a move to add or edit annotations
               </p>
             )}
           </div>
