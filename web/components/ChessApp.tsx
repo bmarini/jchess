@@ -106,6 +106,12 @@ export default function ChessApp() {
     setShowInput(false)
   }, [chess, savedGames.length])
 
+  const handleNewGame = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '.')
+    const pgn = `[Event "?"]\n[Site "?"]\n[Date "${today}"]\n[White "?"]\n[Black "?"]\n[Result "*"]\n\n*`
+    handleLoadPGN(pgn)
+  }, [handleLoadPGN])
+
   const handleSelectGame = useCallback((index: number) => {
     const entry = savedGames[index]
     if (!entry) return
@@ -235,6 +241,14 @@ export default function ChessApp() {
 
           {/* Sidebar actions */}
           <div className="border-t border-neutral-200 dark:border-neutral-800 p-2 flex flex-col gap-1.5">
+            <button
+              onClick={handleNewGame}
+              className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <Icon name="note-pencil" size={14} className="dark:invert" />
+              New Game
+            </button>
             <button
               onClick={() => setShowInput(v => !v)}
               className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
