@@ -27,9 +27,9 @@ npm run build        # build to dist/
 | File | Responsibility |
 |---|---|
 | `src/types.ts` | All shared types — touch this when adding new data shapes |
-| `src/board.ts` | FEN parsing, board array, coordinate helpers (`squareToCoord`, `coordToSquare`) |
+| `src/board.ts` | `Position` class (rich domain object), FEN parsing, coordinate helpers, move logic (`applyMove`, `toSAN`, `legalMovesFrom`), piece vectors, pin detection |
 | `src/pgn.ts` | PGN tokenizer + parser. No `eval()`. Handles variations (skips them), annotations, NAGs. |
-| `src/moves.ts` | `parseSAN`, `findMoveSource`, `findPawnMoveSource`, `applyMove`. Pure functions, no mutation. |
+| `src/export.ts` | PGN exporter — serializes headers, transitions, annotations, and variations back to PGN text |
 | `src/transitions.ts` | `buildTransitions` pre-computes forward/backward `TransitionCommand[]` for every half-move. `GamePlayer` navigates them. |
 | `src/renderer.ts` | Vanilla DOM. CSS grid board, Unicode piece glyphs, CSS `transition` animations. No jQuery. |
 | `src/chess.ts` | `ChessViewer` public API — wires everything together. Entry point for `vite build`. |

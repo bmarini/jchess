@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Position, STARTING_FEN } from './board.js'
-import { findMoveSource, findPawnMoveSource, parseSAN, applyMove, toSAN } from './moves.js'
+import { Position, STARTING_FEN, findMoveSource, findPawnMoveSource, parseSAN } from './board.js'
 
 // ── parseSAN ──────────────────────────────────────────────────────────────────
 
@@ -147,12 +146,12 @@ describe('findPawnMoveSource', () => {
   })
 })
 
-// ── applyMove ─────────────────────────────────────────────────────────────────
+// ── Position.applyMove ───────────────────────────────────────────────────────
 
-describe('applyMove', () => {
+describe('Position.applyMove', () => {
   it('applies e4 from starting position', () => {
     const pos = Position.fromFEN(STARTING_FEN)
-    const result = applyMove(pos, 'e4')
+    const result = pos.applyMove('e4')
     expect(result).not.toBeNull()
     expect(result!.fromSquare).toBe('e2')
     expect(result!.position.get('e4')).toMatchObject({ type: 'P', color: 'w' })
@@ -160,12 +159,12 @@ describe('applyMove', () => {
   })
 
   it('switches active color', () => {
-    expect(applyMove(Position.fromFEN(STARTING_FEN), 'e4')!.position.activeColor).toBe('b')
+    expect(Position.fromFEN(STARTING_FEN).applyMove('e4')!.position.activeColor).toBe('b')
   })
 
   it('applies kingside castling', () => {
     const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
-    const result = applyMove(pos, 'O-O')
+    const result = pos.applyMove('O-O')
     expect(result).not.toBeNull()
     expect(result!.position.get('g1')).toMatchObject({ type: 'K' })
     expect(result!.position.get('f1')).toMatchObject({ type: 'R' })
@@ -175,77 +174,73 @@ describe('applyMove', () => {
 
   it('applies queenside castling', () => {
     const pos = Position.fromFEN('r3kbnr/ppp1pppp/2nq4/3p4/3P4/2NQ4/PPP1PPPP/R3KBNR w KQkq - 4 5')
-    const result = applyMove(pos, 'O-O-O')
+    const result = pos.applyMove('O-O-O')
     expect(result).not.toBeNull()
     expect(result!.position.get('c1')).toMatchObject({ type: 'K' })
     expect(result!.position.get('d1')).toMatchObject({ type: 'R' })
   })
 
   it('records en passant square after two-square pawn advance', () => {
-    expect(applyMove(Position.fromFEN(STARTING_FEN), 'e4')!.position.enPassantSquare).toBe('e3')
+    expect(Position.fromFEN(STARTING_FEN).applyMove('e4')!.position.enPassantSquare).toBe('e3')
   })
 
   it('captures en passant correctly', () => {
     const pos = Position.fromFEN('8/8/8/4Pp2/8/8/8/4K2k w - f6 0 1')
-    const result = applyMove(pos, 'exf6')
+    const result = pos.applyMove('exf6')
     expect(result).not.toBeNull()
-    expect(result!.position.get('f5')).toBeNull()  // captured pawn gone
+    expect(result!.position.get('f5')).toBeNull()
     expect(result!.position.get('f6')).toMatchObject({ type: 'P', color: 'w' })
   })
 
   it('applies promotion', () => {
     const pos = Position.fromFEN('8/P7/8/8/8/8/8/4K2k w - - 0 1')
-    const result = applyMove(pos, 'a8=Q')
+    const result = pos.applyMove('a8=Q')
     expect(result).not.toBeNull()
     expect(result!.position.get('a8')).toMatchObject({ type: 'Q', color: 'w' })
   })
 })
 
-// ── toSAN ────────────────────────────────────────────────────────────────────
+// ── Position.toSAN ───────────────────────────────────────────────────────────
 
-describe('toSAN', () => {
+describe('Position.toSAN', () => {
   it('converts a pawn push', () => {
-    expect(toSAN(Position.starting(), 'e2', 'e4')).toBe('e4')
+    expect(Position.starting().toSAN('e2', 'e4')).toBe('e4')
   })
 
   it('converts a pawn capture', () => {
-    const pos = applyMove(
-      applyMove(Position.starting(), 'e4')!.position,
-      'd5',
-    )!.position
-    expect(toSAN(pos, 'e4', 'd5')).toBe('exd5')
+    const pos = Position.starting().applyMove('e4')!.position.applyMove('d5')!.position
+    expect(pos.toSAN('e4', 'd5')).toBe('exd5')
   })
 
   it('converts a knight move', () => {
-    expect(toSAN(Position.starting(), 'g1', 'f3')).toBe('Nf3')
+    expect(Position.starting().toSAN('g1', 'f3')).toBe('Nf3')
   })
 
   it('adds file disambiguation for knights', () => {
-    // Two white knights that can reach f3: Nd4 and Ng1
     const pos = Position.fromFEN('8/8/8/8/3N4/8/8/4K1N1 w - - 0 1')
-    expect(toSAN(pos, 'd4', 'f3')).toBe('Ndf3')
+    expect(pos.toSAN('d4', 'f3')).toBe('Ndf3')
   })
 
   it('converts kingside castling', () => {
     const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
-    expect(toSAN(pos, 'e1', 'g1')).toBe('O-O')
+    expect(pos.toSAN('e1', 'g1')).toBe('O-O')
   })
 
   it('converts queenside castling', () => {
     const pos = Position.fromFEN('r3k2r/pppq1ppp/2n1bn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 b kq - 0 7')
-    expect(toSAN(pos, 'e8', 'c8')).toBe('O-O-O')
+    expect(pos.toSAN('e8', 'c8')).toBe('O-O-O')
   })
 
   it('converts promotion', () => {
     const pos = Position.fromFEN('8/P7/8/8/8/8/8/4K2k w - - 0 1')
-    expect(toSAN(pos, 'a7', 'a8', 'Q')).toBe('a8=Q')
+    expect(pos.toSAN('a7', 'a8', 'Q')).toBe('a8=Q')
   })
 
   it('returns null for illegal moves', () => {
-    expect(toSAN(Position.starting(), 'e2', 'e5')).toBeNull()
+    expect(Position.starting().toSAN('e2', 'e5')).toBeNull()
   })
 
   it('returns null for wrong color', () => {
-    expect(toSAN(Position.starting(), 'e7', 'e5')).toBeNull()
+    expect(Position.starting().toSAN('e7', 'e5')).toBeNull()
   })
 })
