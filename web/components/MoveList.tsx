@@ -11,6 +11,7 @@ type Props = {
   varHalfmove: number
   onJump: (n: number) => void
   onJumpToVariation: (path: VarStep[], varHalfmove: number) => void
+  onRemoveVariation: (path: VarStep[]) => void
   preAnnotation?: string
 }
 
@@ -29,6 +30,7 @@ export default function MoveList({
   varHalfmove,
   onJump,
   onJumpToVariation,
+  onRemoveVariation,
   preAnnotation,
 }: Props) {
   const activeRef = useRef<HTMLButtonElement | null>(null)
@@ -52,6 +54,7 @@ export default function MoveList({
         varHalfmove={varHalfmove}
         onJump={onJump}
         onJumpToVariation={onJumpToVariation}
+        onRemoveVariation={onRemoveVariation}
         activeRef={activeRef}
         varPath={[]}
       />
@@ -67,6 +70,7 @@ type TreeProps = {
   varHalfmove: number
   onJump: (n: number) => void
   onJumpToVariation: (path: VarStep[], varHalfmove: number) => void
+  onRemoveVariation: (path: VarStep[]) => void
   activeRef: React.MutableRefObject<HTMLButtonElement | null>
   varPath: VarStep[]
 }
@@ -79,6 +83,7 @@ function MoveTree({
   varHalfmove,
   onJump,
   onJumpToVariation,
+  onRemoveVariation,
   activeRef,
   varPath,
 }: TreeProps) {
@@ -144,22 +149,33 @@ function MoveTree({
       for (let v = 0; v < t.variations.length; v++) {
         const varTransitions = t.variations[v]!
         if (varTransitions.length === 0) continue
+        const childPath = [...varPath, { halfmove: hm - startHalfmove, varIndex: v }]
         varBlocks.push(
           <div
             key={v}
-            className="flex flex-wrap items-baseline gap-x-0.5 gap-y-0.5 pl-2 border-l-2 border-neutral-300 dark:border-neutral-600 text-neutral-500 dark:text-neutral-400 my-0.5"
+            className="group/var flex items-start gap-0.5 pl-2 border-l-2 border-neutral-300 dark:border-neutral-600 text-neutral-500 dark:text-neutral-400 my-0.5"
           >
-            <MoveTree
-              transitions={varTransitions}
-              startHalfmove={hm}
-              mainHalfmove={mainHalfmove}
-              activeVarPath={activeVarPath}
-              varHalfmove={varHalfmove}
-              onJump={onJump}
-              onJumpToVariation={onJumpToVariation}
-              activeRef={activeRef}
-              varPath={[...varPath, { halfmove: hm - startHalfmove, varIndex: v }]}
-            />
+            <div className="flex flex-wrap items-baseline gap-x-0.5 gap-y-0.5 flex-1 min-w-0">
+              <MoveTree
+                transitions={varTransitions}
+                startHalfmove={hm}
+                mainHalfmove={mainHalfmove}
+                activeVarPath={activeVarPath}
+                varHalfmove={varHalfmove}
+                onJump={onJump}
+                onJumpToVariation={onJumpToVariation}
+                onRemoveVariation={onRemoveVariation}
+                activeRef={activeRef}
+                varPath={childPath}
+              />
+            </div>
+            <button
+              onClick={() => onRemoveVariation(childPath)}
+              className="text-neutral-400 hover:text-red-500 text-[10px] leading-none px-0.5 pt-1 opacity-0 group-hover/var:opacity-100 transition-opacity shrink-0"
+              title="Remove variation"
+            >
+              &times;
+            </button>
           </div>
         )
       }

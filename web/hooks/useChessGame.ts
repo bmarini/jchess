@@ -28,6 +28,7 @@ export type ChessGameState = {
   jumpTo: (n: number) => void
   jumpToVariation: (path: VarStep[], varHalfmove: number) => void
   setAnnotation: (text: string) => void
+  removeVariation: (path: VarStep[]) => void
   makeMove: (from: Square, to: Square, promotion?: PieceType) => void
   flip: () => void
   enterVariation: (index: number) => void
@@ -122,6 +123,13 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     bumpTick()
   }, [bumpTick])
 
+  const removeVariation = useCallback((path: VarStep[]) => {
+    const p = playerRef.current
+    if (!p) return
+    p.removeVariation(path)
+    sync()
+  }, [sync])
+
   const makeMove = useCallback((from: Square, to: Square, promotion?: PieceType) => {
     const p = playerRef.current
     if (!p) return
@@ -163,6 +171,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     jumpTo,
     jumpToVariation,
     setAnnotation,
+    removeVariation,
     makeMove,
     flip,
     enterVariation,

@@ -304,6 +304,7 @@ export default function ChessApp() {
                 varHalfmove={chess.varHalfmove}
                 onJump={chess.jumpTo}
                 onJumpToVariation={chess.jumpToVariation}
+                onRemoveVariation={chess.removeVariation}
                 preAnnotation={activeGame.game.preAnnotation}
               />
             </div>

@@ -318,6 +318,31 @@ export class GamePlayer {
     this.jumpTo(varHalfmove)
   }
 
+  /** Remove a variation identified by its path. Exits to main line after removal. */
+  removeVariation(path: VarStep[]): void {
+    if (path.length === 0) return
+
+    // Exit any current variation
+    while (this.isInVariation) this.exitVariation()
+
+    // Navigate into the parent line (all steps except the last)
+    for (let i = 0; i < path.length - 1; i++) {
+      const step = path[i]!
+      this.jumpTo(step.halfmove)
+      this.enterVariation(step.varIndex)
+    }
+
+    // Remove the variation at the last step
+    const lastStep = path[path.length - 1]!
+    const parentTransition = this._cur.transitions[lastStep.halfmove]
+    if (parentTransition && lastStep.varIndex < parentTransition.variations.length) {
+      parentTransition.variations.splice(lastStep.varIndex, 1)
+    }
+
+    // Exit back to main line
+    while (this.isInVariation) this.exitVariation()
+  }
+
   makeMove(san: string): TransitionCommand[] | null {
     const cur = this._cur
     const nextTransition = cur.transitions[cur.halfmove]
