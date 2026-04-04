@@ -4,7 +4,7 @@ import { useRef, useState, useCallback } from 'react'
 import { Position } from '@chess/board'
 import { buildTransitions, GamePlayer } from '@chess/transitions'
 import type { Transition } from '@chess/types'
-import type { ParsedGame, PieceType, Square } from '@chess/types'
+import type { MoveMetadata, ParsedGame, PieceType, Square } from '@chess/types'
 
 export type VarStep = { halfmove: number; varIndex: number }
 
@@ -14,6 +14,7 @@ export type ChessGameState = {
   totalMoves: number
   currentSAN: string | null
   annotation: string | undefined
+  metadata: MoveMetadata | undefined
   mainTransitions: Transition[]
   transitions: Transition[]
   isInVariation: boolean
@@ -158,6 +159,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     totalMoves: p?.totalMoves ?? 0,
     currentSAN: p?.currentSAN ?? null,
     annotation: p?.currentAnnotation,
+    metadata: p?.currentMetadata,
     mainTransitions: p?.mainTransitions ?? [],
     transitions: p?.transitions ?? [],
     isInVariation: p?.isInVariation ?? false,

@@ -20,6 +20,7 @@ export default function ChessApp() {
   const [activeIndex, setActiveIndex] = useState(-1)
   const [showInput, setShowInput] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
   const initializedRef = useRef(false)
 
   const activeGame = activeIndex >= 0 ? savedGames[activeIndex] ?? null : null
@@ -149,6 +150,15 @@ export default function ChessApp() {
     setTimeout(() => setShareStatus('idle'), 2000)
   }, [activeGame, chess.mainTransitions])
 
+  const handleCopyPGN = useCallback(async () => {
+    const game = activeGame?.game
+    if (!game) return
+    const pgn = exportPGN(game.headers, chess.mainTransitions, game.preAnnotation)
+    await navigator.clipboard.writeText(pgn)
+    setCopyStatus('copied')
+    setTimeout(() => setCopyStatus('idle'), 2000)
+  }, [activeGame, chess.mainTransitions])
+
   const handleDownloadPGN = useCallback(() => {
     const game = activeGame?.game
     if (!game) return
@@ -239,6 +249,14 @@ export default function ChessApp() {
                   {shareStatus === 'copied' ? 'Copied!' : 'Share'}
                 </button>
                 <button
+                  onClick={handleCopyPGN}
+                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <Icon name="copy" size={14} className="dark:invert" />
+                  {copyStatus === 'copied' ? 'Copied!' : 'Copy PGN'}
+                </button>
+                <button
                   onClick={handleDownloadPGN}
                   className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
                     hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
@@ -270,6 +288,13 @@ export default function ChessApp() {
                   onMove={handleMove}
                 />
               </div>
+              {chess.metadata?.clk && (
+                <div className="w-full flex justify-center" style={{ maxWidth: 'min(100%, 520px)' }}>
+                  <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded">
+                    {chess.metadata.clk}
+                  </div>
+                </div>
+              )}
               <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
                 <Controls
                   onPrev={chess.prev}

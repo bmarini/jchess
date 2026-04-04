@@ -1,3 +1,4 @@
+import { serializeAnnotation } from './annotation.js'
 import type { Transition } from './types.js'
 
 /**
@@ -49,17 +50,17 @@ function serializeMoves(
     // Move number
     if (isWhite) {
       tokens.push(`${moveNum}.`)
-    } else if (i === 0 || transitions[i - 1]!.variations.length > 0 || transitions[i - 1]!.annotation) {
-      // Black move number after interruption (variation or annotation)
+    } else if (i === 0 || transitions[i - 1]!.variations.length > 0 || transitions[i - 1]!.annotation || transitions[i - 1]!.metadata) {
       tokens.push(`${moveNum}...`)
     }
 
     // SAN
     tokens.push(t.san)
 
-    // Annotation
-    if (t.annotation) {
-      tokens.push(`{${t.annotation}}`)
+    // Annotation (re-embeds metadata commands)
+    const combined = serializeAnnotation(t.annotation, t.metadata)
+    if (combined) {
+      tokens.push(`{${combined}}`)
     }
 
     // Variations

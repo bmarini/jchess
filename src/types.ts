@@ -32,6 +32,9 @@ export type Vector = {
   limit: number
 }
 
+/** Structured metadata extracted from PGN annotation commands like [%clk 0:30:00]. */
+export type MoveMetadata = Record<string, string>
+
 export type TransitionCommand =
   | { op: 'move'; pieceId: number; from: Square; to: Square }
   | { op: 'remove'; pieceId: number; piece: Piece; square: Square }
@@ -43,6 +46,8 @@ export type Transition = {
   /** SAN notation for the move, e.g. 'Nf3', 'O-O', 'exd5' */
   san: string
   annotation?: string
+  /** Structured metadata from PGN commands like [%clk], [%eval], etc. */
+  metadata?: MoveMetadata
   /** RAV lines that are alternatives to this move, indexed parallel to ParsedMove.variations */
   variations: Transition[][]
 }

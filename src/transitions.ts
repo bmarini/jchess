@@ -1,3 +1,4 @@
+import { parseAnnotation } from './annotation.js'
 import { makeIdCounter, Position } from './board.js'
 import { parsePGN } from './pgn.js'
 import type { IdCounter, ParsedSAN } from './board.js'
@@ -128,16 +129,24 @@ function buildTransitionList(
     const result = buildSingleTransition(position, parsedMove.san, ids)
     if (!result) {
       warnings.push(`Could not apply move: ${parsedMove.san}`)
+      const failedAnno = parsedMove.annotation ? parseAnnotation(parsedMove.annotation) : undefined
       transitions.push({
         forward: [], backward: [],
         san: parsedMove.san,
-        annotation: parsedMove.annotation,
+        annotation: failedAnno?.text || undefined,
+        metadata: failedAnno && Object.keys(failedAnno.metadata).length > 0 ? failedAnno.metadata : undefined,
         variations: variationTransitions,
       })
       continue
     }
 
-    result.transition.annotation = parsedMove.annotation
+    if (parsedMove.annotation) {
+      const parsed = parseAnnotation(parsedMove.annotation)
+      result.transition.annotation = parsed.text || undefined
+      if (Object.keys(parsed.metadata).length > 0) {
+        result.transition.metadata = parsed.metadata
+      }
+    }
     result.transition.variations = variationTransitions
     transitions.push(result.transition)
     position = result.newPosition
@@ -202,6 +211,12 @@ export class Line {
       : this._transitions[0]?.annotation
   }
 
+  get currentMetadata(): import('./types.js').MoveMetadata | undefined {
+    return this._halfmove > 0
+      ? this._transitions[this._halfmove - 1]?.metadata
+      : undefined
+  }
+
   canGoForward(): boolean { return this._halfmove < this._transitions.length }
   canGoBackward(): boolean { return this._halfmove > 0 }
 
@@ -261,6 +276,7 @@ export class GamePlayer {
   get totalMoves(): number { return this._cur.totalMoves }
   get currentSAN(): string | null { return this._cur.currentSAN }
   get currentAnnotation(): string | undefined { return this._cur.currentAnnotation }
+  get currentMetadata(): import('./types.js').MoveMetadata | undefined { return this._cur.currentMetadata }
 
   canGoForward(): boolean { return this._cur.canGoForward() }
   canGoBackward(): boolean { return this._cur.canGoBackward() }

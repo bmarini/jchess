@@ -52,6 +52,18 @@ describe('exportPGN', () => {
     expect(output).toContain('{This is a great game}')
   })
 
+  it('preserves clock metadata through round-trip', () => {
+    const output = roundTrip('1. e4 {[%clk 0:30:00]} e5 {[%clk 0:29:56]} *')
+    expect(output).toContain('[%clk 0:30:00]')
+    expect(output).toContain('[%clk 0:29:56]')
+  })
+
+  it('preserves mixed annotation + metadata', () => {
+    const output = roundTrip('1. e4 {[%clk 0:30:00] Best move} e5 *')
+    expect(output).toContain('[%clk 0:30:00]')
+    expect(output).toContain('Best move')
+  })
+
   it('adds black move number after variation', () => {
     const output = roundTrip('1. e4 e5 (1... d5) 2. Nf3 *')
     // After the variation, black's move should show the move number

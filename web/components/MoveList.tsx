@@ -133,7 +133,7 @@ function MoveTree({
           'px-1 py-0.5 rounded transition-colors mr-0.5',
           isCurrent
             ? 'bg-blue-600 text-white font-semibold'
-            : t.annotation
+            : t.annotation  // only highlight for display text (metadata-only moves excluded)
               ? 'text-amber-700 dark:text-amber-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               : isVariation
                 ? 'text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400'
