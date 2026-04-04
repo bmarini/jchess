@@ -39,6 +39,7 @@ export function parseMultiPGN(pgn: string): GameEntry[] {
 }
 
 function splitGames(pgn: string): string[] {
+  if (!pgn) return []
   const lines = pgn.split('\n')
   const games: string[] = []
   let current: string[] = []

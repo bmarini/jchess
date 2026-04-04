@@ -11,7 +11,7 @@ export function loadLibrary(): string[] {
     const raw = localStorage.getItem(LIBRARY_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? parsed.filter((s: unknown): s is string => typeof s === 'string') : []
   } catch {
     return []
   }

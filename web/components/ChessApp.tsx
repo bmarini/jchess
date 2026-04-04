@@ -50,8 +50,12 @@ export default function ChessApp() {
 
     const pgns = loadLibrary()
     if (pgns.length > 0) {
-      const entries = pgns.flatMap(p => parseMultiPGN(p))
-      setSavedPGNs(pgns)
+      // Each PGN string maps to one game (1:1 with savedPGNs)
+      const entries = pgns.map((p, i) => {
+        const parsed = parseMultiPGN(p)
+        return parsed[0] ?? null
+      }).filter((e): e is GameEntry => e !== null)
+      setSavedPGNs(pgns.slice(0, entries.length))
       setSavedGames(entries)
 
       const active = loadActiveState()
@@ -94,9 +98,11 @@ export default function ChessApp() {
     const newEntries = parseMultiPGN(pgn)
     if (newEntries.length === 0) return
 
+    // Store one PGN string per game entry (not per load batch)
+    const newPGNs = newEntries.map(e => e.raw)
     const newIndex = savedGames.length
     setSavedPGNs(prev => {
-      const next = [...prev, pgn]
+      const next = [...prev, ...newPGNs]
       saveLibrary(next)
       return next
     })
