@@ -363,7 +363,9 @@ export default function ChessApp() {
             <>
               <div className="w-full flex justify-center gap-2" style={{ maxWidth: 'min(100%, 560px)' }}>
                 {engine.enabled && (
-                  <EvalBar eval_={engine.eval_} flipped={chess.flipped} />
+                  <div className="w-8 shrink-0">
+                    <EvalBar eval_={engine.eval_} flipped={chess.flipped} />
+                  </div>
                 )}
                 <div className="flex-1" style={{ maxWidth: '520px' }}>
                   <Board
@@ -375,31 +377,34 @@ export default function ChessApp() {
                   />
                 </div>
               </div>
-              {chess.metadata?.clk && (
-                <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-3 py-1 rounded">
-                  {chess.metadata.clk}
-                </div>
-              )}
-              {engine.enabled && engine.eval_ && engine.eval_.pv.length > 0 && (() => {
-                const sanMoves = pvToSAN(engine.eval_.pv).slice(0, 8)
-                return (
-                  <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400 flex items-baseline gap-1 flex-wrap">
-                    <span className="text-neutral-400 dark:text-neutral-500">d{engine.eval_.depth}</span>
-                    {sanMoves.map((san, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          chess.playMoves(sanMoves.slice(0, i + 1))
-                          setTimeout(persistCurrentGame, 0)
-                        }}
-                        className="px-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
-                      >
-                        {san}
-                      </button>
-                    ))}
-                  </div>
-                )
-              })()}
+              {/* Info row: clock + engine PV — fixed height to prevent jitter */}
+              <div className="h-6 flex items-center justify-center text-xs font-mono text-neutral-500 dark:text-neutral-400">
+                {chess.metadata?.clk && (
+                  <span className="bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded mr-2">
+                    {chess.metadata.clk}
+                  </span>
+                )}
+                {engine.enabled && engine.eval_ && engine.eval_.pv.length > 0 && (() => {
+                  const sanMoves = pvToSAN(engine.eval_.pv).slice(0, 8)
+                  return (
+                    <span className="flex items-baseline gap-1 flex-wrap">
+                      <span className="text-neutral-400 dark:text-neutral-500">d{engine.eval_.depth}</span>
+                      {sanMoves.map((san, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            chess.playMoves(sanMoves.slice(0, i + 1))
+                            setTimeout(persistCurrentGame, 0)
+                          }}
+                          className="px-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                        >
+                          {san}
+                        </button>
+                      ))}
+                    </span>
+                  )
+                })()}
+              </div>
               <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
                 <Controls
                   onPrev={chess.prev}

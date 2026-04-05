@@ -58,7 +58,7 @@ export function useEngine(fen: string | null): UseEngineResult {
 
     if (engine.currentState === 'loading') return
 
-    setEval(null)
+    // Don't clear eval — show stale value until the engine produces a new one
     const flip = isBlackToMove(fen)
     engine.analyze(fen, DEFAULT_DEPTH, (e) => {
       // Normalize score to white's perspective
