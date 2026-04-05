@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { extractNAG } from '@chess/annotation'
 import Icon from './Icon'
 import type { Transition } from '@chess/types'
 import type { VarStep } from '@/hooks/useChessGame'
@@ -124,6 +125,20 @@ function MoveTree({
       ? () => onJumpToVariation(varPath, localHm)
       : () => onJump(hm)
 
+    const { nag, text: annotationText } = extractNAG(t.annotation)
+    const hasTextAnnotation = !!annotationText
+
+    // NAG color classes
+    const nagClass = nag === '??' || nag === '?'
+      ? 'text-red-600 dark:text-red-400'
+      : nag === '?!'
+        ? 'text-amber-600 dark:text-amber-400'
+        : nag === '!' || nag === '!!'
+          ? 'text-green-600 dark:text-green-400'
+          : nag === '!?'
+            ? 'text-teal-600 dark:text-teal-400'
+            : ''
+
     items.push(
       <button
         key={`move-${hm}`}
@@ -133,7 +148,7 @@ function MoveTree({
           'px-1 py-0.5 rounded transition-colors mr-0.5',
           isCurrent
             ? 'bg-blue-600 text-white font-semibold'
-            : t.annotation  // only highlight for display text (metadata-only moves excluded)
+            : hasTextAnnotation
               ? 'text-amber-700 dark:text-amber-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
               : isVariation
                 ? 'text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400'
@@ -141,6 +156,7 @@ function MoveTree({
         ].join(' ')}
       >
         {t.san}
+        {nag && <span className={isCurrent ? '' : nagClass}>{nag}</span>}
       </button>
     )
 

@@ -2,6 +2,26 @@ import type { MoveMetadata } from './types.js'
 
 const COMMAND_RE = /\[%(\w+)\s+([^\]]+)\]/g
 
+/** NAG symbols in order from longest to shortest (so ?? matches before ?). */
+const NAG_SYMBOLS = ['??', '!!', '?!', '!?', '?', '!'] as const
+export type NAGSymbol = typeof NAG_SYMBOLS[number]
+
+/**
+ * Extract a leading NAG symbol (?, ??, ?!, !?, !, !!) from an annotation.
+ * Returns the symbol and the remaining text.
+ */
+export function extractNAG(annotation?: string): { nag: NAGSymbol | null; text: string | undefined } {
+  if (!annotation) return { nag: null, text: undefined }
+  const trimmed = annotation.trimStart()
+  for (const sym of NAG_SYMBOLS) {
+    if (trimmed.startsWith(sym)) {
+      const rest = trimmed.slice(sym.length).trim()
+      return { nag: sym, text: rest || undefined }
+    }
+  }
+  return { nag: null, text: annotation }
+}
+
 /**
  * Split a raw PGN annotation into display text and structured metadata.
  * Metadata commands like [%clk 0:30:00] are extracted; remaining text is trimmed.

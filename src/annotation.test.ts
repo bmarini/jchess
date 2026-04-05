@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAnnotation, serializeAnnotation, hasDisplayText } from './annotation.js'
+import { parseAnnotation, serializeAnnotation, hasDisplayText, extractNAG } from './annotation.js'
 
 describe('parseAnnotation', () => {
   it('extracts clock metadata', () => {
@@ -70,5 +70,43 @@ describe('hasDisplayText', () => {
 
   it('returns false for undefined', () => {
     expect(hasDisplayText(undefined)).toBe(false)
+  })
+})
+
+describe('extractNAG', () => {
+  it('extracts ?? from blunder annotation', () => {
+    expect(extractNAG('??')).toEqual({ nag: '??', text: undefined })
+  })
+
+  it('extracts ? with remaining text', () => {
+    expect(extractNAG('? This was a mistake')).toEqual({ nag: '?', text: 'This was a mistake' })
+  })
+
+  it('extracts ?! dubious', () => {
+    expect(extractNAG('?!')).toEqual({ nag: '?!', text: undefined })
+  })
+
+  it('extracts ! good move', () => {
+    expect(extractNAG('! Great find')).toEqual({ nag: '!', text: 'Great find' })
+  })
+
+  it('extracts !! brilliant', () => {
+    expect(extractNAG('!!')).toEqual({ nag: '!!', text: undefined })
+  })
+
+  it('extracts !? interesting', () => {
+    expect(extractNAG('!?')).toEqual({ nag: '!?', text: undefined })
+  })
+
+  it('returns null nag for plain text', () => {
+    expect(extractNAG('A normal annotation')).toEqual({ nag: null, text: 'A normal annotation' })
+  })
+
+  it('returns null nag for undefined', () => {
+    expect(extractNAG(undefined)).toEqual({ nag: null, text: undefined })
+  })
+
+  it('prefers ?? over ?', () => {
+    expect(extractNAG('?? terrible')).toEqual({ nag: '??', text: 'terrible' })
   })
 })

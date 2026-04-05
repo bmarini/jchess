@@ -26,9 +26,9 @@ function toWhitePerspective(score: number, isBlackToMove: boolean): number {
 
 function classifySwing(swing: number): string | null {
   const abs = Math.abs(swing)
-  if (abs >= BLUNDER_THRESHOLD) return 'Blunder'
-  if (abs >= MISTAKE_THRESHOLD) return 'Mistake'
-  if (abs >= INACCURACY_THRESHOLD) return 'Inaccuracy'
+  if (abs >= BLUNDER_THRESHOLD) return '??'
+  if (abs >= MISTAKE_THRESHOLD) return '?'
+  if (abs >= INACCURACY_THRESHOLD) return '?!'
   return null
 }
 
