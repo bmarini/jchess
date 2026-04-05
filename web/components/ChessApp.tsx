@@ -388,16 +388,26 @@ export default function ChessApp() {
                   {chess.metadata.clk}
                 </div>
               )}
-              {engine.enabled && engine.eval_ && (
-                <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400">
-                  <span className="text-neutral-400 dark:text-neutral-500">d{engine.eval_.depth}</span>
-                  {engine.eval_.pv.length > 0 && (
-                    <span className="ml-2">
-                      {pvToSAN(engine.eval_.pv).slice(0, 8).join(' ')}
-                    </span>
-                  )}
-                </div>
-              )}
+              {engine.enabled && engine.eval_ && engine.eval_.pv.length > 0 && (() => {
+                const sanMoves = pvToSAN(engine.eval_.pv).slice(0, 8)
+                return (
+                  <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400 flex items-baseline gap-1 flex-wrap">
+                    <span className="text-neutral-400 dark:text-neutral-500">d{engine.eval_.depth}</span>
+                    {sanMoves.map((san, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          chess.playMoves(sanMoves.slice(0, i + 1))
+                          setTimeout(persistCurrentGame, 0)
+                        }}
+                        className="px-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                      >
+                        {san}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
               <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
                 <Controls
                   onPrev={chess.prev}

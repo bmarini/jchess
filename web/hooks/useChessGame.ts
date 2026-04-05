@@ -31,6 +31,7 @@ export type ChessGameState = {
   setAnnotation: (text: string) => void
   removeVariation: (path: VarStep[]) => void
   makeMove: (from: Square, to: Square, promotion?: PieceType) => void
+  playMoves: (sans: string[]) => void
   flip: () => void
   enterVariation: (index: number) => void
   exitVariation: () => void
@@ -131,6 +132,16 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     sync()
   }, [sync])
 
+  /** Play a sequence of SAN moves from the current position (for engine PV lines). */
+  const playMoves = useCallback((sans: string[]) => {
+    const p = playerRef.current
+    if (!p) return
+    for (const san of sans) {
+      if (!p.makeMove(san)) break
+    }
+    sync()
+  }, [sync])
+
   const makeMove = useCallback((from: Square, to: Square, promotion?: PieceType) => {
     const p = playerRef.current
     if (!p) return
@@ -175,6 +186,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     setAnnotation,
     removeVariation,
     makeMove,
+    playMoves,
     flip,
     enterVariation,
     exitVariation,
