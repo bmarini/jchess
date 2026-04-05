@@ -268,32 +268,32 @@ export default function Board({
               if (!from || !to) return null
               const start = squareToCenter(from, flipped)
               const end = squareToCenter(to, flipped)
-              // Shorten the line so it ends at the base of the arrowhead
+              // Build arrow as a single polygon path — no overlap issues
               const dx = end.x - start.x
               const dy = end.y - start.y
               const len = Math.sqrt(dx * dx + dy * dy)
+              const ux = dx / len // unit vector along arrow
+              const uy = dy / len
+              const nx = -uy // normal (perpendicular)
+              const ny = ux
+              const sw = 1.4 // shaft half-width
+              const hw = 3.2 // head half-width
               const headLen = 4.5
-              const ex = end.x - (dx / len) * headLen
-              const ey = end.y - (dy / len) * headLen
-              // Arrowhead points
-              const nx = -dy / len
-              const ny = dx / len
-              const hw = 3.2 // half-width of arrowhead
-              const tip = `${end.x},${end.y}`
-              const left = `${ex - nx * hw},${ey - ny * hw}`
-              const right = `${ex + nx * hw},${ey + ny * hw}`
+              // Points: start-left, base-left, head-left, tip, head-right, base-right, start-right
+              const baseX = end.x - ux * headLen
+              const baseY = end.y - uy * headLen
+              const points = [
+                `${start.x + nx * sw},${start.y + ny * sw}`,
+                `${baseX + nx * sw},${baseY + ny * sw}`,
+                `${baseX + nx * hw},${baseY + ny * hw}`,
+                `${end.x},${end.y}`,
+                `${baseX - nx * hw},${baseY - ny * hw}`,
+                `${baseX - nx * sw},${baseY - ny * sw}`,
+                `${start.x - nx * sw},${start.y - ny * sw}`,
+              ].join(' ')
               return (
                 <svg className="absolute inset-0 pointer-events-none" viewBox="0 0 100 100">
-                  <line
-                    x1={start.x} y1={start.y} x2={ex} y2={ey}
-                    stroke="rgba(34, 197, 94, 0.75)"
-                    strokeWidth="2.8"
-                    strokeLinecap="round"
-                  />
-                  <polygon
-                    points={`${tip} ${left} ${right}`}
-                    fill="rgba(34, 197, 94, 0.75)"
-                  />
+                  <polygon points={points} fill="rgba(34, 197, 94, 0.75)" />
                 </svg>
               )
             })()}
