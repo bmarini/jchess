@@ -15,6 +15,8 @@ type Props = {
   onJumpToVariation: (path: VarStep[], varHalfmove: number) => void
   onRemoveVariation: (path: VarStep[]) => void
   preAnnotation?: string
+  /** Halfmove where the game first leaves book (from analysis). */
+  outOfBook?: number
 }
 
 function pathEquals(a: VarStep[], b: VarStep[]): boolean {
@@ -34,6 +36,7 @@ export default function MoveList({
   onJumpToVariation,
   onRemoveVariation,
   preAnnotation,
+  outOfBook,
 }: Props) {
   const activeRef = useRef<HTMLButtonElement | null>(null)
 
@@ -59,6 +62,7 @@ export default function MoveList({
         onRemoveVariation={onRemoveVariation}
         activeRef={activeRef}
         varPath={[]}
+        outOfBook={outOfBook}
       />
     </div>
   )
@@ -75,6 +79,7 @@ type TreeProps = {
   onRemoveVariation: (path: VarStep[]) => void
   activeRef: React.MutableRefObject<HTMLButtonElement | null>
   varPath: VarStep[]
+  outOfBook?: number
 }
 
 function MoveTree({
@@ -88,6 +93,7 @@ function MoveTree({
   onRemoveVariation,
   activeRef,
   varPath,
+  outOfBook,
 }: TreeProps) {
   const isVariation = varPath.length > 0
   const isActiveVar = isVariation && pathEquals(varPath, activeVarPath)
@@ -104,6 +110,19 @@ function MoveTree({
     const isCurrent = isActiveVar
       ? localHm === varHalfmove
       : !isVariation && isOnMainLine && hm === mainHalfmove
+
+    // "Out of book" marker
+    if (!isVariation && outOfBook !== undefined && hm === outOfBook) {
+      items.push(
+        <span
+          key={`book-${hm}`}
+          className="inline-flex items-center px-1.5 py-0 rounded text-[9px] font-sans font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 mr-1 select-none"
+          title="Game leaves opening theory here"
+        >
+          book
+        </span>
+      )
+    }
 
     // Move number
     if (isWhite) {
