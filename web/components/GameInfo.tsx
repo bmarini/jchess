@@ -40,8 +40,12 @@ export default function GameInfo({ game }: Props) {
   const resultRaw = h['Result'] ?? '*'
   const result = RESULT_SYMBOL[resultRaw] ?? resultRaw
 
+  const eco = h['ECO']
+  const opening = h['Opening']
+  const openingLabel = [eco, opening].filter(Boolean).join(' · ')
+
   const hasPlayers = white || black
-  const hasMeta = event || site || date
+  const hasMeta = event || site || date || openingLabel
 
   if (!hasPlayers && !hasMeta) return null
 
@@ -66,7 +70,12 @@ export default function GameInfo({ game }: Props) {
           )}
         </div>
       )}
-      {hasMeta && (
+      {openingLabel && (
+        <div className="text-purple-600 dark:text-purple-400 truncate">
+          {openingLabel}
+        </div>
+      )}
+      {(event || site || date) && (
         <div className="text-neutral-400 dark:text-neutral-500 truncate">
           {[event, site, round, date].filter(Boolean).join(' · ')}
         </div>
