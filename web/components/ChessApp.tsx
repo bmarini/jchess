@@ -247,6 +247,18 @@ export default function ChessApp() {
     persistCurrentGame()
   }, [chess.mainTransitions, analysisProgress, persistCurrentGame, activeGame])
 
+  const handleDownloadAll = useCallback(() => {
+    if (savedPGNs.length === 0) return
+    const allPGN = savedPGNs.join('\n\n')
+    const blob = new Blob([allPGN], { type: 'application/x-chess-pgn' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'jchess-games.pgn'
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [savedPGNs])
+
   const headers = activeGame?.game.headers ?? {}
   const white = headers['White']
   const black = headers['Black']
@@ -286,6 +298,16 @@ export default function ChessApp() {
               <Icon name="plus" size={14} className="dark:invert" />
               {showInput ? 'Close' : 'Load'}
             </button>
+            {savedPGNs.length > 0 && (
+              <button
+                onClick={handleDownloadAll}
+                title="Download all games"
+                className="flex items-center justify-center px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                  hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <Icon name="export" size={14} className="dark:invert" />
+              </button>
+            )}
           </div>
 
           {/* PGN input drawer */}
