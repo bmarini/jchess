@@ -15,6 +15,7 @@ import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
 import { loadLibrary, saveLibrary, loadActiveState, saveActiveState } from '@/lib/storage'
 import { exportPGN } from '@chess/export'
+import { identifyOpening } from '@/lib/openings'
 import { extractNAG } from '@chess/annotation'
 import { analyzeGame } from '@/lib/analyze'
 import type { AnalysisProgress } from '@/lib/analyze'
@@ -102,6 +103,14 @@ export default function ChessApp() {
 
   const currentFEN = chess.position?.toFEN() ?? null
   const engine = useEngine(currentFEN)
+
+  // Identify opening from main line moves (auto-detect when no header present)
+  const detectedOpening = useMemo(() => {
+    const transitions = chess.mainTransitions
+    if (transitions.length === 0) return null
+    const sans = transitions.map(t => t.san)
+    return identifyOpening(sans)
+  }, [chess.mainTransitions])
 
   const lastCommands = useMemo(() => {
     const t = chess.transitions
@@ -465,7 +474,7 @@ export default function ChessApp() {
                 <Icon name="download" size={16} className="dark:invert" />
               </button>
             </div>
-            <GameInfo game={activeGame.game} />
+            <GameInfo game={activeGame.game} detectedOpening={detectedOpening} />
             <div className="flex-1 overflow-hidden p-3">
               <MoveList
                 transitions={chess.mainTransitions}

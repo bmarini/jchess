@@ -2,6 +2,7 @@ import type { ParsedGame } from '@chess/types'
 
 type Props = {
   game: ParsedGame | null
+  detectedOpening?: { eco: string; name: string } | null
 }
 
 const RESULT_SYMBOL: Record<string, string> = {
@@ -25,7 +26,7 @@ function AccuracyBadge({ value }: { value: string }) {
   return <span className={`font-mono text-[10px] ${color}`}>{value}%</span>
 }
 
-export default function GameInfo({ game }: Props) {
+export default function GameInfo({ game, detectedOpening }: Props) {
   if (!game) return null
 
   const h = game.headers
@@ -40,8 +41,8 @@ export default function GameInfo({ game }: Props) {
   const resultRaw = h['Result'] ?? '*'
   const result = RESULT_SYMBOL[resultRaw] ?? resultRaw
 
-  const eco = h['ECO']
-  const opening = h['Opening']
+  const eco = h['ECO'] ?? detectedOpening?.eco
+  const opening = h['Opening'] ?? detectedOpening?.name
   const openingLabel = [eco, opening].filter(Boolean).join(' · ')
 
   const hasPlayers = white || black
