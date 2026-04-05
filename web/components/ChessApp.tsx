@@ -268,6 +268,33 @@ export default function ChessApp() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar: game library */}
         <aside className="w-52 shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+          {/* Sidebar actions */}
+          <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 flex gap-1.5">
+            <button
+              onClick={handleNewGame}
+              className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <Icon name="note-pencil" size={14} className="dark:invert" />
+              New
+            </button>
+            <button
+              onClick={() => setShowInput(v => !v)}
+              className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
+                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <Icon name="plus" size={14} className="dark:invert" />
+              {showInput ? 'Close' : 'Load'}
+            </button>
+          </div>
+
+          {/* PGN input drawer */}
+          {showInput && (
+            <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900">
+              <PGNInput onLoad={handleLoadPGN} />
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto p-2">
             {savedGames.length > 0 ? (
               <div className="flex flex-col gap-0.5">
@@ -306,32 +333,6 @@ export default function ChessApp() {
             )}
           </div>
 
-          {/* Sidebar actions */}
-          <div className="border-t border-neutral-200 dark:border-neutral-800 p-2 flex flex-col gap-1.5">
-            <button
-              onClick={handleNewGame}
-              className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-            >
-              <Icon name="note-pencil" size={14} className="dark:invert" />
-              New Game
-            </button>
-            <button
-              onClick={() => setShowInput(v => !v)}
-              className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-            >
-              <Icon name="plus" size={14} className="dark:invert" />
-              {showInput ? 'Close' : 'Load PGN'}
-            </button>
-          </div>
-
-          {/* PGN input drawer */}
-          {showInput && (
-            <div className="border-t border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900">
-              <PGNInput onLoad={handleLoadPGN} />
-            </div>
-          )}
         </aside>
 
         {/* Center: board */}
