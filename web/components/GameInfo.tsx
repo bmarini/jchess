@@ -2,7 +2,7 @@ import type { ParsedGame } from '@chess/types'
 
 type Props = {
   game: ParsedGame | null
-  detectedOpening?: { eco: string; name: string } | null
+  detectedOpening?: { eco: string; name: string; lastBookMove: number } | null
 }
 
 const RESULT_SYMBOL: Record<string, string> = {

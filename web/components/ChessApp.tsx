@@ -247,9 +247,6 @@ export default function ChessApp() {
     if (activeGame?.game) {
       activeGame.game.headers['WhiteAccuracy'] = String(result.whiteAccuracy)
       activeGame.game.headers['BlackAccuracy'] = String(result.blackAccuracy)
-      if (result.outOfBook !== null) {
-        activeGame.game.headers['OutOfBook'] = String(result.outOfBook)
-      }
     }
 
     setAnalysisProgress(null)
@@ -382,7 +379,11 @@ export default function ChessApp() {
                     flipped={chess.flipped}
                     lastCommands={lastCommands}
                     onMove={handleMove}
-                    bestMoveArrow={chess.metadata?.bestUCI}
+                    bestMoveArrow={
+                      chess.metadata?.bestUCI && (!detectedOpening || chess.halfmove > detectedOpening.lastBookMove)
+                        ? chess.metadata.bestUCI
+                        : undefined
+                    }
                   />
                 </div>
               </div>
@@ -485,7 +486,7 @@ export default function ChessApp() {
                 onJumpToVariation={chess.jumpToVariation}
                 onRemoveVariation={chess.removeVariation}
                 preAnnotation={activeGame.game.preAnnotation}
-                outOfBook={activeGame.game.headers['OutOfBook'] ? parseInt(activeGame.game.headers['OutOfBook'], 10) : undefined}
+                outOfBook={detectedOpening && detectedOpening.lastBookMove < chess.mainTransitions.length ? detectedOpening.lastBookMove + 1 : undefined}
               />
             </div>
             <div className="h-1/3 shrink-0 border-t border-neutral-200 dark:border-neutral-800 p-3 flex flex-col">
