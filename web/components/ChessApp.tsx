@@ -384,7 +384,7 @@ export default function ChessApp() {
                     {chess.metadata.clk}
                   </span>
                 )}
-                {engine.enabled && engine.eval_ && engine.eval_.pv.length > 0 && (() => {
+                {engine.enabled && engine.eval_ && engine.evalCurrent && engine.eval_.pv.length > 0 && (() => {
                   const sanMoves = pvToSAN(engine.eval_.pv).slice(0, 8)
                   return (
                     <span className="flex items-baseline gap-1 flex-wrap">

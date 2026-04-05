@@ -8,6 +8,8 @@ const DEFAULT_DEPTH = 18
 
 export type UseEngineResult = {
   eval_: EngineEval | null
+  /** Whether the current eval matches the current position (vs stale from previous). */
+  evalCurrent: boolean
   state: EngineState
   enabled: boolean
   toggle: () => void
@@ -24,6 +26,7 @@ function isBlackToMove(fen: string): boolean {
 export function useEngine(fen: string | null): UseEngineResult {
   const engineRef = useRef<StockfishEngine | null>(null)
   const [eval_, setEval] = useState<EngineEval | null>(null)
+  const [evalFen, setEvalFen] = useState<string | null>(null)
   const [state, setState] = useState<EngineState>('idle')
   const [enabled, setEnabled] = useState(false)
 
@@ -67,6 +70,7 @@ export function useEngine(fen: string | null): UseEngineResult {
         ? { ...e, score: -e.score, mate: e.mate !== null ? -e.mate : null }
         : e
       )
+      setEvalFen(fen)
     })
 
     return () => {
@@ -78,5 +82,5 @@ export function useEngine(fen: string | null): UseEngineResult {
     setEnabled(v => !v)
   }, [])
 
-  return { eval_, state, enabled, toggle }
+  return { eval_, evalCurrent: evalFen === fen, state, enabled, toggle }
 }
