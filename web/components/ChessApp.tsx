@@ -305,7 +305,7 @@ export default function ChessApp() {
                 className="flex items-center justify-center px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
                   hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
               >
-                <Icon name="export" size={14} className="dark:invert" />
+                <Icon name="download" size={14} className="dark:invert" />
               </button>
             )}
           </div>
