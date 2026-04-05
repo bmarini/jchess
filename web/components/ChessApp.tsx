@@ -324,45 +324,6 @@ export default function ChessApp() {
               <Icon name="plus" size={14} className="dark:invert" />
               {showInput ? 'Close' : 'Load PGN'}
             </button>
-            {activeGame && (
-              <>
-                <button
-                  onClick={handleShare}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-                >
-                  <Icon name="share" size={14} className="dark:invert" />
-                  {shareStatus === 'copied' ? 'Copied!' : 'Share'}
-                </button>
-                <button
-                  onClick={handleCopyPGN}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-                >
-                  <Icon name="copy" size={14} className="dark:invert" />
-                  {copyStatus === 'copied' ? 'Copied!' : 'Copy PGN'}
-                </button>
-                <button
-                  onClick={handleAnalyzeGame}
-                  disabled={!!analysisProgress}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50"
-                >
-                  <Icon name="magnifying-glass" size={14} className="dark:invert" />
-                  {analysisProgress
-                    ? `Analyzing ${analysisProgress.current}/${analysisProgress.total}...`
-                    : 'Analyze Game'}
-                </button>
-                <button
-                  onClick={handleDownloadPGN}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                    hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-                >
-                  <Icon name="download" size={14} className="dark:invert" />
-                  Download PGN
-                </button>
-              </>
-            )}
           </div>
 
           {/* PGN input drawer */}
@@ -448,6 +409,34 @@ export default function ChessApp() {
         {/* Right panel: game info + move list + annotation */}
         {activeGame && (
           <aside className="w-96 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+            {/* Game actions toolbar */}
+            <div className="border-b border-neutral-200 dark:border-neutral-800 px-3 py-1.5 flex items-center gap-1">
+              <button
+                onClick={handleAnalyzeGame}
+                disabled={!!analysisProgress}
+                title={analysisProgress ? `Analyzing ${analysisProgress.current}/${analysisProgress.total}` : 'Analyze Game'}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded transition-colors
+                  hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50"
+              >
+                <Icon name="magnifying-glass" size={16} className="dark:invert" />
+                {analysisProgress
+                  ? <span className="font-mono">{analysisProgress.current}/{analysisProgress.total}</span>
+                  : 'Analyze'}
+              </button>
+              <div className="flex-1" />
+              <button onClick={handleShare} title={shareStatus === 'copied' ? 'Copied!' : 'Share link'}
+                className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                <Icon name="share" size={16} className="dark:invert" />
+              </button>
+              <button onClick={handleCopyPGN} title={copyStatus === 'copied' ? 'Copied!' : 'Copy PGN'}
+                className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                <Icon name="copy" size={16} className="dark:invert" />
+              </button>
+              <button onClick={handleDownloadPGN} title="Download PGN"
+                className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+                <Icon name="download" size={16} className="dark:invert" />
+              </button>
+            </div>
             <GameInfo game={activeGame.game} />
             <div className="flex-1 overflow-hidden p-3">
               <MoveList
