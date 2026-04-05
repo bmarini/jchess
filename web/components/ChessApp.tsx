@@ -80,6 +80,25 @@ export default function ChessApp() {
     }
   }, [activeIndex])
 
+  /** Convert UCI long algebraic PV moves to SAN by replaying on the current position. */
+  const pvToSAN = useCallback((pv: string[]): string[] => {
+    if (!chess.position) return pv
+    const san: string[] = []
+    let pos = chess.position
+    for (const uci of pv) {
+      const from = uci.slice(0, 2)
+      const to = uci.slice(2, 4)
+      const promo = uci.length > 4 ? uci[4]!.toUpperCase() as import('@chess/types').PieceType : undefined
+      const s = pos.toSAN(from, to, promo)
+      if (!s) break
+      san.push(s)
+      const result = pos.applyMove(s)
+      if (!result) break
+      pos = result.position
+    }
+    return san
+  }, [chess.position])
+
   const currentFEN = chess.position?.toFEN() ?? null
   const engine = useEngine(currentFEN)
 
@@ -371,10 +390,10 @@ export default function ChessApp() {
               )}
               {engine.enabled && engine.eval_ && (
                 <div className="text-xs font-mono text-neutral-500 dark:text-neutral-400">
-                  depth {engine.eval_.depth}
+                  <span className="text-neutral-400 dark:text-neutral-500">d{engine.eval_.depth}</span>
                   {engine.eval_.pv.length > 0 && (
-                    <span className="ml-2 text-neutral-400 dark:text-neutral-500">
-                      {engine.eval_.pv.slice(0, 8).join(' ')}
+                    <span className="ml-2">
+                      {pvToSAN(engine.eval_.pv).slice(0, 8).join(' ')}
                     </span>
                   )}
                 </div>
