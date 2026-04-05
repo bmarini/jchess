@@ -54,7 +54,7 @@ export function useEngine(fen: string | null): UseEngineResult {
     }
   }, [enabled])
 
-  // Analyze when FEN changes — generation counter prevents stale callbacks
+  // Analyze when FEN changes — debounced to avoid spamming the engine during rapid navigation
   const genRef = useRef(0)
   useEffect(() => {
     const engine = engineRef.current
@@ -63,17 +63,22 @@ export function useEngine(fen: string | null): UseEngineResult {
     if (engine.currentState === 'loading') return
 
     const gen = ++genRef.current
-    const flip = isBlackToMove(fen)
-    engine.analyze(fen, DEFAULT_DEPTH, (e) => {
-      if (gen !== genRef.current) return // stale — ignore
-      setEval(flip
-        ? { ...e, score: -e.score, mate: e.mate !== null ? -e.mate : null }
-        : e
-      )
-      setEvalFen(fen)
-    })
+
+    const timer = setTimeout(() => {
+      if (gen !== genRef.current) return // superseded during debounce
+      const flip = isBlackToMove(fen)
+      engine.analyze(fen, DEFAULT_DEPTH, (e) => {
+        if (gen !== genRef.current) return // stale — ignore
+        setEval(flip
+          ? { ...e, score: -e.score, mate: e.mate !== null ? -e.mate : null }
+          : e
+        )
+        setEvalFen(fen)
+      })
+    }, 250)
 
     return () => {
+      clearTimeout(timer)
       engine.stop()
     }
   }, [fen, enabled])
