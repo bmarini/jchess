@@ -35,7 +35,7 @@ export default function EvalBar({ eval_, flipped = false }: Props) {
   const isWhiteAdvantage = eval_ ? eval_.score >= 0 : true
 
   return (
-    <div className="w-6 h-full rounded-sm overflow-hidden bg-neutral-800 relative flex flex-col">
+    <div className="w-6 h-full rounded-sm overflow-hidden bg-neutral-800 relative flex flex-col border border-neutral-300 dark:border-neutral-700">
       {/* Black portion (top) */}
       <div
         className="bg-neutral-800 transition-all duration-300 ease-out"
