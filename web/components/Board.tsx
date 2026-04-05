@@ -268,19 +268,31 @@ export default function Board({
               if (!from || !to) return null
               const start = squareToCenter(from, flipped)
               const end = squareToCenter(to, flipped)
+              // Shorten the line so it ends at the base of the arrowhead
+              const dx = end.x - start.x
+              const dy = end.y - start.y
+              const len = Math.sqrt(dx * dx + dy * dy)
+              const headLen = 4.5
+              const ex = end.x - (dx / len) * headLen
+              const ey = end.y - (dy / len) * headLen
+              // Arrowhead points
+              const nx = -dy / len
+              const ny = dx / len
+              const hw = 3.2 // half-width of arrowhead
+              const tip = `${end.x},${end.y}`
+              const left = `${ex - nx * hw},${ey - ny * hw}`
+              const right = `${ex + nx * hw},${ey + ny * hw}`
               return (
                 <svg className="absolute inset-0 pointer-events-none" viewBox="0 0 100 100">
-                  <defs>
-                    <marker id="arrowhead" markerWidth="4" markerHeight="3" refX="3.5" refY="1.5" orient="auto">
-                      <polygon points="0 0, 4 1.5, 0 3" fill="rgba(34, 197, 94, 0.7)" />
-                    </marker>
-                  </defs>
                   <line
-                    x1={start.x} y1={start.y} x2={end.x} y2={end.y}
-                    stroke="rgba(34, 197, 94, 0.7)"
-                    strokeWidth="1.8"
+                    x1={start.x} y1={start.y} x2={ex} y2={ey}
+                    stroke="rgba(34, 197, 94, 0.75)"
+                    strokeWidth="2.8"
                     strokeLinecap="round"
-                    markerEnd="url(#arrowhead)"
+                  />
+                  <polygon
+                    points={`${tip} ${left} ${right}`}
+                    fill="rgba(34, 197, 94, 0.75)"
                   />
                 </svg>
               )
