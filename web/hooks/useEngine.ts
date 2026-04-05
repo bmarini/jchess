@@ -51,17 +51,18 @@ export function useEngine(fen: string | null): UseEngineResult {
     }
   }, [enabled])
 
-  // Analyze when FEN changes
+  // Analyze when FEN changes — generation counter prevents stale callbacks
+  const genRef = useRef(0)
   useEffect(() => {
     const engine = engineRef.current
     if (!engine || !enabled || !fen) return
 
     if (engine.currentState === 'loading') return
 
-    // Don't clear eval — show stale value until the engine produces a new one
+    const gen = ++genRef.current
     const flip = isBlackToMove(fen)
     engine.analyze(fen, DEFAULT_DEPTH, (e) => {
-      // Normalize score to white's perspective
+      if (gen !== genRef.current) return // stale — ignore
       setEval(flip
         ? { ...e, score: -e.score, mate: e.mate !== null ? -e.mate : null }
         : e
