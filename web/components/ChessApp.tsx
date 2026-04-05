@@ -230,16 +230,19 @@ export default function ChessApp() {
 
     setAnalysisProgress({ current: 0, total: transitions.length, done: false })
 
-    await analyzeGame(transitions, (n) => positions[n]!, (progress) => {
+    const result = await analyzeGame(transitions, (n) => positions[n]!, (progress) => {
       setAnalysisProgress(progress)
-      if (progress.done) {
-        setTimeout(() => {
-          setAnalysisProgress(null)
-          persistCurrentGame()
-        }, 500)
-      }
     })
-  }, [chess.mainTransitions, analysisProgress, persistCurrentGame])
+
+    // Store accuracy as PGN headers
+    if (activeGame?.game) {
+      activeGame.game.headers['WhiteAccuracy'] = String(result.whiteAccuracy)
+      activeGame.game.headers['BlackAccuracy'] = String(result.blackAccuracy)
+    }
+
+    setAnalysisProgress(null)
+    persistCurrentGame()
+  }, [chess.mainTransitions, analysisProgress, persistCurrentGame, activeGame])
 
   const headers = activeGame?.game.headers ?? {}
   const white = headers['White']
@@ -381,6 +384,7 @@ export default function ChessApp() {
                     flipped={chess.flipped}
                     lastCommands={lastCommands}
                     onMove={handleMove}
+                    bestMoveArrow={chess.metadata?.bestUCI}
                   />
                 </div>
               </div>

@@ -17,6 +17,8 @@ type Props = {
   lastCommands?: TransitionCommand[]
   pieceBase?: string
   onMove?: (from: string, to: string, promotion?: PieceType) => void
+  /** Best move arrow: "from:to" format (e.g., "e2:e4") */
+  bestMoveArrow?: string
 }
 
 type PieceOnBoard = { id: number; piece: Piece; square: string }
@@ -60,12 +62,22 @@ function isPromotionMove(position: Position, from: string, to: string): boolean 
   return to[1] === targetRank
 }
 
+function squareToCenter(square: string, flipped: boolean): { x: number; y: number } {
+  const col = square.charCodeAt(0) - 97
+  const rank = parseInt(square[1]!) - 1
+  const row = 7 - rank
+  const displayCol = flipped ? 7 - col : col
+  const displayRow = flipped ? 7 - row : row
+  return { x: displayCol * 12.5 + 6.25, y: displayRow * 12.5 + 6.25 }
+}
+
 export default function Board({
   position,
   flipped = false,
   lastCommands,
   pieceBase = `${BASE_PATH}/pieces/mpchess/`,
   onMove,
+  bestMoveArrow,
 }: Props) {
   const highlightedSquares = getLastMoveSquares(lastCommands)
   const pieces = position ? getPieces(position) : []
@@ -249,6 +261,30 @@ export default function Board({
                 </div>
               )
             })}
+
+            {/* Best move arrow */}
+            {bestMoveArrow && (() => {
+              const [from, to] = bestMoveArrow.split(':')
+              if (!from || !to) return null
+              const start = squareToCenter(from, flipped)
+              const end = squareToCenter(to, flipped)
+              return (
+                <svg className="absolute inset-0 pointer-events-none" viewBox="0 0 100 100">
+                  <defs>
+                    <marker id="arrowhead" markerWidth="4" markerHeight="3" refX="3.5" refY="1.5" orient="auto">
+                      <polygon points="0 0, 4 1.5, 0 3" fill="rgba(34, 197, 94, 0.7)" />
+                    </marker>
+                  </defs>
+                  <line
+                    x1={start.x} y1={start.y} x2={end.x} y2={end.y}
+                    stroke="rgba(34, 197, 94, 0.7)"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    markerEnd="url(#arrowhead)"
+                  />
+                </svg>
+              )
+            })()}
 
             {/* Click targets */}
             {onMove && (

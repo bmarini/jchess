@@ -16,12 +16,23 @@ function playerLabel(name?: string, elo?: string) {
   return elo ? `${name} (${elo})` : name
 }
 
+function AccuracyBadge({ value }: { value: string }) {
+  const n = parseFloat(value)
+  const color = n >= 90 ? 'text-green-600 dark:text-green-400'
+    : n >= 70 ? 'text-blue-600 dark:text-blue-400'
+    : n >= 50 ? 'text-amber-600 dark:text-amber-400'
+    : 'text-red-600 dark:text-red-400'
+  return <span className={`font-mono text-[10px] ${color}`}>{value}%</span>
+}
+
 export default function GameInfo({ game }: Props) {
   if (!game) return null
 
   const h = game.headers
   const white = playerLabel(h['White'], h['WhiteElo'])
   const black = playerLabel(h['Black'], h['BlackElo'])
+  const whiteAcc = h['WhiteAccuracy']
+  const blackAcc = h['BlackAccuracy']
   const event = h['Event']
   const site = h['Site']
   const date = h['Date']
@@ -41,9 +52,11 @@ export default function GameInfo({ game }: Props) {
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="font-medium text-neutral-800 dark:text-neutral-200 truncate">
               {white ?? '?'}
+              {whiteAcc && <> <AccuracyBadge value={whiteAcc} /></>}
             </span>
             <span className="font-medium text-neutral-800 dark:text-neutral-200 truncate">
               {black ?? '?'}
+              {blackAcc && <> <AccuracyBadge value={blackAcc} /></>}
             </span>
           </div>
           {result && (
