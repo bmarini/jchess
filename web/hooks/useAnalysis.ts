@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Position } from '@chess/board'
 import { analyzeGame } from '@/lib/analyze'
+import { useSharedEngine } from './useSharedEngine'
 import type { AnalysisProgress } from '@/lib/analyze'
 import type { Transition } from '@chess/types'
 
@@ -21,21 +22,24 @@ type UseAnalysisResult = {
 }
 
 /**
- * Manages full-game analysis lifecycle: engine init, progress, cancellation, cleanup.
+ * Manages full-game analysis lifecycle using the shared engine.
  *
+ * - Sets busy=true on the shared engine during analysis (pauses live eval).
  * - Only one analysis runs at a time — calling `run` while running cancels the previous.
- * - Unmounting cancels automatically (no leaked Web Workers).
+ * - Unmounting cancels automatically.
  * - Progress resets to null when analysis finishes or is cancelled.
  */
 export function useAnalysis(): UseAnalysisResult {
+  const { engine, ready, setBusy } = useSharedEngine()
   const [progress, setProgress] = useState<AnalysisProgress | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const cancel = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
+    setBusy(false)
     setProgress(null)
-  }, [])
+  }, [setBusy])
 
   // Clean up on unmount
   useEffect(() => cancel, [cancel])
@@ -44,6 +48,8 @@ export function useAnalysis(): UseAnalysisResult {
     transitions: Transition[],
     onComplete: (result: { whiteAccuracy: number; blackAccuracy: number }) => void,
   ) => {
+    if (!engine || !ready) return
+
     // Cancel any in-flight analysis
     cancel()
 
@@ -61,9 +67,11 @@ export function useAnalysis(): UseAnalysisResult {
     const controller = new AbortController()
     abortRef.current = controller
 
+    setBusy(true)
     setProgress({ current: 0, total: transitions.length })
 
     analyzeGame(
+      engine,
       transitions,
       (n) => positions[n]!,
       (p) => {
@@ -75,13 +83,13 @@ export function useAnalysis(): UseAnalysisResult {
         onComplete(result)
       }
     }).finally(() => {
-      // Only clear if this is still the active analysis
       if (abortRef.current === controller) {
         abortRef.current = null
+        setBusy(false)
         setProgress(null)
       }
     })
-  }, [cancel])
+  }, [cancel, engine, ready, setBusy])
 
   const state: AnalysisState = progress !== null ? 'running' : 'idle'
 

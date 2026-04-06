@@ -1,5 +1,10 @@
+import { EngineProvider } from '@/hooks/useSharedEngine'
 import ChessApp from '@/components/ChessApp'
 
 export default function Home() {
-  return <ChessApp />
+  return (
+    <EngineProvider>
+      <ChessApp />
+    </EngineProvider>
+  )
 }

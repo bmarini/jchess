@@ -67,16 +67,12 @@ function uciToSquares(uci: string): { from: Square; to: Square } {
  * - Detects where the game leaves book
  */
 export async function analyzeGame(
+  engine: StockfishEngine,
   transitions: Transition[],
   positionAt: (n: number) => Position,
   onProgress: (progress: AnalysisProgress) => void,
   signal?: AbortSignal,
 ): Promise<AnalysisResult> {
-  const engine = new StockfishEngine()
-  await engine.init()
-
-  // Abort tears down the engine immediately so the worker doesn't leak
-  signal?.addEventListener('abort', () => engine.destroy(), { once: true })
 
   const total = transitions.length
   let outOfBook: number | null = null
@@ -146,8 +142,6 @@ export async function analyzeGame(
 
     onProgress({ current: i + 1, total })
   }
-
-  if (!signal?.aborted) engine.destroy()
 
   const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 100
 

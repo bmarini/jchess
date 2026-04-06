@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { Position } from '@chess/board'
 import { legalMovesFrom } from '@chess/movegen'
-import { StockfishEngine } from '@/lib/engine'
+import { useSharedEngine } from './useSharedEngine'
 import type { PieceType, Square } from '@chess/types'
 
 export type BotConfig = {
@@ -42,7 +42,7 @@ export function useBotPlayer(
   position: Position | null,
   makeMove: (from: string, to: string, promotion?: PieceType) => void,
 ): { thinking: boolean; gameOver: GameOverState } {
-  const engineRef = useRef<StockfishEngine | null>(null)
+  const { engine, ready, setBusy } = useSharedEngine()
   const [thinking, setThinking] = useState(false)
   const [gameOver, setGameOver] = useState<GameOverState>(null)
   const genRef = useRef(0)
@@ -52,28 +52,9 @@ export function useBotPlayer(
     setGameOver(null)
   }, [config?.botColor, config?.skillLevel]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Init/destroy engine when config changes
-  useEffect(() => {
-    if (!config) {
-      engineRef.current?.destroy()
-      engineRef.current = null
-      return
-    }
-
-    const engine = new StockfishEngine()
-    engineRef.current = engine
-    engine.init()
-
-    return () => {
-      engine.destroy()
-      engineRef.current = null
-    }
-  }, [config?.botColor, config?.skillLevel]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Check for game over + request bot move
   useEffect(() => {
-    const engine = engineRef.current
-    if (!config || !position || !engine || gameOver) return
+    if (!config || !position || !engine || !ready || gameOver) return
 
     const over = detectGameOver(position)
     if (over) {
@@ -87,11 +68,13 @@ export function useBotPlayer(
     const fen = position.toFEN()
     let cancelled = false
 
+    setBusy(true)
     setThinking(true)
 
     const timer = setTimeout(() => {
       engine.playBotMove(fen, config.skillLevel).then((uci) => {
         if (cancelled || gen !== genRef.current) return
+        setBusy(false)
         setThinking(false)
         if (!uci) return
         const from = uci.slice(0, 2) as Square
@@ -105,9 +88,10 @@ export function useBotPlayer(
       cancelled = true
       clearTimeout(timer)
       engine.stop()
+      setBusy(false)
       setThinking(false)
     }
-  }, [config, position?.toFEN(), gameOver]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [config, position?.toFEN(), gameOver, engine, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { thinking, gameOver }
 }
