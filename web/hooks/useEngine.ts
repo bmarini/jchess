@@ -28,7 +28,12 @@ export function useEngine(fen: string | null): UseEngineResult {
   const [eval_, setEval] = useState<EngineEval | null>(null)
   const [evalFen, setEvalFen] = useState<string | null>(null)
   const [state, setState] = useState<EngineState>('idle')
-  const [enabled, setEnabled] = useState(true)
+  const [enabled, setEnabled] = useState(() => {
+    try {
+      const stored = localStorage.getItem('jchess:engine-enabled')
+      return stored !== null ? stored === 'true' : true
+    } catch { return true }
+  })
 
   // Init/destroy engine when enabled changes
   useEffect(() => {
@@ -84,7 +89,11 @@ export function useEngine(fen: string | null): UseEngineResult {
   }, [fen, enabled])
 
   const toggle = useCallback(() => {
-    setEnabled(v => !v)
+    setEnabled(v => {
+      const next = !v
+      try { localStorage.setItem('jchess:engine-enabled', String(next)) } catch {}
+      return next
+    })
   }, [])
 
   return { eval_, evalCurrent: evalFen === fen, state, enabled, toggle }
