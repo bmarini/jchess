@@ -629,14 +629,93 @@ export class Position {
     return candidates.filter(to => this.toSAN(from, to) !== null)
   }
 
+  /** Check suffix without using legalMovesFrom/toSAN (avoids circular calls). */
   private static _checkSuffix(position: Position): string {
     if (!position.isInCheck()) return ''
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        if (position.legalMovesFrom(coordToSquare(row, col)).length > 0) return '+'
+    // Try to find any legal move by brute-force applying candidate SANs
+    if (Position._hasAnyLegalMove(position)) return '+'
+    return '#'
+  }
+
+  /** Check if position has any legal move using applyMove directly. */
+  private static _hasAnyLegalMove(position: Position): boolean {
+    const color = position.activeColor
+    const FILES = 'abcdefgh'
+    const RANKS = '12345678'
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = position.board[r]?.[c]
+        if (!piece || piece.color !== color) continue
+        const from = coordToSquare(r, c)
+
+        if (piece.type === 'P') {
+          // Pawn moves: try forward, double forward, captures, promotions
+          const dir = color === 'w' ? -1 : 1
+          const promoRank = color === 'w' ? 0 : 7
+          const startRow = color === 'w' ? 6 : 1
+          // Forward
+          const r1 = r + dir
+          if (isOnBoard(r1, c) && !boardGet(position.board, coordToSquare(r1, c))) {
+            const to = coordToSquare(r1, c)
+            if (r1 === promoRank) {
+              if (position.applyMove(`${to}=Q`)) return true
+            } else {
+              if (position.applyMove(to)) return true
+            }
+            // Double forward
+            if (r === startRow) {
+              const r2 = r + dir * 2
+              if (isOnBoard(r2, c) && !boardGet(position.board, coordToSquare(r2, c))) {
+                if (position.applyMove(coordToSquare(r2, c))) return true
+              }
+            }
+          }
+          // Captures
+          for (const dc of [-1, 1]) {
+            if (!isOnBoard(r1, c + dc)) continue
+            const to = coordToSquare(r1, c + dc)
+            const target = boardGet(position.board, to)
+            if ((target && target.color !== color) || to === position.enPassantSquare) {
+              const san = `${FILES[c]}x${to}${r1 === promoRank ? '=Q' : ''}`
+              if (position.applyMove(san)) return true
+            }
+          }
+        } else if (piece.type === 'K') {
+          // King moves + castling
+          for (const vec of PIECE_VECTORS['K']) {
+            const nr = r - vec.y, nc = c + vec.x
+            if (!isOnBoard(nr, nc)) continue
+            const target = position.board[nr]?.[nc]
+            if (target && target.color === color) continue
+            const to = coordToSquare(nr, nc)
+            const san = target ? `Kx${to}` : `K${to}`
+            if (position.applyMove(san)) return true
+          }
+          if (position.applyMove('O-O')) return true
+          if (position.applyMove('O-O-O')) return true
+        } else {
+          // Piece moves
+          for (const vec of PIECE_VECTORS[piece.type]) {
+            for (let steps = 1; steps <= vec.limit; steps++) {
+              const nr = r - vec.y * steps, nc = c + vec.x * steps
+              if (!isOnBoard(nr, nc)) break
+              const target = position.board[nr]?.[nc]
+              if (target && target.color === color) break
+              const to = coordToSquare(nr, nc)
+              const x = target ? 'x' : ''
+              // Try without disambiguation first, then with file hint
+              const san = `${piece.type}${x}${to}`
+              if (position.applyMove(san)) return true
+              const sanFile = `${piece.type}${from[0]}${x}${to}`
+              if (position.applyMove(sanFile)) return true
+              if (target) break
+            }
+          }
+        }
       }
     }
-    return '#'
+    return false
   }
 
   private _applyCastle(side: 'K' | 'Q'): Omit<MoveApplication, 'parsed'> {
