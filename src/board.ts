@@ -25,6 +25,10 @@ export function isOnBoard(row: number, col: number): boolean {
   return row >= 0 && row < 8 && col >= 0 && col < 8
 }
 
+export function opponent(color: Color): Color {
+  return color === 'w' ? 'b' : 'w'
+}
+
 function backRank(color: Color): string {
   return color === 'w' ? '1' : '8'
 }
@@ -415,7 +419,7 @@ export class Position {
   /** Check if the side to move's king is attacked. */
   isInCheck(): boolean {
     const color = this.activeColor
-    const opponent = color === 'w' ? 'b' : 'w'
+    const opponentColor = opponent(color)
 
     // Find the king
     let kingSq: Square | null = null
@@ -443,7 +447,7 @@ export class Position {
           if (!isOnBoard(nr, nc)) break
           const piece = this.board[nr]?.[nc]
           if (!piece) continue
-          if (piece.color === opponent && piece.type === pieceType) return true
+          if (piece.color === opponentColor && piece.type === pieceType) return true
           break // blocked
         }
       }
@@ -456,7 +460,7 @@ export class Position {
       const pc = kCol + dc
       if (!isOnBoard(pr, pc)) continue
       const piece = this.board[pr]?.[pc]
-      if (piece && piece.color === opponent && piece.type === 'P') return true
+      if (piece && piece.color === opponentColor && piece.type === 'P') return true
     }
 
     return false
@@ -499,7 +503,7 @@ export class Position {
 
     return new Position(
       newBoard,
-      color === 'w' ? 'b' : 'w',
+      opponent(color),
       this.castlingRights,
       null,
       0,
@@ -575,7 +579,7 @@ export class Position {
     return {
       position: new Position(
         newBoard,
-        color === 'w' ? 'b' : 'w',
+        opponent(color),
         cr,
         newEP,
         (pieceType === 'P' || captured !== null) ? 0 : this.halfmoveClock + 1,
@@ -619,7 +623,7 @@ export class Position {
     return {
       position: new Position(
         newBoard,
-        color === 'w' ? 'b' : 'w',
+        opponent(color),
         cr,
         null,
         this.halfmoveClock + 1,
