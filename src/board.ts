@@ -427,6 +427,51 @@ export class Position {
     return false
   }
 
+  /**
+   * Try a move by coordinates. Returns a new Position if legal (own king not
+   * left in check), null otherwise. Does not handle castling — caller uses
+   * applyMove('O-O') for that. Fast path for legality checking.
+   */
+  applyMoveCoords(
+    fromRow: number, fromCol: number,
+    toRow: number, toCol: number,
+    promotion?: PieceType,
+  ): Position | null {
+    const movingPiece = this.board[fromRow]?.[fromCol]
+    if (!movingPiece) return null
+
+    const color = movingPiece.color
+    const captured = this.board[toRow]?.[toCol] ?? null
+
+    const newBoard = this.board.map(r => r.slice()) as Board
+
+    newBoard[fromRow]![fromCol] = null
+
+    // En passant capture
+    if (movingPiece.type === 'P' && fromCol !== toCol && !captured) {
+      newBoard[fromRow]![toCol] = null
+    }
+
+    newBoard[toRow]![toCol] = promotion
+      ? { color, type: promotion, id: movingPiece.id }
+      : movingPiece
+
+    // Check if own king is left in check after the move
+    const checkPos = new Position(
+      newBoard, color, this.castlingRights, null, 0, this.fullmoveNumber,
+    )
+    if (checkPos.isInCheck()) return null
+
+    return new Position(
+      newBoard,
+      color === 'w' ? 'b' : 'w',
+      this.castlingRights,
+      null,
+      0,
+      this.fullmoveNumber,
+    )
+  }
+
   /** Serialize back to FEN notation. */
   toFEN(): string {
     const { K, Q, k, q } = this.castlingRights

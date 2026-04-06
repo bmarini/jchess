@@ -367,6 +367,45 @@ describe('Position.legalMovesFrom', () => {
   })
 })
 
+// ── Position.applyMoveCoords ────────────────────────────────────────────────
+
+describe('Position.applyMoveCoords', () => {
+  it('allows a legal pawn push', () => {
+    const pos = Position.fromFEN(STARTING_FEN)
+    // e2 (row=6, col=4) to e4 (row=4, col=4)
+    const result = pos.applyMoveCoords(6, 4, 4, 4)
+    expect(result).not.toBeNull()
+    expect(result!.board[4]![4]).toMatchObject({ type: 'P', color: 'w' })
+    expect(result!.board[6]![4]).toBeNull()
+  })
+
+  it('rejects a move that leaves king in check', () => {
+    // White king e1, white rook e4, black rook e8 — rook is pinned
+    const pos = Position.fromFEN('4r2k/8/8/8/4R3/8/8/4K3 w - - 0 1')
+    // Try moving rook off the e-file: e4 (row=4,col=4) to d4 (row=4,col=3)
+    const result = pos.applyMoveCoords(4, 4, 4, 3)
+    expect(result).toBeNull()
+  })
+
+  it('handles en passant capture', () => {
+    // White pawn e5, black pawn on f5 (just double-advanced), EP square f6
+    const pos = Position.fromFEN('7k/8/8/4Pp2/8/8/8/4K3 w - f6 0 1')
+    // e5 (row=3, col=4) to f6 (row=2, col=5)
+    const result = pos.applyMoveCoords(3, 4, 2, 5)
+    expect(result).not.toBeNull()
+    expect(result!.board[3]![5]).toBeNull() // captured pawn removed
+    expect(result!.board[2]![5]).toMatchObject({ type: 'P', color: 'w' })
+  })
+
+  it('handles promotion', () => {
+    const pos = Position.fromFEN('8/P7/8/8/8/8/8/4K2k w - - 0 1')
+    // a7 (row=1, col=0) to a8 (row=0, col=0) with promotion to Q
+    const result = pos.applyMoveCoords(1, 0, 0, 0, 'Q')
+    expect(result).not.toBeNull()
+    expect(result!.board[0]![0]).toMatchObject({ type: 'Q', color: 'w' })
+  })
+})
+
 // ── Position.applyMove edge cases ───────────────────────────────────────────
 
 describe('Position.applyMove – edge cases', () => {

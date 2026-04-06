@@ -26,11 +26,11 @@ function checkSuffix(position: Position): string {
 
 /**
  * Fast check if the position has any legal move.
- * Uses applyMove directly (Layer 1) — no toSAN, no legalMovesFrom.
+ * Uses applyMoveCoords for most moves (castling falls back to applyMove).
+ * No toSAN, no legalMovesFrom.
  */
 export function hasAnyLegalMove(position: Position): boolean {
   const color = position.activeColor
-  const FILES = 'abcdefgh'
 
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
@@ -42,52 +42,53 @@ export function hasAnyLegalMove(position: Position): boolean {
         const promoRank = color === 'w' ? 0 : 7
         const startRow = color === 'w' ? 6 : 1
         const r1 = r + dir
-        if (isOnBoard(r1, c) && !boardGet(position.board, coordToSquare(r1, c))) {
-          const to = coordToSquare(r1, c)
-          if (r1 === promoRank) {
-            if (position.applyMove(`${to}=Q`)) return true
-          } else {
-            if (position.applyMove(to)) return true
-          }
+
+        // Forward one
+        if (isOnBoard(r1, c) && !position.board[r1]?.[c]) {
+          const promo = r1 === promoRank ? 'Q' as PieceType : undefined
+          if (position.applyMoveCoords(r, c, r1, c, promo)) return true
+          // Forward two from starting row
           if (r === startRow) {
             const r2 = r + dir * 2
-            if (isOnBoard(r2, c) && !boardGet(position.board, coordToSquare(r2, c))) {
-              if (position.applyMove(coordToSquare(r2, c))) return true
+            if (isOnBoard(r2, c) && !position.board[r2]?.[c]) {
+              if (position.applyMoveCoords(r, c, r2, c)) return true
             }
           }
         }
+
+        // Captures (including en passant)
         for (const dc of [-1, 1]) {
-          if (!isOnBoard(r1, c + dc)) continue
-          const to = coordToSquare(r1, c + dc)
-          const target = boardGet(position.board, to)
-          if ((target && target.color !== color) || to === position.enPassantSquare) {
-            const san = `${FILES[c]}x${to}${r1 === promoRank ? '=Q' : ''}`
-            if (position.applyMove(san)) return true
+          const nc = c + dc
+          if (!isOnBoard(r1, nc)) continue
+          const target = position.board[r1]?.[nc]
+          const epSq = position.enPassantSquare
+          const isEP = epSq !== null && coordToSquare(r1, nc) === epSq
+          if ((target && target.color !== color) || isEP) {
+            const promo = r1 === promoRank ? 'Q' as PieceType : undefined
+            if (position.applyMoveCoords(r, c, r1, nc, promo)) return true
           }
         }
       } else if (piece.type === 'K') {
+        // Normal king moves
         for (const vec of PIECE_VECTORS['K']) {
           const nr = r - vec.y, nc = c + vec.x
           if (!isOnBoard(nr, nc)) continue
           const target = position.board[nr]?.[nc]
           if (target && target.color === color) continue
-          const to = coordToSquare(nr, nc)
-          if (position.applyMove(target ? `Kx${to}` : `K${to}`)) return true
+          if (position.applyMoveCoords(r, c, nr, nc)) return true
         }
+        // Castling — still needs SAN since it involves rook movement
         if (position.applyMove('O-O')) return true
         if (position.applyMove('O-O-O')) return true
       } else {
-        const from = coordToSquare(r, c)
+        // Sliding/jumping pieces
         for (const vec of PIECE_VECTORS[piece.type]) {
           for (let steps = 1; steps <= vec.limit; steps++) {
             const nr = r - vec.y * steps, nc = c + vec.x * steps
             if (!isOnBoard(nr, nc)) break
             const target = position.board[nr]?.[nc]
             if (target && target.color === color) break
-            const to = coordToSquare(nr, nc)
-            const x = target ? 'x' : ''
-            if (position.applyMove(`${piece.type}${x}${to}`)) return true
-            if (position.applyMove(`${piece.type}${from[0]}${x}${to}`)) return true
+            if (position.applyMoveCoords(r, c, nr, nc)) return true
             if (target) break
           }
         }
