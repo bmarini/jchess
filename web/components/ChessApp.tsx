@@ -479,12 +479,12 @@ export default function ChessApp() {
               {/* Mobile game actions */}
               <div className="flex items-center justify-center gap-2 lg:hidden">
                 <button onClick={handleAnalyzeGame} disabled={!!analysisProgress}
-                  title="Analyze"
+                  title="Review with Stockfish"
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors
                     bg-blue-50 text-blue-700 hover:bg-blue-100
                     dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900 disabled:opacity-50">
                   <Icon name="magnifying-glass" size={16} />
-                  {analysisProgress ? `${analysisProgress.current}/${analysisProgress.total}` : 'Analyze'}
+                  {analysisProgress ? `${analysisProgress.current}/${analysisProgress.total}` : 'Review'}
                 </button>
                 <button onClick={engine.toggle}
                   title={engine.enabled ? 'Disable engine' : 'Enable engine'}
@@ -528,12 +528,12 @@ export default function ChessApp() {
             {/* Game actions toolbar */}
             <div className="border-b border-neutral-200 dark:border-neutral-800 px-3 py-1.5 flex items-center gap-1">
               <button onClick={handleAnalyzeGame} disabled={!!analysisProgress}
-                title={analysisProgress ? `Analyzing ${analysisProgress.current}/${analysisProgress.total}` : 'Analyze Game'}
+                title={analysisProgress ? `Reviewing ${analysisProgress.current}/${analysisProgress.total}` : 'Review with Stockfish'}
                 className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded font-medium transition-colors
                   bg-blue-50 text-blue-700 hover:bg-blue-100
                   dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900 disabled:opacity-50">
                 <Icon name="magnifying-glass" size={16} />
-                {analysisProgress ? <span className="font-mono">{analysisProgress.current}/{analysisProgress.total}</span> : 'Analyze'}
+                {analysisProgress ? <span className="font-mono">{analysisProgress.current}/{analysisProgress.total}</span> : 'Review'}
               </button>
               <button onClick={engine.toggle}
                 title={engine.enabled ? 'Disable engine' : 'Enable engine'}
