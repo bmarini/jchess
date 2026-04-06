@@ -26,13 +26,13 @@ export function extractNAG(annotation?: string): { nag: NAGSymbol | null; text: 
  * Split a raw PGN annotation into display text and structured metadata.
  * Metadata commands like [%clk 0:30:00] are extracted; remaining text is trimmed.
  */
-export function parseAnnotation(raw: string): { text: string; metadata: MoveMetadata } {
+export function parseAnnotation(raw: string): { text: string | undefined; metadata: MoveMetadata } {
   const metadata: MoveMetadata = {}
   const text = raw.replace(COMMAND_RE, (_, key: string, value: string) => {
     metadata[key] = value.trim()
     return ''
   }).trim()
-  return { text: text || undefined!, metadata }
+  return { text: text || undefined, metadata }
 }
 
 /**

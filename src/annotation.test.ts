@@ -8,6 +8,11 @@ describe('parseAnnotation', () => {
     expect(metadata.clk).toBe('0:30:00')
   })
 
+  it('returns undefined text for metadata-only annotation', () => {
+    const { text } = parseAnnotation('[%clk 0:30:00]')
+    expect(text).toBeUndefined()
+  })
+
   it('extracts metadata and preserves display text', () => {
     const { text, metadata } = parseAnnotation('[%clk 0:29:46.1] A good move')
     expect(text).toBe('A good move')
