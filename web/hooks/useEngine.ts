@@ -28,7 +28,7 @@ export function useEngine(fen: string | null): UseEngineResult {
   const [eval_, setEval] = useState<EngineEval | null>(null)
   const [evalFen, setEvalFen] = useState<string | null>(null)
   const [state, setState] = useState<EngineState>('idle')
-  const [enabled, setEnabled] = useState(false)
+  const [enabled, setEnabled] = useState(true)
 
   // Init/destroy engine when enabled changes
   useEffect(() => {

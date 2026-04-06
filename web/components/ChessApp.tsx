@@ -474,16 +474,27 @@ export default function ChessApp() {
                   canNext={chess.halfmove < chess.totalMoves}
                   isInVariation={chess.isInVariation}
                   onExitVariation={chess.exitVariation}
-                  engineEnabled={engine.enabled}
-                  engineState={engine.state}
-                  onToggleEngine={engine.toggle}
                 />
               </div>
               {/* Mobile game actions */}
               <div className="flex items-center justify-center gap-2 lg:hidden">
                 <button onClick={handleAnalyzeGame} disabled={!!analysisProgress}
-                  title="Analyze" className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50">
-                  <Icon name="magnifying-glass" size={18} className="dark:invert" />
+                  title="Analyze"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors
+                    bg-blue-50 text-blue-700 hover:bg-blue-100
+                    dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900 disabled:opacity-50">
+                  <Icon name="magnifying-glass" size={16} />
+                  {analysisProgress ? `${analysisProgress.current}/${analysisProgress.total}` : 'Analyze'}
+                </button>
+                <button onClick={engine.toggle}
+                  title={engine.enabled ? 'Disable engine' : 'Enable engine'}
+                  className={[
+                    'p-1.5 rounded transition-colors',
+                    engine.enabled
+                      ? 'bg-green-100 hover:bg-green-200 dark:bg-green-900/50 dark:hover:bg-green-900'
+                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-800',
+                  ].join(' ')}>
+                  <Icon name="cpu" size={18} className={engine.enabled ? '' : 'dark:invert opacity-40'} />
                 </button>
                 <button onClick={handleShare} title="Share"
                   className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">
@@ -518,9 +529,21 @@ export default function ChessApp() {
             <div className="border-b border-neutral-200 dark:border-neutral-800 px-3 py-1.5 flex items-center gap-1">
               <button onClick={handleAnalyzeGame} disabled={!!analysisProgress}
                 title={analysisProgress ? `Analyzing ${analysisProgress.current}/${analysisProgress.total}` : 'Analyze Game'}
-                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50">
-                <Icon name="magnifying-glass" size={16} className="dark:invert" />
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded font-medium transition-colors
+                  bg-blue-50 text-blue-700 hover:bg-blue-100
+                  dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900 disabled:opacity-50">
+                <Icon name="magnifying-glass" size={16} />
                 {analysisProgress ? <span className="font-mono">{analysisProgress.current}/{analysisProgress.total}</span> : 'Analyze'}
+              </button>
+              <button onClick={engine.toggle}
+                title={engine.enabled ? 'Disable engine' : 'Enable engine'}
+                className={[
+                  'p-1.5 rounded transition-colors',
+                  engine.enabled
+                    ? 'bg-green-100 hover:bg-green-200 dark:bg-green-900/50 dark:hover:bg-green-900'
+                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800',
+                ].join(' ')}>
+                <Icon name="cpu" size={16} className={engine.enabled ? '' : 'dark:invert opacity-40'} />
               </button>
               <div className="flex-1" />
               <button onClick={handleShare} title={shareStatus === 'copied' ? 'Copied!' : 'Share link'}
