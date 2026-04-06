@@ -82,6 +82,22 @@ export class StockfishEngine {
     })
   }
 
+  /** Play a bot move: set skill level, think for moveTimeMs, return UCI move string. */
+  async playBotMove(fen: string, skillLevel: number, moveTimeMs = 1500): Promise<string | null> {
+    if (!this.worker || this.state === 'idle' || this.state === 'loading') return null
+    this.stop()
+    this.send(`setoption name Skill Level value ${skillLevel}`)
+    this.lastEval = null
+    this.state = 'analyzing'
+    this.send(`position fen ${fen}`)
+    this.send(`go movetime ${moveTimeMs}`)
+    return new Promise((resolve) => {
+      this.onBestMove = (eval_) => {
+        resolve(eval_?.pv[0] ?? null)
+      }
+    })
+  }
+
   /** Stop current analysis. */
   stop(): void {
     if (this.state === 'analyzing') {

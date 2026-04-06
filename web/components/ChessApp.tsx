@@ -9,10 +9,13 @@ import PGNInput from './PGNInput'
 import GameInfo from './GameInfo'
 import Icon from './Icon'
 import EvalBar from './EvalBar'
+import BotDialog from './BotDialog'
 import EvalGraph from './EvalGraph'
 import { Position } from '@chess/board'
 import { useChessGame } from '@/hooks/useChessGame'
 import { useEngine } from '@/hooks/useEngine'
+import { useBotPlayer } from '@/hooks/useBotPlayer'
+import type { BotConfig } from '@/hooks/useBotPlayer'
 import { parseMultiPGN } from '@/lib/parseMultiPGN'
 import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from '@/lib/shareUrl'
 import { loadLibrary, saveLibrary, loadActiveState, saveActiveState } from '@/lib/storage'
@@ -31,6 +34,8 @@ export default function ChessApp() {
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null)
+  const [botConfig, setBotConfig] = useState<BotConfig>(null)
+  const [showBotDialog, setShowBotDialog] = useState(false)
   const initializedRef = useRef(false)
 
   const activeGame = activeIndex >= 0 ? savedGames[activeIndex] ?? null : null
@@ -157,6 +162,7 @@ export default function ChessApp() {
     if (!entry) return
     setActiveIndex(index)
     chess.loadGame(entry.game)
+    setBotConfig(null)
     setDrawerOpen(false)
   }, [savedGames, chess])
 
@@ -178,6 +184,21 @@ export default function ChessApp() {
     chess.makeMove(from, to, promotion)
     setTimeout(persistCurrentGame, 0)
   }, [chess, persistCurrentGame])
+
+  const botPlayer = useBotPlayer(botConfig, chess.position, handleMove)
+
+  const handleNewBotGame = useCallback((botColor: 'w' | 'b', skillLevel: number) => {
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '.')
+    const humanName = 'You'
+    const botName = `Stockfish (Level ${skillLevel})`
+    const white = botColor === 'w' ? botName : humanName
+    const black = botColor === 'b' ? botName : humanName
+    const pgn = `[Event "vs Stockfish"]\n[Site "jChess"]\n[Date "${today}"]\n[White "${white}"]\n[Black "${black}"]\n[Result "*"]\n\n*`
+    handleLoadPGN(pgn)
+    setBotConfig({ botColor, skillLevel })
+    if (botColor === 'w') chess.flip()
+    setShowBotDialog(false)
+  }, [handleLoadPGN, chess])
 
   const handleAnnotationBlur = useCallback((text: string) => {
     chess.setAnnotation(text)
@@ -268,22 +289,36 @@ export default function ChessApp() {
   // ── Shared sidebar content (used in desktop sidebar + mobile drawer) ────────
   const sidebarContent = (
     <>
-      <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 flex gap-1.5">
-        <button onClick={handleNewGame}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-          <Icon name="note-pencil" size={14} className="dark:invert" /> New
-        </button>
-        <button onClick={() => setShowInput(v => !v)}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-          <Icon name="plus" size={14} className="dark:invert" /> {showInput ? 'Close' : 'Load'}
-        </button>
-        {savedPGNs.length > 0 && (
-          <button onClick={handleDownloadAll} title="Download all games"
-            className="flex items-center justify-center px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-            <Icon name="download" size={14} className="dark:invert" />
+      <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          <button onClick={handleNewGame}
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+            <Icon name="note-pencil" size={14} className="dark:invert" /> New
           </button>
-        )}
+          <button onClick={() => setShowInput(v => !v)}
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+            <Icon name="plus" size={14} className="dark:invert" /> {showInput ? 'Close' : 'Load'}
+          </button>
+          {savedPGNs.length > 0 && (
+            <button onClick={handleDownloadAll} title="Download all games"
+              className="flex items-center justify-center px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+              <Icon name="download" size={14} className="dark:invert" />
+            </button>
+          )}
+        </div>
+        <button onClick={() => setShowBotDialog(v => !v)}
+          className="w-full flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+          <Icon name="robot" size={14} className="dark:invert" /> Play vs Bot
+        </button>
       </div>
+      {showBotDialog && (
+        <div className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+          <BotDialog
+            onStart={handleNewBotGame}
+            onCancel={() => setShowBotDialog(false)}
+          />
+        </div>
+      )}
       {showInput && (
         <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900">
           <PGNInput onLoad={handleLoadPGN} />
@@ -383,7 +418,7 @@ export default function ChessApp() {
                     <EvalBar eval_={engine.eval_} flipped={chess.flipped} />
                   </div>
                 )}
-                <div className="flex-1" style={{ maxWidth: '600px' }}>
+                <div className="flex-1 relative" style={{ maxWidth: '600px' }}>
                   <Board
                     position={chess.position}
                     flipped={chess.flipped}
@@ -391,6 +426,13 @@ export default function ChessApp() {
                     onMove={handleMove}
                     bestMoveArrow={bestMoveArrow}
                   />
+                  {botPlayer.thinking && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-black/40 text-white text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                        <Icon name="cpu" size={14} /> Thinking...
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
