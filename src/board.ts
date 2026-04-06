@@ -1,5 +1,10 @@
 import type { Board, CastlingRights, Color, Piece, PieceType, Square, Vector } from './types.js'
 
+/** Centralized square construction from file + rank strings. */
+export function toSquare(file: string, rank: string): Square {
+  return `${file}${rank}` as Square
+}
+
 export const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 // ── Coordinate helpers ────────────────────────────────────────────────────────
@@ -13,7 +18,7 @@ export function squareToCoord(sq: Square): [number, number] {
 
 /** [row, col] → 'e4' */
 export function coordToSquare(row: number, col: number): Square {
-  return String.fromCharCode(col + 97) + (8 - row)
+  return (String.fromCharCode(col + 97) + (8 - row)) as Square
 }
 
 export function isOnBoard(row: number, col: number): boolean {
@@ -209,7 +214,7 @@ export function findMoveSource(
   hintFile?: string,
   hintRank?: string,
 ): Square | null {
-  if (hintFile && hintRank) return hintFile + hintRank
+  if (hintFile && hintRank) return toSquare(hintFile, hintRank)
 
   const vectors = PIECE_VECTORS[pieceType]
 
@@ -243,7 +248,7 @@ export function findPawnMoveSource(
   dstRank: string,
   color: Color,
 ): Square | null {
-  const dstSquare = dstFile + dstRank
+  const dstSquare = toSquare(dstFile, dstRank)
   const direction = color === 'w' ? -1 : 1
   const vector: Vector = { x: 0, y: direction, limit: 2 }
 
@@ -289,7 +294,7 @@ export function parseSAN(san: string): ParsedSAN | null {
   if (!dstFile || !dstRank) return null
 
   const pieceType: PieceType = (piece as PieceType | undefined) ?? 'P'
-  const dstSquare: Square = dstFile + dstRank
+  const dstSquare: Square = toSquare(dstFile, dstRank)
   const capture = captureX === 'x'
   const promotion = promoStr ? (promoStr[1] as PieceType) : undefined
   const check = checkStr === '+' || san.includes('+')
@@ -355,7 +360,7 @@ export class Position {
     }
 
     const epStr = parts[3] ?? '-'
-    const enPassantSquare: Square | null = epStr === '-' ? null : epStr
+    const enPassantSquare: Square | null = epStr === '-' ? null : epStr as Square
 
     const halfmoveClock = parseInt(parts[4] ?? '0', 10)
     const fullmoveNumber = parseInt(parts[5] ?? '1', 10)
@@ -448,7 +453,8 @@ export class Position {
 
     if (pieceType === 'P') {
       if (parsed.capture) {
-        fromSquare = (hintFile ?? '') + (color === 'w'
+        // hintFile is always present for pawn captures in well-formed SAN (e.g. 'exd5')
+        fromSquare = toSquare(hintFile ?? '', color === 'w'
           ? String(parseInt(dstSquare[1]!, 10) - 1)
           : String(parseInt(dstSquare[1]!, 10) + 1))
       } else {
@@ -464,7 +470,7 @@ export class Position {
     let epCaptureSquare: Square | null = null
 
     if (pieceType === 'P' && parsed.capture && captured === null) {
-      epCaptureSquare = dstSquare[0]! + fromSquare[1]!
+      epCaptureSquare = toSquare(dstSquare[0]!, fromSquare[1]!)
       captured = boardGet(board, epCaptureSquare)
     }
 
@@ -494,7 +500,7 @@ export class Position {
       const fromRank = parseInt(fromSquare[1]!, 10)
       const toRank = parseInt(dstSquare[1]!, 10)
       if (Math.abs(toRank - fromRank) === 2) {
-        newEP = dstSquare[0]! + String(Math.floor((fromRank + toRank) / 2))
+        newEP = toSquare(dstSquare[0]!, String(Math.floor((fromRank + toRank) / 2)))
       }
     }
 
@@ -518,10 +524,10 @@ export class Position {
     const color = this.activeColor
     const rank = color === 'w' ? '1' : '8'
 
-    const kingFrom: Square = 'e' + rank
-    const kingTo:   Square = side === 'K' ? 'g' + rank : 'c' + rank
-    const rookFrom: Square = side === 'K' ? 'h' + rank : 'a' + rank
-    const rookTo:   Square = side === 'K' ? 'f' + rank : 'd' + rank
+    const kingFrom: Square = toSquare('e', rank)
+    const kingTo:   Square = side === 'K' ? toSquare('g', rank) : toSquare('c', rank)
+    const rookFrom: Square = side === 'K' ? toSquare('h', rank) : toSquare('a', rank)
+    const rookTo:   Square = side === 'K' ? toSquare('f', rank) : toSquare('d', rank)
 
     const newBoard = this.board.map(row => row.slice()) as typeof this.board
 

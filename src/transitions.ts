@@ -1,5 +1,5 @@
 import { parseAnnotation } from './annotation.js'
-import { makeIdCounter, Position } from './board.js'
+import { makeIdCounter, Position, toSquare } from './board.js'
 import { parsePGN } from './pgn.js'
 import type { IdCounter, ParsedSAN } from './board.js'
 import type { ParsedGame, ParsedMove, Piece, Square, Transition, TransitionCommand } from './types.js'
@@ -25,7 +25,7 @@ function findCaptureSquare(
     parsed.capture &&
     position.get(parsed.dstSquare) === null
   ) {
-    return parsed.dstSquare[0]! + fromSquare[1]!
+    return toSquare(parsed.dstSquare[0]!, fromSquare[1]!)
   }
   return parsed.dstSquare
 }
@@ -38,10 +38,10 @@ function buildCastleCommands(
 ): void {
   const rank = position.activeColor === 'w' ? '1' : '8'
 
-  const kingFrom: Square = 'e' + rank
-  const kingTo:   Square = side === 'K' ? 'g' + rank : 'c' + rank
-  const rookFrom: Square = side === 'K' ? 'h' + rank : 'a' + rank
-  const rookTo:   Square = side === 'K' ? 'f' + rank : 'd' + rank
+  const kingFrom: Square = toSquare('e', rank)
+  const kingTo:   Square = side === 'K' ? toSquare('g', rank) : toSquare('c', rank)
+  const rookFrom: Square = side === 'K' ? toSquare('h', rank) : toSquare('a', rank)
+  const rookTo:   Square = side === 'K' ? toSquare('f', rank) : toSquare('d', rank)
 
   const king = position.get(kingFrom)!
   const rook = position.get(rookFrom)!

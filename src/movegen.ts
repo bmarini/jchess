@@ -8,7 +8,7 @@
  * No circular dependencies — toSAN uses hasAnyLegalMove (not legalMovesFrom).
  */
 
-import { Position, coordToSquare, squareToCoord, isOnBoard, boardGet, findMoveSource, PIECE_VECTORS } from './board.js'
+import { Position, coordToSquare, squareToCoord, isOnBoard, boardGet, findMoveSource, PIECE_VECTORS, toSquare } from './board.js'
 import type { PieceType, Square } from './types.js'
 
 // ── Check suffix ─────────────────────────────────────────────────────────────
@@ -111,12 +111,12 @@ export function toSAN(position: Position, from: Square, to: Square, promotion?: 
 
   // Castling
   if (piece.type === 'K') {
-    if (from === 'e' + rank && to === 'g' + rank) {
+    if (from === toSquare('e', rank) && to === toSquare('g', rank)) {
       const result = position.applyMove('O-O')
       if (!result) return null
       return 'O-O' + checkSuffix(result.position)
     }
-    if (from === 'e' + rank && to === 'c' + rank) {
+    if (from === toSquare('e', rank) && to === toSquare('c', rank)) {
       const result = position.applyMove('O-O-O')
       if (!result) return null
       return 'O-O-O' + checkSuffix(result.position)
@@ -215,8 +215,8 @@ export function legalMovesFrom(position: Position, from: Square): Square[] {
 
     if (piece.type === 'K') {
       const r = color === 'w' ? '1' : '8'
-      if (from === 'e' + r) {
-        candidates.push('g' + r, 'c' + r)
+      if (from === toSquare('e', r)) {
+        candidates.push(toSquare('g', r), toSquare('c', r))
       }
     }
   }

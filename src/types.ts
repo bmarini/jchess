@@ -2,8 +2,11 @@ export type Color = 'w' | 'b'
 
 export type PieceType = 'P' | 'N' | 'B' | 'R' | 'Q' | 'K'
 
+export type File = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'
+export type Rank = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
+
 /** Algebraic square notation, e.g. 'e4', 'a1', 'h8' */
-export type Square = string
+export type Square = `${File}${Rank}`
 
 export type Piece = {
   color: Color
