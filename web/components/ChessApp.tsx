@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Board from './Board'
 import Controls from './Controls'
 import MoveList from './MoveList'
+import MoveStrip from './MoveStrip'
 import PGNInput from './PGNInput'
 import GameInfo from './GameInfo'
 import Icon from './Icon'
@@ -16,7 +17,6 @@ import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from
 import { loadLibrary, saveLibrary, loadActiveState, saveActiveState } from '@/lib/storage'
 import { exportPGN } from '@chess/export'
 import { identifyOpening } from '@/lib/openings'
-import { extractNAG } from '@chess/annotation'
 import { analyzeGame } from '@/lib/analyze'
 import type { AnalysisProgress } from '@/lib/analyze'
 import type { GameEntry } from '@/lib/parseMultiPGN'
@@ -26,6 +26,7 @@ export default function ChessApp() {
   const [savedGames, setSavedGames] = useState<GameEntry[]>([])
   const [activeIndex, setActiveIndex] = useState(-1)
   const [showInput, setShowInput] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null)
@@ -40,7 +41,6 @@ export default function ChessApp() {
     if (initializedRef.current) return
     initializedRef.current = true
 
-    // URL hash takes priority
     const encoded = getEncodedPGNFromHash()
     if (encoded) {
       decompressPGN(encoded).then(pgn => {
@@ -58,8 +58,7 @@ export default function ChessApp() {
 
     const pgns = loadLibrary()
     if (pgns.length > 0) {
-      // Each PGN string maps to one game (1:1 with savedPGNs)
-      const entries = pgns.map((p, i) => {
+      const entries = pgns.map((p) => {
         const parsed = parseMultiPGN(p)
         return parsed[0] ?? null
       }).filter((e): e is GameEntry => e !== null)
@@ -75,14 +74,12 @@ export default function ChessApp() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist active index
   useEffect(() => {
     if (activeIndex >= 0) {
       saveActiveState({ source: 'saved', index: activeIndex })
     }
   }, [activeIndex])
 
-  /** Convert UCI long algebraic PV moves to SAN by replaying on the current position. */
   const pvToSAN = useCallback((pv: string[]): string[] => {
     if (!chess.position) return pv
     const san: string[] = []
@@ -104,7 +101,6 @@ export default function ChessApp() {
   const currentFEN = chess.position?.toFEN() ?? null
   const engine = useEngine(currentFEN)
 
-  // Identify opening from main line moves (auto-detect when no header present)
   const detectedOpening = useMemo(() => {
     const transitions = chess.mainTransitions
     if (transitions.length === 0) return null
@@ -135,8 +131,6 @@ export default function ChessApp() {
   const handleLoadPGN = useCallback((pgn: string) => {
     const newEntries = parseMultiPGN(pgn)
     if (newEntries.length === 0) return
-
-    // Store one PGN string per game entry (not per load batch)
     const newPGNs = newEntries.map(e => e.raw)
     const newIndex = savedGames.length
     setSavedPGNs(prev => {
@@ -148,6 +142,7 @@ export default function ChessApp() {
     setActiveIndex(newIndex)
     chess.loadGame(newEntries[0]!.game)
     setShowInput(false)
+    setDrawerOpen(false)
   }, [chess, savedGames.length])
 
   const handleNewGame = useCallback(() => {
@@ -161,6 +156,7 @@ export default function ChessApp() {
     if (!entry) return
     setActiveIndex(index)
     chess.loadGame(entry.game)
+    setDrawerOpen(false)
   }, [savedGames, chess])
 
   const handleRemoveGame = useCallback((index: number) => {
@@ -170,7 +166,6 @@ export default function ChessApp() {
       return next
     })
     setSavedGames(prev => prev.filter((_, i) => i !== index))
-
     if (activeIndex === index) {
       setActiveIndex(-1)
     } else if (activeIndex > index) {
@@ -227,8 +222,6 @@ export default function ChessApp() {
   const handleAnalyzeGame = useCallback(async () => {
     const transitions = chess.mainTransitions
     if (transitions.length === 0 || analysisProgress) return
-
-    // Build positions by replaying moves from starting position
     const positions: Position[] = [Position.starting()]
     let pos = positions[0]!
     for (const t of transitions) {
@@ -236,19 +229,14 @@ export default function ChessApp() {
       if (result) pos = result.position
       positions.push(pos)
     }
-
     setAnalysisProgress({ current: 0, total: transitions.length, done: false })
-
     const result = await analyzeGame(transitions, (n) => positions[n]!, (progress) => {
       setAnalysisProgress(progress)
     })
-
-    // Store accuracy as PGN headers
     if (activeGame?.game) {
       activeGame.game.headers['WhiteAccuracy'] = String(result.whiteAccuracy)
       activeGame.game.headers['BlackAccuracy'] = String(result.blackAccuracy)
     }
-
     setAnalysisProgress(null)
     persistCurrentGame()
   }, [chess.mainTransitions, analysisProgress, persistCurrentGame, activeGame])
@@ -271,105 +259,122 @@ export default function ChessApp() {
   const event = headers['Event']
   const date = headers['Date']
 
+  const bestMoveArrow = chess.metadata?.bestUCI && (!detectedOpening || chess.halfmove > detectedOpening.lastBookMove)
+    ? chess.metadata.bestUCI
+    : undefined
+
+  // ── Shared sidebar content (used in desktop sidebar + mobile drawer) ────────
+  const sidebarContent = (
+    <>
+      <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 flex gap-1.5">
+        <button onClick={handleNewGame}
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+          <Icon name="note-pencil" size={14} className="dark:invert" /> New
+        </button>
+        <button onClick={() => setShowInput(v => !v)}
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+          <Icon name="plus" size={14} className="dark:invert" /> {showInput ? 'Close' : 'Load'}
+        </button>
+        {savedPGNs.length > 0 && (
+          <button onClick={handleDownloadAll} title="Download all games"
+            className="flex items-center justify-center px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+            <Icon name="download" size={14} className="dark:invert" />
+          </button>
+        )}
+      </div>
+      {showInput && (
+        <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900">
+          <PGNInput onLoad={handleLoadPGN} />
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto p-2">
+        {savedGames.length > 0 ? (
+          <div className="flex flex-col gap-0.5">
+            {savedGames.map((entry, i) => (
+              <div key={i} className="flex items-center gap-0.5 group">
+                <button onClick={() => handleSelectGame(i)}
+                  className={[
+                    'text-left px-2 py-1.5 rounded text-sm transition-colors leading-snug flex-1 min-w-0',
+                    activeIndex === i
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
+                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
+                  ].join(' ')}>
+                  <div className="truncate">{entry.label}</div>
+                  {(entry.game.headers['Date'] || entry.result !== '*') && (
+                    <div className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-0.5">
+                      {[entry.game.headers['Date'], entry.result !== '*' ? entry.result : null].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+                </button>
+                <button onClick={() => handleRemoveGame(i)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="Remove">
+                  <Icon name="trash" size={14} className="opacity-40 hover:opacity-70 dark:invert" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-400 dark:text-neutral-500 italic px-2 py-4">
+            No games loaded yet.
+          </p>
+        )}
+      </div>
+    </>
+  )
+
   return (
     <div className="h-screen flex flex-col bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
       {/* Header */}
       <header className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-2 flex items-center gap-3">
+        {/* Mobile hamburger */}
+        <button onClick={() => setDrawerOpen(v => !v)} className="lg:hidden p-1 -ml-1">
+          <Icon name="list" size={20} className="dark:invert" />
+        </button>
         <span className="font-semibold text-sm">jChess</span>
         <div className="flex-1 text-sm text-neutral-500 truncate">
           {white && black ? `${white} – ${black}` : event ?? ''}
-          {date && <span className="ml-2 text-xs text-neutral-400">{date}</span>}
+          {date && <span className="ml-2 text-xs text-neutral-400 hidden sm:inline">{date}</span>}
         </div>
       </header>
 
+      {/* Mobile drawer overlay */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setDrawerOpen(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <aside
+            className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+
       {/* Main layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar: game library */}
-        <aside className="w-52 shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
-          {/* Sidebar actions */}
-          <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 flex gap-1.5">
-            <button
-              onClick={handleNewGame}
-              className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-            >
-              <Icon name="note-pencil" size={14} className="dark:invert" />
-              New
-            </button>
-            <button
-              onClick={() => setShowInput(v => !v)}
-              className="flex-1 flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-            >
-              <Icon name="plus" size={14} className="dark:invert" />
-              {showInput ? 'Close' : 'Load'}
-            </button>
-            {savedPGNs.length > 0 && (
-              <button
-                onClick={handleDownloadAll}
-                title="Download all games"
-                className="flex items-center justify-center px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-700
-                  hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-              >
-                <Icon name="download" size={14} className="dark:invert" />
-              </button>
-            )}
-          </div>
-
-          {/* PGN input drawer */}
-          {showInput && (
-            <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900">
-              <PGNInput onLoad={handleLoadPGN} />
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto p-2">
-            {savedGames.length > 0 ? (
-              <div className="flex flex-col gap-0.5">
-                {savedGames.map((entry, i) => (
-                  <div key={i} className="flex items-center gap-0.5 group">
-                    <button
-                      onClick={() => handleSelectGame(i)}
-                      className={[
-                        'text-left px-2 py-1.5 rounded text-sm transition-colors leading-snug flex-1 min-w-0',
-                        activeIndex === i
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium'
-                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
-                      ].join(' ')}
-                    >
-                      <div className="truncate">{entry.label}</div>
-                      {(entry.game.headers['Date'] || entry.result !== '*') && (
-                        <div className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-0.5">
-                          {[entry.game.headers['Date'], entry.result !== '*' ? entry.result : null].filter(Boolean).join(' · ')}
-                        </div>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleRemoveGame(i)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                      title="Remove"
-                    >
-                      <Icon name="trash" size={14} className="opacity-40 hover:opacity-70 dark:invert" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-neutral-400 dark:text-neutral-500 italic px-2 py-4">
-                No games loaded. Use Load PGN below to add games.
-              </p>
-            )}
-          </div>
-
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:flex w-52 shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex-col overflow-hidden">
+          {sidebarContent}
         </aside>
 
-        {/* Center: board */}
-        <main className="flex flex-col items-center justify-center flex-1 p-4 gap-3 min-w-0">
+        {/* Center: board + controls */}
+        <main className="flex flex-col items-center flex-1 min-w-0 overflow-hidden
+          justify-start p-2 gap-1
+          lg:justify-center lg:p-4 lg:gap-3">
           {activeGame ? (
             <>
+              {/* Horizontal eval bar — mobile only */}
+              {engine.enabled && (
+                <div className="w-full lg:hidden">
+                  <EvalBar eval_={engine.eval_} flipped={chess.flipped} />
+                </div>
+              )}
+
+              {/* Board + vertical eval bar */}
               <div className="w-full flex justify-center gap-2" style={{ maxWidth: 'min(100%, 560px)' }}>
+                {/* Vertical eval bar — desktop only */}
                 {engine.enabled && (
-                  <div className="w-8 shrink-0">
+                  <div className="hidden lg:block w-8 shrink-0">
                     <EvalBar eval_={engine.eval_} flipped={chess.flipped} />
                   </div>
                 )}
@@ -379,16 +384,22 @@ export default function ChessApp() {
                     flipped={chess.flipped}
                     lastCommands={lastCommands}
                     onMove={handleMove}
-                    bestMoveArrow={
-                      chess.metadata?.bestUCI && (!detectedOpening || chess.halfmove > detectedOpening.lastBookMove)
-                        ? chess.metadata.bestUCI
-                        : undefined
-                    }
+                    bestMoveArrow={bestMoveArrow}
                   />
                 </div>
               </div>
-              {/* Info row: clock + engine PV — fixed height to prevent jitter */}
-              <div className="h-6 flex items-center justify-center text-xs font-mono text-neutral-500 dark:text-neutral-400">
+
+              {/* Mobile move strip */}
+              <div className="w-full lg:hidden border-y border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+                <MoveStrip
+                  transitions={chess.mainTransitions}
+                  halfmove={chess.isInVariation ? 0 : chess.halfmove}
+                  onJump={chess.jumpTo}
+                />
+              </div>
+
+              {/* Engine PV + clock — desktop only */}
+              <div className="hidden lg:flex h-6 items-center justify-center text-xs font-mono text-neutral-500 dark:text-neutral-400">
                 {chess.metadata?.clk && (
                   <span className="bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded mr-2">
                     {chess.metadata.clk}
@@ -400,14 +411,9 @@ export default function ChessApp() {
                     <span className="flex items-baseline gap-1 flex-wrap">
                       <span className="text-neutral-400 dark:text-neutral-500">d{engine.eval_.depth}</span>
                       {sanMoves.map((san, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            chess.playMoves(sanMoves.slice(0, i + 1))
-                            setTimeout(persistCurrentGame, 0)
-                          }}
-                          className="px-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
-                        >
+                        <button key={i}
+                          onClick={() => { chess.playMoves(sanMoves.slice(0, i + 1)); setTimeout(persistCurrentGame, 0) }}
+                          className="px-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors">
                           {san}
                         </button>
                       ))}
@@ -415,6 +421,8 @@ export default function ChessApp() {
                   )
                 })()}
               </div>
+
+              {/* Controls */}
               <div className="w-full" style={{ maxWidth: 'min(100%, 520px)' }}>
                 <Controls
                   onPrev={chess.prev}
@@ -438,28 +446,22 @@ export default function ChessApp() {
               )}
             </>
           ) : (
-            <p className="text-sm text-neutral-400 dark:text-neutral-500">
+            <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-20 lg:mt-0">
               Load a PGN to get started
             </p>
           )}
         </main>
 
-        {/* Right panel: game info + move list + annotation */}
+        {/* Right panel — desktop only */}
         {activeGame && (
-          <aside className="w-96 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex flex-col overflow-hidden">
+          <aside className="hidden lg:flex w-96 shrink-0 border-l border-neutral-200 dark:border-neutral-800 flex-col overflow-hidden">
             {/* Game actions toolbar */}
             <div className="border-b border-neutral-200 dark:border-neutral-800 px-3 py-1.5 flex items-center gap-1">
-              <button
-                onClick={handleAnalyzeGame}
-                disabled={!!analysisProgress}
+              <button onClick={handleAnalyzeGame} disabled={!!analysisProgress}
                 title={analysisProgress ? `Analyzing ${analysisProgress.current}/${analysisProgress.total}` : 'Analyze Game'}
-                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded transition-colors
-                  hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50"
-              >
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50">
                 <Icon name="magnifying-glass" size={16} className="dark:invert" />
-                {analysisProgress
-                  ? <span className="font-mono">{analysisProgress.current}/{analysisProgress.total}</span>
-                  : 'Analyze'}
+                {analysisProgress ? <span className="font-mono">{analysisProgress.current}/{analysisProgress.total}</span> : 'Analyze'}
               </button>
               <div className="flex-1" />
               <button onClick={handleShare} title={shareStatus === 'copied' ? 'Copied!' : 'Share link'}

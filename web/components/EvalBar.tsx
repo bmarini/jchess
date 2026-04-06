@@ -14,8 +14,8 @@ function formatScore(eval_: EngineEval): string {
 }
 
 /**
- * Vertical eval bar showing engine evaluation.
- * White advantage fills from the bottom, black from the top.
+ * Eval bar that renders vertically on desktop (lg:) and horizontally on mobile.
+ * Uses flex-basis so the same percentage works in both orientations.
  */
 export default function EvalBar({ eval_, flipped = false }: Props) {
   let whitePct = 50
@@ -27,27 +27,34 @@ export default function EvalBar({ eval_, flipped = false }: Props) {
     }
   }
 
-  const topPct = flipped ? whitePct : 100 - whitePct
+  const blackPct = flipped ? 100 - whitePct : whitePct
   const label = eval_ ? formatScore(eval_) : ''
   const isWhiteAdvantage = eval_ ? eval_.score >= 0 : true
 
   return (
-    <div className="w-8 h-full rounded overflow-hidden bg-neutral-800 relative flex flex-col shadow-md">
-      {/* Black portion (top) */}
+    <div className="
+      flex rounded overflow-hidden bg-neutral-800 relative shadow-md
+      flex-row h-4 w-full
+      lg:flex-col lg:h-full lg:w-8
+    ">
+      {/* Black portion (left on mobile, top on desktop) */}
       <div
         className="bg-neutral-800 transition-all duration-300 ease-out"
-        style={{ height: `${topPct}%` }}
+        style={{ flexBasis: `${blackPct}%` }}
       />
-      {/* White portion (bottom) */}
+      {/* White portion */}
       <div className="bg-neutral-100 flex-1" />
       {/* Score label */}
       {eval_ && (
         <div
           className={[
-            'absolute left-0 right-0 text-center text-[10px] font-mono font-bold py-1',
+            'absolute text-center text-[10px] font-mono font-bold py-0.5',
+            // Mobile: position left/right
             isWhiteAdvantage
-              ? 'bottom-0 text-neutral-700'
-              : 'top-0 text-neutral-300',
+              ? 'right-1 lg:right-auto lg:bottom-0 lg:left-0 lg:right-0 text-neutral-700'
+              : 'left-1 lg:left-auto lg:top-0 lg:left-0 lg:right-0 text-neutral-300',
+            // Vertical centering on mobile
+            'top-0 bottom-0 flex items-center lg:block lg:top-auto lg:bottom-auto',
           ].join(' ')}
         >
           {label}
