@@ -476,12 +476,16 @@ export class Position {
 
     const newBoard = board.map(row => row.slice()) as typeof board
 
-    const movingPiece = boardGet(newBoard, fromSquare)!
-    newBoard[squareToCoord(fromSquare)[0]]![squareToCoord(fromSquare)[1]] = null
+    const [fromRow, fromCol] = squareToCoord(fromSquare)
+    const [dstRow, dstCol] = squareToCoord(dstSquare)
+
+    const movingPiece = newBoard[fromRow]![fromCol]!
+    newBoard[fromRow]![fromCol] = null
     if (epCaptureSquare) {
-      newBoard[squareToCoord(epCaptureSquare)[0]]![squareToCoord(epCaptureSquare)[1]] = null
+      const [epRow, epCol] = squareToCoord(epCaptureSquare)
+      newBoard[epRow]![epCol] = null
     }
-    newBoard[squareToCoord(dstSquare)[0]]![squareToCoord(dstSquare)[1]] = promotion
+    newBoard[dstRow]![dstCol] = promotion
       ? { ...movingPiece, type: promotion }
       : movingPiece
 
@@ -531,13 +535,18 @@ export class Position {
 
     const newBoard = this.board.map(row => row.slice()) as typeof this.board
 
-    const king = boardGet(newBoard, kingFrom)!
-    const rook = boardGet(newBoard, rookFrom)!
+    const [kingFromRow, kingFromCol] = squareToCoord(kingFrom)
+    const [rookFromRow, rookFromCol] = squareToCoord(rookFrom)
+    const [kingToRow, kingToCol] = squareToCoord(kingTo)
+    const [rookToRow, rookToCol] = squareToCoord(rookTo)
 
-    newBoard[squareToCoord(kingFrom)[0]]![squareToCoord(kingFrom)[1]] = null
-    newBoard[squareToCoord(rookFrom)[0]]![squareToCoord(rookFrom)[1]] = null
-    newBoard[squareToCoord(kingTo)[0]]![squareToCoord(kingTo)[1]] = king
-    newBoard[squareToCoord(rookTo)[0]]![squareToCoord(rookTo)[1]] = rook
+    const king = newBoard[kingFromRow]![kingFromCol]!
+    const rook = newBoard[rookFromRow]![rookFromCol]!
+
+    newBoard[kingFromRow]![kingFromCol] = null
+    newBoard[rookFromRow]![rookFromCol] = null
+    newBoard[kingToRow]![kingToCol] = king
+    newBoard[rookToRow]![rookToCol] = rook
 
     const cr: CastlingRights = { ...this.castlingRights }
     if (color === 'w') { cr.K = false; cr.Q = false }
