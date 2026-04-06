@@ -27,26 +27,42 @@ export default function Controls({
     return () => window.removeEventListener('keydown', handleKey)
   }, [onNext, onPrev])
 
-  const btn = (icon: string, onClick: () => void, disabled: boolean, title: string) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="p-2 lg:p-2.5 rounded transition-colors
-        disabled:opacity-30 disabled:cursor-not-allowed
-        bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
-        dark:bg-neutral-800 dark:hover:bg-neutral-700"
-    >
-      <Icon name={icon} size={22} className="dark:invert" />
-    </button>
-  )
-
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="flex items-center justify-center gap-1.5 lg:gap-2">
-        {btn('caret-left', onPrev, !canPrev, 'Previous (←)')}
-        {btn('caret-right', onNext, !canNext, 'Next (→)')}
-        {btn('arrows-counter-clockwise', onFlip, false, 'Flip board')}
+      <div className="flex items-center justify-center gap-1.5 lg:gap-2 w-full" style={{ maxWidth: '320px' }}>
+        <button
+          onClick={onPrev}
+          disabled={!canPrev}
+          title="Previous (←)"
+          className="p-2 lg:p-2.5 rounded transition-colors
+            disabled:opacity-30 disabled:cursor-not-allowed
+            bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
+            dark:bg-neutral-800 dark:hover:bg-neutral-700"
+        >
+          <Icon name="caret-left" size={22} className="dark:invert" />
+        </button>
+
+        <button
+          onClick={onNext}
+          disabled={!canNext}
+          title="Next (→)"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded text-sm font-semibold transition-colors
+            disabled:opacity-30 disabled:cursor-not-allowed
+            bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
+        >
+          <span>Next</span>
+          <Icon name="caret-right" size={18} />
+        </button>
+
+        <button
+          onClick={onFlip}
+          title="Flip board"
+          className="p-2 lg:p-2.5 rounded transition-colors
+            bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
+            dark:bg-neutral-800 dark:hover:bg-neutral-700"
+        >
+          <Icon name="arrows-counter-clockwise" size={22} className="dark:invert" />
+        </button>
       </div>
       {isInVariation && (
         <button
