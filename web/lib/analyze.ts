@@ -120,11 +120,13 @@ export async function analyzeGame(
       blackAccuracies.push(accuracy)
     }
 
-    // NAG annotation for bad moves
+    // NAG annotation for bad moves — prepend to existing annotation
     if (cpLoss > 0) {
       const classification = classifySwing(cpLoss)
-      if (classification && !t.annotation) {
-        t.annotation = classification
+      if (classification) {
+        t.annotation = t.annotation
+          ? `${classification} ${t.annotation}`
+          : classification
       }
     }
 
