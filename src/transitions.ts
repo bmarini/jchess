@@ -1,6 +1,5 @@
 import { parseAnnotation } from './annotation.js'
 import { makeIdCounter, Position } from './board.js'
-import './movegen.js' // registers toSAN/legalMovesFrom on Position
 import { parsePGN } from './pgn.js'
 import type { IdCounter, ParsedSAN } from './board.js'
 import type { ParsedGame, ParsedMove, Piece, Square, Transition, TransitionCommand } from './types.js'

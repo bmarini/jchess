@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { coordToSquare } from '@chess/board'
+import { legalMovesFrom } from '@chess/movegen'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 import type { Position } from '@chess/board'
@@ -114,7 +115,7 @@ export default function Board({
   const selectPiece = useCallback((square: string) => {
     if (!position) return
     setSelectedSquare(square)
-    setLegalTargets(new Set(position.legalMovesFrom(square)))
+    setLegalTargets(new Set(legalMovesFrom(position, square)))
   }, [position])
 
   const handleSquareClick = useCallback((square: string) => {

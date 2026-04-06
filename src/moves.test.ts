@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Position, STARTING_FEN, findMoveSource, findPawnMoveSource, parseSAN } from './board.js'
-import './movegen.js' // registers toSAN/legalMovesFrom on Position
+import { toSAN, legalMovesFrom } from './movegen.js'
 
 // ── parseSAN ──────────────────────────────────────────────────────────────────
 
@@ -215,44 +215,44 @@ describe('Position.applyMove', () => {
 
 describe('Position.toSAN', () => {
   it('converts a pawn push', () => {
-    expect(Position.starting().toSAN('e2', 'e4')).toBe('e4')
+    expect(toSAN(Position.starting(),'e2', 'e4')).toBe('e4')
   })
 
   it('converts a pawn capture', () => {
     const pos = Position.starting().applyMove('e4')!.position.applyMove('d5')!.position
-    expect(pos.toSAN('e4', 'd5')).toBe('exd5')
+    expect(toSAN(pos,'e4', 'd5')).toBe('exd5')
   })
 
   it('converts a knight move', () => {
-    expect(Position.starting().toSAN('g1', 'f3')).toBe('Nf3')
+    expect(toSAN(Position.starting(),'g1', 'f3')).toBe('Nf3')
   })
 
   it('adds file disambiguation for knights', () => {
     const pos = Position.fromFEN('8/8/8/8/3N4/8/8/4K1N1 w - - 0 1')
-    expect(pos.toSAN('d4', 'f3')).toBe('Ndf3')
+    expect(toSAN(pos,'d4', 'f3')).toBe('Ndf3')
   })
 
   it('converts kingside castling', () => {
     const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
-    expect(pos.toSAN('e1', 'g1')).toBe('O-O')
+    expect(toSAN(pos,'e1', 'g1')).toBe('O-O')
   })
 
   it('converts queenside castling', () => {
     const pos = Position.fromFEN('r3k2r/pppq1ppp/2n1bn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 b kq - 0 7')
-    expect(pos.toSAN('e8', 'c8')).toBe('O-O-O')
+    expect(toSAN(pos,'e8', 'c8')).toBe('O-O-O')
   })
 
   it('converts promotion', () => {
     const pos = Position.fromFEN('8/P7/8/8/8/8/8/4K2k w - - 0 1')
-    expect(pos.toSAN('a7', 'a8', 'Q')).toBe('a8=Q+')
+    expect(toSAN(pos,'a7', 'a8', 'Q')).toBe('a8=Q+')
   })
 
   it('returns null for illegal moves', () => {
-    expect(Position.starting().toSAN('e2', 'e5')).toBeNull()
+    expect(toSAN(Position.starting(),'e2', 'e5')).toBeNull()
   })
 
   it('returns null for wrong color', () => {
-    expect(Position.starting().toSAN('e7', 'e5')).toBeNull()
+    expect(toSAN(Position.starting(),'e7', 'e5')).toBeNull()
   })
 })
 
@@ -300,7 +300,7 @@ describe('Position.isInCheck', () => {
 describe('Position.legalMovesFrom', () => {
   it('pawn from starting position includes 2-square advance', () => {
     const pos = Position.fromFEN(STARTING_FEN)
-    const moves = pos.legalMovesFrom('e2')
+    const moves = legalMovesFrom(pos,'e2')
     expect(moves).toContain('e3')
     expect(moves).toContain('e4')
   })
@@ -308,7 +308,7 @@ describe('Position.legalMovesFrom', () => {
   it('pawn blocked by piece in front has no forward moves', () => {
     // White pawn on e2 blocked by black pawn on e3, but can capture d3
     const pos = Position.fromFEN('7k/8/8/8/8/3pp3/4P3/4K3 w - - 0 1')
-    const moves = pos.legalMovesFrom('e2')
+    const moves = legalMovesFrom(pos,'e2')
     expect(moves).not.toContain('e3')
     expect(moves).not.toContain('e4')
     expect(moves).toContain('d3')
@@ -317,7 +317,7 @@ describe('Position.legalMovesFrom', () => {
   it('knight has multiple legal squares', () => {
     // Knight on d4 with lots of room
     const pos = Position.fromFEN('7k/8/8/8/3N4/8/8/4K3 w - - 0 1')
-    const moves = pos.legalMovesFrom('d4')
+    const moves = legalMovesFrom(pos,'d4')
     expect(moves.length).toBeGreaterThanOrEqual(6)
     expect(moves).toContain('c6')
     expect(moves).toContain('e6')
@@ -328,7 +328,7 @@ describe('Position.legalMovesFrom', () => {
   it('king can move to squares not occupied by own pieces', () => {
     // White king on e1, no friendly pieces blocking — verify all 5 legal squares
     const pos = Position.fromFEN('7k/8/8/8/8/8/8/4K3 w - - 0 1')
-    const moves = pos.legalMovesFrom('e1')
+    const moves = legalMovesFrom(pos,'e1')
     expect(moves).toContain('d1')
     expect(moves).toContain('d2')
     expect(moves).toContain('e2')
@@ -339,7 +339,7 @@ describe('Position.legalMovesFrom', () => {
   it('pinned piece has no moves (or only along pin line)', () => {
     // White king on e1, white bishop on e4, black rook on e8 — bishop pinned on e-file
     const pos = Position.fromFEN('4r2k/8/8/8/4B3/8/8/4K3 w - - 0 1')
-    const moves = pos.legalMovesFrom('e4')
+    const moves = legalMovesFrom(pos,'e4')
     // Bishop can't move off the e-file pin line without exposing king
     expect(moves).toHaveLength(0)
   })
@@ -347,14 +347,14 @@ describe('Position.legalMovesFrom', () => {
   it('en passant is available', () => {
     // White pawn on e5, black pawn just played d7-d5, en passant on d6
     const pos = Position.fromFEN('7k/8/8/3pP3/8/8/8/4K3 w - d6 0 1')
-    const moves = pos.legalMovesFrom('e5')
+    const moves = legalMovesFrom(pos,'e5')
     expect(moves).toContain('d6')
     expect(moves).toContain('e6')
   })
 
   it('castling is available when rights exist', () => {
     const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
-    const moves = pos.legalMovesFrom('e1')
+    const moves = legalMovesFrom(pos,'e1')
     expect(moves).toContain('g1') // kingside castling
   })
 
@@ -362,7 +362,7 @@ describe('Position.legalMovesFrom', () => {
     // Even without castling rights in FEN, legalMovesFrom adds g1/c1 as candidates
     // since applyMove does not reject based on castling rights alone
     const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
-    const moves = pos.legalMovesFrom('e1')
+    const moves = legalMovesFrom(pos,'e1')
     expect(moves).toContain('g1')
   })
 })

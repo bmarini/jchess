@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react'
 import { Position } from '@chess/board'
+import { legalMovesFrom } from '@chess/movegen'
 import { StockfishEngine } from '@/lib/engine'
 import type { PieceType } from '@chess/types'
 
@@ -21,7 +22,7 @@ const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8']
 function hasAnyLegalMove(position: Position): boolean {
   for (const f of FILES) {
     for (const r of RANKS) {
-      if (position.legalMovesFrom(f + r).length > 0) return true
+      if (legalMovesFrom(position, f + r).length > 0) return true
     }
   }
   return false

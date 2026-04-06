@@ -513,29 +513,6 @@ export class Position {
     }
   }
 
-  /**
-   * Convert a board move to SAN notation, or null if illegal.
-   * Delegates to movegen.toSAN (registered at module load time).
-   */
-  toSAN(from: Square, to: Square, promotion?: PieceType): string | null {
-    return Position._toSANImpl(this, from, to, promotion)
-  }
-
-  /**
-   * Return all legal destination squares for the piece on `from`.
-   * Delegates to movegen.legalMovesFrom (registered at module load time).
-   */
-  legalMovesFrom(from: Square): Square[] {
-    return Position._legalMovesFromImpl(this, from)
-  }
-
-  /** @internal — set by movegen.ts at import time to break the circular dependency. */
-  static _toSANImpl: (pos: Position, from: Square, to: Square, promo?: PieceType) => string | null = () => {
-    throw new Error('movegen.ts not loaded — import movegen.js before using toSAN')
-  }
-  static _legalMovesFromImpl: (pos: Position, from: Square) => Square[] = () => {
-    throw new Error('movegen.ts not loaded — import movegen.js before using legalMovesFrom')
-  }
 
   private _applyCastle(side: 'K' | 'Q'): Omit<MoveApplication, 'parsed'> {
     const color = this.activeColor

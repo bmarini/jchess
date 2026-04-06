@@ -1,6 +1,7 @@
 import { StockfishEngine } from './engine'
 import type { EngineEval } from './engine'
 import type { Transition } from '@chess/types'
+import { toSAN } from '@chess/movegen'
 import type { Position } from '@chess/board'
 
 const ANALYSIS_DEPTH = 16
@@ -96,7 +97,7 @@ export async function analyzeGame(
     if (prevBestMove) {
       const { from, to } = uciToSquares(prevBestMove)
       const posBefore = positionAt(i)
-      const bestSAN = posBefore.toSAN(from, to)
+      const bestSAN = toSAN(posBefore, from, to)
       if (bestSAN) {
         t.metadata = { ...t.metadata, best: bestSAN, bestUCI: `${from}:${to}` }
       }

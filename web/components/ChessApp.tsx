@@ -7,6 +7,7 @@ import PGNInput from './PGNInput'
 import BotDialog from './BotDialog'
 import Icon from './Icon'
 import { Position } from '@chess/board'
+import { toSAN } from '@chess/movegen'
 import { useChessGame } from '@/hooks/useChessGame'
 import { useEngine } from '@/hooks/useEngine'
 import { useBotPlayer } from '@/hooks/useBotPlayer'
@@ -47,7 +48,7 @@ export default function ChessApp() {
       const from = uci.slice(0, 2)
       const to = uci.slice(2, 4)
       const promo = uci.length > 4 ? uci[4]!.toUpperCase() as import('@chess/types').PieceType : undefined
-      const s = pos.toSAN(from, to, promo)
+      const s = toSAN(pos, from, to, promo)
       if (!s) break
       san.push(s)
       const result = pos.applyMove(s)

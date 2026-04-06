@@ -11,13 +11,6 @@
 import { Position, coordToSquare, squareToCoord, isOnBoard, boardGet, findMoveSource, PIECE_VECTORS } from './board.js'
 import type { PieceType, Square } from './types.js'
 
-// Register implementations on Position to break the circular dependency.
-// movegen depends on board (Position), but Position.toSAN/legalMovesFrom
-// delegate back to these functions. The registration pattern avoids
-// import cycles while keeping the convenient method syntax.
-Position._toSANImpl = (pos, from, to, promo) => toSAN(pos, from, to, promo)
-Position._legalMovesFromImpl = (pos, from) => legalMovesFrom(pos, from)
-
 // ── Check suffix ─────────────────────────────────────────────────────────────
 
 /**
