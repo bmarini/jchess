@@ -225,7 +225,7 @@ export class Renderer {
           const el = this.pieces.get(cmd.pieceId)
           if (!el) break
           if (animate) {
-            animations.push(this.animateMove(el, cmd.from, cmd.to))
+            animations.push(this.animateMove(el, cmd.to))
           } else {
             this.squareElByName(cmd.to).appendChild(el)
           }
@@ -240,39 +240,33 @@ export class Renderer {
     return Promise.all(animations).then(() => undefined)
   }
 
-  private animateMove(el: HTMLElement, _from: Square, to: Square): Promise<void> {
+  private animateMove(el: HTMLElement, to: Square): Promise<void> {
     return new Promise(resolve => {
       // FLIP technique: First → Last → Invert → Play
-      // 1. Capture where the piece currently renders (First)
       const fromRect = el.getBoundingClientRect()
-
-      // 2. Move element to destination in the DOM (Last)
       this.squareElByName(to).appendChild(el)
       const toRect = el.getBoundingClientRect()
 
-      // 3. Calculate the offset that makes it appear at its old position (Invert)
       const dx = fromRect.left - toRect.left
       const dy = fromRect.top  - toRect.top
 
       if (dx === 0 && dy === 0) { resolve(); return }
 
-      // Apply the inverted transform instantly (no transition class yet)
       el.style.transform = `translate(${dx}px, ${dy}px)`
+      el.getBoundingClientRect() // force reflow
 
-      // Force reflow so the browser registers the starting transform
-      el.getBoundingClientRect()
-
-      // 4. Add transition class and animate to transform: none (Play)
       el.classList.add('animating')
       el.style.transform = 'translate(0, 0)'
 
+      let done = false
       const onEnd = () => {
+        if (done) return
+        done = true
         el.classList.remove('animating')
         el.style.transform = ''
         resolve()
       }
       el.addEventListener('transitionend', onEnd, { once: true })
-      // Fallback in case transitionend doesn't fire (hidden tab, zero duration)
       setTimeout(onEnd, 400)
     })
   }
