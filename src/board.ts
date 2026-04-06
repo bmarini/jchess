@@ -25,6 +25,10 @@ export function isOnBoard(row: number, col: number): boolean {
   return row >= 0 && row < 8 && col >= 0 && col < 8
 }
 
+function backRank(color: Color): string {
+  return color === 'w' ? '1' : '8'
+}
+
 // ── Board accessors ──────────────────────────────────────────────────────────
 
 export function boardGet(board: Board, sq: Square): Piece | null {
@@ -303,6 +307,37 @@ export function parseSAN(san: string): ParsedSAN | null {
   return { kind: 'normal', pieceType, dstSquare, hintFile, hintRank, capture, promotion, check, checkmate }
 }
 
+function updateCastlingRights(
+  cr: CastlingRights,
+  pieceType: PieceType,
+  color: Color,
+  fromSquare: Square,
+  dstSquare: Square,
+): CastlingRights {
+  const next = { ...cr }
+  if (pieceType === 'K') {
+    if (color === 'w') { next.K = false; next.Q = false }
+    else               { next.k = false; next.q = false }
+  }
+  if (fromSquare === 'a1' || dstSquare === 'a1') next.Q = false
+  if (fromSquare === 'h1' || dstSquare === 'h1') next.K = false
+  if (fromSquare === 'a8' || dstSquare === 'a8') next.q = false
+  if (fromSquare === 'h8' || dstSquare === 'h8') next.k = false
+  return next
+}
+
+function computeEnPassantSquare(
+  pieceType: PieceType,
+  fromSquare: Square,
+  dstSquare: Square,
+): Square | null {
+  if (pieceType !== 'P') return null
+  const fromRank = parseInt(fromSquare[1]!, 10)
+  const toRank = parseInt(dstSquare[1]!, 10)
+  if (Math.abs(toRank - fromRank) !== 2) return null
+  return toSquare(dstSquare[0]!, String(Math.floor((fromRank + toRank) / 2)))
+}
+
 // ── Move application result ──────────────────────────────────────────────────
 
 export type MoveApplication = {
@@ -534,24 +569,8 @@ export class Position {
       ? { ...movingPiece, type: promotion }
       : movingPiece
 
-    const cr: CastlingRights = { ...this.castlingRights }
-    if (pieceType === 'K') {
-      if (color === 'w') { cr.K = false; cr.Q = false }
-      else               { cr.k = false; cr.q = false }
-    }
-    if (fromSquare === 'a1' || dstSquare === 'a1') cr.Q = false
-    if (fromSquare === 'h1' || dstSquare === 'h1') cr.K = false
-    if (fromSquare === 'a8' || dstSquare === 'a8') cr.q = false
-    if (fromSquare === 'h8' || dstSquare === 'h8') cr.k = false
-
-    let newEP: Square | null = null
-    if (pieceType === 'P') {
-      const fromRank = parseInt(fromSquare[1]!, 10)
-      const toRank = parseInt(dstSquare[1]!, 10)
-      if (Math.abs(toRank - fromRank) === 2) {
-        newEP = toSquare(dstSquare[0]!, String(Math.floor((fromRank + toRank) / 2)))
-      }
-    }
+    const cr = updateCastlingRights(this.castlingRights, pieceType, color, fromSquare, dstSquare)
+    const newEP = computeEnPassantSquare(pieceType, fromSquare, dstSquare)
 
     return {
       position: new Position(
@@ -571,7 +590,7 @@ export class Position {
 
   private _applyCastle(side: 'K' | 'Q'): Omit<MoveApplication, 'parsed'> {
     const color = this.activeColor
-    const rank = color === 'w' ? '1' : '8'
+    const rank = backRank(color)
 
     const kingFrom: Square = toSquare('e', rank)
     const kingTo:   Square = side === 'K' ? toSquare('g', rank) : toSquare('c', rank)
