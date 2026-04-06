@@ -39,18 +39,18 @@ export default function Controls({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="p-2.5 rounded transition-colors
+      className="p-1.5 lg:p-2.5 rounded transition-colors
         disabled:opacity-30 disabled:cursor-not-allowed
         bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300
         dark:bg-neutral-800 dark:hover:bg-neutral-700"
     >
-      <Icon name={icon} size={22} className="dark:invert" />
+      <Icon name={icon} size={20} className="dark:invert" />
     </button>
   )
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-1.5 lg:gap-2">
         {btn('skip-back', onStart, !canPrev, 'Start')}
         {btn('caret-left', onPrev, !canPrev, 'Previous (←)')}
         {btn('caret-right', onNext, !canNext, 'Next (→)')}
@@ -61,13 +61,13 @@ export default function Controls({
             onClick={onToggleEngine}
             title={engineEnabled ? 'Disable engine' : 'Enable engine'}
             className={[
-              'p-2.5 rounded transition-colors',
+              'p-1.5 lg:p-2.5 rounded transition-colors',
               engineEnabled
                 ? 'bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800'
                 : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700',
             ].join(' ')}
           >
-            <Icon name="cpu" size={22} className={engineEnabled ? '' : 'dark:invert opacity-50'} />
+            <Icon name="cpu" size={20} className={engineEnabled ? '' : 'dark:invert opacity-50'} />
             {engineState === 'loading' && (
               <span className="sr-only">Loading engine...</span>
             )}

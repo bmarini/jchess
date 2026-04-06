@@ -330,10 +330,13 @@ export default function ChessApp() {
         <button onClick={() => setDrawerOpen(v => !v)} className="lg:hidden p-1 -ml-1">
           <Icon name="list" size={20} className="dark:invert" />
         </button>
-        <span className="font-semibold text-sm">jChess</span>
-        <div className="flex-1 text-sm text-neutral-500 truncate">
+        <span className="font-semibold text-sm hidden lg:inline">jChess</span>
+        <div className="flex-1 text-sm text-neutral-500 truncate min-w-0">
           {white && black ? `${white} – ${black}` : event ?? ''}
           {date && <span className="ml-2 text-xs text-neutral-400 hidden sm:inline">{date}</span>}
+          {detectedOpening && (
+            <span className="ml-2 text-xs text-purple-500 hidden sm:inline">{detectedOpening.name}</span>
+          )}
         </div>
       </header>
 
@@ -389,13 +392,24 @@ export default function ChessApp() {
                 </div>
               </div>
 
-              {/* Mobile move strip */}
-              <div className="w-full lg:hidden border-y border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
-                <MoveStrip
-                  transitions={chess.mainTransitions}
-                  halfmove={chess.isInVariation ? 0 : chess.halfmove}
-                  onJump={chess.jumpTo}
-                />
+              {/* Mobile move strip + annotation */}
+              <div className="w-full lg:hidden">
+                <div className="border-y border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+                  <MoveStrip
+                    transitions={chess.mainTransitions}
+                    halfmove={chess.isInVariation ? 0 : chess.halfmove}
+                    onJump={chess.jumpTo}
+                    onPrev={chess.prev}
+                    onNext={chess.next}
+                    canPrev={chess.halfmove > 0}
+                    canNext={chess.halfmove < chess.totalMoves}
+                  />
+                </div>
+                {chess.annotation && (
+                  <div className="px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400 italic">
+                    &ldquo;{chess.annotation}&rdquo;
+                  </div>
+                )}
               </div>
 
               {/* Engine PV + clock — desktop only */}
@@ -438,6 +452,25 @@ export default function ChessApp() {
                   engineState={engine.state}
                   onToggleEngine={engine.toggle}
                 />
+              </div>
+              {/* Mobile game actions */}
+              <div className="flex items-center justify-center gap-2 lg:hidden">
+                <button onClick={handleAnalyzeGame} disabled={!!analysisProgress}
+                  title="Analyze" className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50">
+                  <Icon name="magnifying-glass" size={18} className="dark:invert" />
+                </button>
+                <button onClick={handleShare} title="Share"
+                  className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                  <Icon name="share" size={18} className="dark:invert" />
+                </button>
+                <button onClick={handleCopyPGN} title="Copy PGN"
+                  className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                  <Icon name="copy" size={18} className="dark:invert" />
+                </button>
+                <button onClick={handleDownloadPGN} title="Download PGN"
+                  className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                  <Icon name="download" size={18} className="dark:invert" />
+                </button>
               </div>
               {chess.warnings.length > 0 && (
                 <div className="text-xs text-amber-600 dark:text-amber-400">
