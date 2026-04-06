@@ -27,7 +27,8 @@ npm run build        # build to dist/
 | File | Responsibility |
 |---|---|
 | `src/types.ts` | All shared types — touch this when adding new data shapes |
-| `src/board.ts` | `Position` class (rich domain object), FEN parsing, coordinate helpers, move logic (`applyMove`, `toSAN`, `legalMovesFrom`), piece vectors, pin detection |
+| `src/board.ts` | `Position` class (Layer 1: board state), FEN parsing, `applyMove`, `isInCheck`, coordinate helpers, piece vectors, pin detection |
+| `src/movegen.ts` | Move generation (Layer 2: SAN translation), `toSAN`, `legalMovesFrom`, `hasAnyLegalMove`. Depends on board.ts only. |
 | `src/pgn.ts` | PGN tokenizer + parser. No `eval()`. Handles variations (skips them), annotations, NAGs. |
 | `src/export.ts` | PGN exporter — serializes headers, transitions, annotations, and variations back to PGN text |
 | `src/transitions.ts` | `buildTransitions` pre-computes forward/backward `TransitionCommand[]` for every half-move. `GamePlayer` navigates them. |

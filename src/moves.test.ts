@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Position, STARTING_FEN, findMoveSource, findPawnMoveSource, parseSAN } from './board.js'
+import './movegen.js' // registers toSAN/legalMovesFrom on Position
 
 // ── parseSAN ──────────────────────────────────────────────────────────────────
 
