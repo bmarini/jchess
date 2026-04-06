@@ -6,7 +6,7 @@ import { legalMovesFrom } from '@chess/movegen'
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
 import type { Position } from '@chess/board'
-import type { Piece, PieceType, TransitionCommand } from '@chess/types'
+import type { Piece, PieceType, Square, TransitionCommand } from '@chess/types'
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1']
@@ -57,7 +57,7 @@ function getLastMoveSquares(commands: TransitionCommand[] | undefined): Set<stri
 }
 
 function isPromotionMove(position: Position, from: string, to: string): boolean {
-  const piece = position.get(from)
+  const piece = position.get(from as Square)
   if (!piece || piece.type !== 'P') return false
   const targetRank = piece.color === 'w' ? '8' : '1'
   return to[1] === targetRank
@@ -87,9 +87,9 @@ export default function Board({
   const files = flipped ? [...FILES].reverse() : FILES
   const ranks = flipped ? [...RANKS].reverse() : RANKS
 
-  const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
-  const [legalTargets, setLegalTargets] = useState<Set<string>>(new Set())
-  const [promotionPending, setPromotionPending] = useState<{ from: string; to: string } | null>(null)
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
+  const [legalTargets, setLegalTargets] = useState<Set<Square>>(new Set())
+  const [promotionPending, setPromotionPending] = useState<{ from: Square; to: Square } | null>(null)
 
   // Clear selection when position changes
   const posRef = useRef(position)
@@ -112,14 +112,15 @@ export default function Board({
     }
   })
 
-  const selectPiece = useCallback((square: string) => {
+  const selectPiece = useCallback((square: Square) => {
     if (!position) return
     setSelectedSquare(square)
     setLegalTargets(new Set(legalMovesFrom(position, square)))
   }, [position])
 
-  const handleSquareClick = useCallback((square: string) => {
+  const handleSquareClick = useCallback((sq: string) => {
     if (!onMove || !position) return
+    const square = sq as Square
 
     if (promotionPending) {
       setPromotionPending(null)
@@ -203,7 +204,7 @@ export default function Board({
             >
               {ranks.map((rank, ri) =>
                 files.map((file, fi) => {
-                  const square = file + rank
+                  const square = (file + rank) as Square
                   const isLight = (FILES.indexOf(file) + RANKS.indexOf(rank)) % 2 === 0
                   const isHighlighted = highlightedSquares.has(square)
                   const isSelected = square === selectedSquare
@@ -323,7 +324,7 @@ export default function Board({
               >
                 {ranks.map(rank =>
                   files.map(file => {
-                    const square = file + rank
+                    const square = (file + rank) as Square
                     return (
                       <div
                         key={square}

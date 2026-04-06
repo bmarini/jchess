@@ -48,13 +48,11 @@ export default function EvalBar({ eval_, flipped = false }: Props) {
       {eval_ && (
         <div
           className={[
-            'absolute text-center text-[10px] font-mono font-bold py-0.5',
-            // Mobile: position left/right
+            'absolute inset-0 flex items-center text-[10px] font-mono font-bold',
+            // Mobile: horizontal label at left/right end
             isWhiteAdvantage
-              ? 'right-1 lg:right-auto lg:bottom-0 lg:left-0 lg:right-0 text-neutral-700'
-              : 'left-1 lg:left-auto lg:top-0 lg:left-0 lg:right-0 text-neutral-300',
-            // Vertical centering on mobile
-            'top-0 bottom-0 flex items-center lg:block lg:top-auto lg:bottom-auto',
+              ? 'justify-end pr-1 lg:justify-center lg:pr-0 lg:items-end lg:pb-0.5 text-neutral-700'
+              : 'justify-start pl-1 lg:justify-center lg:pl-0 lg:items-start lg:pt-0.5 text-neutral-300',
           ].join(' ')}
         >
           {label}
