@@ -32,6 +32,7 @@ export type ChessGameState = {
   removeVariation: (path: VarStep[]) => void
   makeMove: (from: Square, to: Square, promotion?: PieceType) => void
   playMoves: (sans: string[]) => void
+  refresh: () => void
   flip: () => void
   enterVariation: (index: number) => void
   exitVariation: () => void
@@ -152,6 +153,9 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     sync()
   }, [sync])
 
+  /** Force a re-render (e.g., after external mutation of transitions). */
+  const refresh = useCallback(() => bumpTick(), [bumpTick])
+
   const flip = useCallback(() => setFlipped(f => !f), [])
 
   const loadGame = useCallback((game: ParsedGame, fenStr?: string) => {
@@ -187,6 +191,7 @@ export function useChessGame(initialGame?: ParsedGame, fen?: string): ChessGameS
     removeVariation,
     makeMove,
     playMoves,
+    refresh,
     flip,
     enterVariation,
     exitVariation,

@@ -239,8 +239,9 @@ export default function ChessApp() {
       activeGame.game.headers['BlackAccuracy'] = String(result.blackAccuracy)
     }
     setAnalysisProgress(null)
+    chess.refresh()
     persistCurrentGame()
-  }, [chess.mainTransitions, analysisProgress, persistCurrentGame, activeGame])
+  }, [chess, analysisProgress, persistCurrentGame, activeGame])
 
   const handleDownloadAll = useCallback(() => {
     if (savedPGNs.length === 0) return
