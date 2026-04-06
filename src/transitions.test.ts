@@ -421,3 +421,67 @@ describe('GamePlayer – makeMove', () => {
     expect(player.variationPath).toEqual([{ halfmove: 1, varIndex: 0 }])
   })
 })
+
+// ── GamePlayer – setAnnotation ──────────────────────────────────────────────
+
+describe('GamePlayer – setAnnotation', () => {
+  it('sets annotation on current move', () => {
+    const player = makePlayer('1. e4 e5')
+    player.stepForward() // after e4, halfmove=1
+    player.setAnnotation('A great opening move!')
+    expect(player.currentAnnotation).toBe('A great opening move!')
+  })
+
+  it('clears annotation with empty string', () => {
+    const player = makePlayer('1. e4 e5')
+    player.stepForward()
+    player.setAnnotation('Some annotation')
+    expect(player.currentAnnotation).toBe('Some annotation')
+    player.setAnnotation('')
+    expect(player.currentAnnotation).toBeUndefined()
+  })
+})
+
+// ── GamePlayer – removeVariation ────────────────────────────────────────────
+
+describe('GamePlayer – removeVariation', () => {
+  it('removes a variation and verifies it is gone', () => {
+    const player = makePlayer('1. e4 e5 2. Nf3')
+    player.stepForward() // after e4
+    player.makeMove('d5') // creates variation on e5 (transitions[1])
+    expect(player.isInVariation).toBe(true)
+    expect(player.mainTransitions[1]!.variations).toHaveLength(1)
+
+    // Remove the variation
+    player.removeVariation([{ halfmove: 1, varIndex: 0 }])
+    expect(player.isInVariation).toBe(false)
+    expect(player.mainTransitions[1]!.variations).toHaveLength(0)
+  })
+})
+
+// ── GamePlayer – jumpToVariation ────────────────────────────────────────────
+
+describe('GamePlayer – jumpToVariation', () => {
+  it('navigates directly to a variation position using jumpToVariation', () => {
+    const player = makePlayer('1. e4 e5 (1... c5 2. Nf3 (2. d4)) 2. Nf3')
+    // Jump to the nested variation (d4), which is at depth 2
+    const path = [
+      { halfmove: 1, varIndex: 0 },  // outer var (alt to e5)
+      { halfmove: 1, varIndex: 0 },  // inner var (alt to Nf3)
+    ]
+    player.jumpToVariation(path, 1)
+    expect(player.isInVariation).toBe(true)
+    expect(player.currentSAN).toBe('d4')
+  })
+})
+
+// ── buildTransitions – warning path ─────────────────────────────────────────
+
+describe('buildTransitions – warning path', () => {
+  it('produces a warning for an illegal move', () => {
+    // Qh5 is not legal from the starting position
+    const { warnings } = buildTransitions(parsePGN('1. Qh5'), Position.starting())
+    expect(warnings.length).toBeGreaterThan(0)
+    expect(warnings[0]).toContain('Qh5')
+  })
+})

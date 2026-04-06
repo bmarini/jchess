@@ -1,116 +1,148 @@
 # jChess
 
-A chess game viewer. Pass in a PGN string (or FEN position) and get an interactive board with forward/backward navigation, animated piece moves, board-flip, and annotations.
+A chess game viewer, annotator, and analysis tool. Load PGN games, review them with Stockfish, add annotations and variations, and play against a bot — all in the browser.
+
+**Live demo:** [bmarini.github.io/jchess](https://bmarini.github.io/jchess/)
+
+## Features
+
+- **Game viewer** — navigate through games with animated piece transitions
+- **PGN support** — load, edit, and export PGN files (single or multi-game)
+- **Stockfish integration** — WASM engine runs entirely in the browser
+  - Live eval bar and principal variation display
+  - Full game review with accuracy scores and blunder/mistake/inaccuracy detection
+  - Clickable PV line to explore engine suggestions
+- **Interactive board** — click pieces to create moves, variations, and new games
+  - Legal move indicators (dots on valid squares)
+  - Promotion dialog
+  - Best move arrows from analysis
+- **Annotations** — add text annotations to any move, NAG symbols (?? ? ?! !? ! !!) displayed inline
+- **Variations** — create, navigate, and remove recursive variations (RAV)
+- **Opening detection** — 3,600+ openings identified automatically from moves (Lichess ECO database)
+- **Eval graph** — clickable sparkline showing evaluation across the whole game
+- **Play vs bot** — play against Stockfish at adjustable difficulty (Skill Level 0-20)
+- **Shareable links** — compress game into URL hash for sharing
+- **Local storage** — games persist across sessions
+- **Responsive** — mobile layout with horizontal move strip, swipe-friendly controls
+- **Clock times** — parse and display `[%clk]` metadata from chess.com PGNs
 
 ## Quick start
 
 ```bash
+# Core library
 npm install
-npm run dev      # dev server at http://localhost:5173
+npm test             # run all tests
+
+# Web app (Next.js)
+cd web
+npm install
+npm run dev          # dev server at http://localhost:3000
 ```
 
-Open `http://localhost:5173` to see the demo page with 9 example games.
+## Tech stack
 
-## Usage
-
-```html
-<div id="board" style="--jchess-size: 480px"></div>
-```
-
-```typescript
-import { ChessViewer } from './src/chess.ts'
-
-const viewer = new ChessViewer(document.getElementById('board')!, {
-  pgn: `[White "Fischer"] [Black "Spassky"] 1. e4 e5 2. Nf3 Nc6 ...`
-})
-
-// Navigation
-viewer.next()           // step forward one half-move (animated)
-viewer.prev()           // step backward one half-move (animated)
-viewer.jumpTo(25)       // jump directly to half-move 25 (no intermediate animations)
-viewer.flip()           // flip the board
-
-// State
-viewer.getCurrentMove()   // → 'Nf3' (SAN of the last applied move)
-viewer.getAnnotation()    // → string | undefined
-viewer.getHalfmove()      // → current half-move number (0 = start)
-viewer.getTotalMoves()    // → total number of half-moves in the game
-
-// Events
-viewer.on('move', (san, halfmove) => {
-  console.log(`Move ${halfmove}: ${san}`)
-})
-
-// Load a new game without recreating the element
-viewer.loadPGN(newPgn)
-```
-
-### FEN-only (no PGN)
-
-```typescript
-const viewer = new ChessViewer(el, {
-  fen: 'rq2r1k1/1b3pp1/p3p1n1/1p4BQ/8/7R/PP3PPP/4R1K1 w - - 0 0'
-})
-```
-
-### Styling
-
-The board size and colors are controlled via CSS custom properties:
-
-| Property | Default | Description |
-|---|---|---|
-| `--jchess-size` | `400px` | Board width/height |
-| `--jchess-light` | `#f0d9b5` | Light square color |
-| `--jchess-dark` | `#b58863` | Dark square color |
-| `--jchess-anim` | `120ms` | Piece animation duration |
-
-## Development
-
-```bash
-npm run dev          # Vite dev server with hot reload
-npm test             # Run all tests once
-npm run test:watch   # Run tests in watch mode
-npm run build        # Build library to dist/
-```
+- **Core library** — TypeScript, strict mode, no dependencies
+- **Web app** — Next.js (App Router, static export), React, Tailwind CSS v4
+- **Engine** — Stockfish 18 WASM (lite-single, 7MB)
+- **Tests** — Vitest, co-located as `*.test.ts`
+- **Icons** — Phosphor (bold SVG)
 
 ## Project structure
 
 ```
-src/
-  types.ts        # Shared TypeScript types
-  board.ts        # FEN parser, board data model, coordinate helpers
-  pgn.ts          # PGN tokenizer and parser
-  moves.ts        # SAN parser, move source-finding, applyMove
-  transitions.ts  # Transition-list builder, GamePlayer navigation class
-  renderer.ts     # Vanilla DOM renderer — CSS board, Unicode pieces, CSS animations
-  chess.ts        # ChessViewer public API (entry point)
-  *.test.ts       # Co-located Vitest tests
-examples/
-  *.pgn           # Example PGN files used by the demo and tests
+src/                    Core chess library (no framework dependencies)
+  board.ts              Position class, FEN parsing, move logic (applyMove, toSAN, legalMovesFrom, isInCheck)
+  pgn.ts                PGN tokenizer + parser
+  export.ts             PGN exporter (headers, moves, annotations, variations, metadata)
+  transitions.ts        Line class, GamePlayer class, transition builder
+  annotation.ts         Parse/serialize annotation metadata ([%clk], [%eval], etc.)
+  types.ts              Shared types
+  *.test.ts             Co-located tests
+
+web/                    Next.js web application
+  app/                  Next.js app router
+  components/
+    ChessApp.tsx        Main app — state coordinator, renders PlayLayout or ReviewLayout
+    PlayLayout.tsx      Bot game mode — board, move strip, resign
+    ReviewLayout.tsx    Analysis mode — eval bar, move list, annotations, engine PV
+    Board.tsx           Interactive board with piece selection, legal move dots, arrows
+    Controls.tsx        Navigation buttons (prev, next, flip)
+    MoveList.tsx        Vertical move list with variations, NAG symbols, book markers
+    MoveStrip.tsx       Horizontal scrolling move strip (mobile)
+    EvalBar.tsx         Vertical/horizontal eval bar (responsive)
+    EvalGraph.tsx       Clickable eval sparkline
+    GameInfo.tsx        Player names, ELO, accuracy, opening, event info
+    BotDialog.tsx       Color + difficulty picker for bot games
+    Icon.tsx            SVG icon component
+    PGNInput.tsx        PGN paste/file upload
+  hooks/
+    useChessGame.ts     React wrapper around GamePlayer
+    useEngine.ts        Live Stockfish analysis with debounce
+    useBotPlayer.ts     Bot move automation + game over detection
+  lib/
+    engine.ts           StockfishEngine UCI wrapper (Web Worker)
+    analyze.ts          Full game analysis (accuracy, NAGs, best moves)
+    openings.ts         ECO opening identification (3,663 entries)
+    eco.json            Lichess chess-openings database (CC0)
+    parseMultiPGN.ts    Multi-game PGN splitter
+    shareUrl.ts         Compress/decompress PGN for URL sharing
+    storage.ts          localStorage persistence
+
+examples/               Example PGN files (used by tests)
+public/
+  pieces/mpchess/       SVG piece images
+  icons/                Phosphor bold SVG icons
+  stockfish/            Stockfish 18 WASM engine files
 ```
 
 ## Architecture
 
+### Transition list
+
 The core design is a **pre-computed transition list**. When a PGN is loaded:
 
-1. `parsePGN` tokenizes the PGN into SAN move strings
-2. `buildTransitions` walks the moves, applies each to the board state, and records a `{ forward, backward }` pair of `TransitionCommand[]` for every half-move
-3. `GamePlayer` navigates via these transition lists: forward/backward steps execute the pre-computed commands in O(1); `jumpTo(n)` re-renders from the correct computed state without animating intermediate moves
+1. `parsePGN` tokenizes the PGN into SAN move strings with annotations and variations
+2. `buildTransitions` walks the moves, applies each to the board state via `Position.applyMove`, and records `{ forward, backward }` transition commands per half-move
+3. `GamePlayer` navigates via a stack of `Line` instances — the main line plus any entered variations
 
-## Legacy version
+### Position as domain object
 
-The original 2008 jQuery version is preserved in `javascripts/jchess-0.1.0.js` for reference.
+`Position` is a rich domain object (not an anemic data class). It owns all move logic:
 
-## Roadmap
+- `position.applyMove(san)` — apply a SAN move, return new position
+- `position.toSAN(from, to, promotion?)` — convert board coordinates to SAN (with check/checkmate suffixes)
+- `position.legalMovesFrom(square)` — all legal destinations for a piece
+- `position.isInCheck()` — check detection using raw piece vectors
 
-### UX
+### Annotation metadata
 
-* Goal is for this to not just be a viewer but an editor. I want to take a game, play through it, add annotations, add variations, and then export back to PGN, or via sharable link.
-* How to support comments / multiple user annotations? Some type of "rich" annoation?
-* Be able to upload a .pgn file with multiple games and show a viewer with game list (searchable too)
+PGN annotation commands like `[%clk 0:30:00]` and `[%eval +1.5]` are parsed into structured `MoveMetadata` and stored separately from display text. The exporter re-embeds them for round-trip fidelity.
 
-### Clean Code
+### Play vs Review modes
 
-* Rewrite frontend in React, Next.js, and Tailwind (easier for AI driven coding)
-* Good separation of concerns between engine and display. Should be easy to build new displays with the underlying engine.
-* Go file-by-file and move from purely functional to more idiomatic Typescript (use interfaces, best practices, for example: https://docs.aws.amazon.com/prescriptive-guidance/latest/best-practices-cdk-typescript-iac/typescript-best-practices.html)
+`ChessApp` is a state coordinator that renders one of two layout components:
+
+- **PlayLayout** — clean board + move strip + resign. For bot games.
+- **ReviewLayout** — full analysis experience with eval bar, move list, annotations, engine PV, game actions.
+
+## Commands
+
+```bash
+# Core library
+npm test                # run all tests
+npm run test:watch      # watch mode
+npm run build           # build to dist/
+
+# Web app
+cd web
+npm run dev             # dev server (webpack mode)
+npm run build           # static export to web/out/
+```
+
+## Deployment
+
+The web app deploys to GitHub Pages via `.github/workflows/deploy.yml`. Push to `master` triggers a build from `web/` and deploys `web/out/` to [bmarini.github.io/jchess](https://bmarini.github.io/jchess/).
+
+## License
+
+Stockfish WASM: GPL-3.0. Lichess chess-openings: CC0. Phosphor Icons: MIT. Piece SVGs: see `public/pieces/`.

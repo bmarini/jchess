@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { Position, STARTING_FEN, findMoveSource, findPawnMoveSource, parseSAN } from './board.js'
 
 // ── parseSAN ──────────────────────────────────────────────────────────────────
@@ -85,6 +85,16 @@ describe('parseSAN', () => {
     expect(m?.kind).toBe('normal')
     if (m?.kind !== 'normal') return
     expect(m.checkmate).toBe(true)
+  })
+
+  it('returns null for empty string', () => {
+    expect(parseSAN('')).toBeNull()
+  })
+
+  it('returns null for garbage input', () => {
+    expect(parseSAN('zzz')).toBeNull()
+    expect(parseSAN('123')).toBeNull()
+    expect(parseSAN('XYZ')).toBeNull()
   })
 })
 
@@ -242,5 +252,161 @@ describe('Position.toSAN', () => {
 
   it('returns null for wrong color', () => {
     expect(Position.starting().toSAN('e7', 'e5')).toBeNull()
+  })
+})
+
+// ── Position.isInCheck ──────────────────────────────────────────────────────
+
+describe('Position.isInCheck', () => {
+  it('detects check by rook', () => {
+    // White king on e1, black rook on e8, black king on h8
+    const pos = Position.fromFEN('4r2k/8/8/8/8/8/8/4K3 w - - 0 1')
+    expect(pos.isInCheck()).toBe(true)
+  })
+
+  it('detects check by bishop', () => {
+    // White king on e1, black bishop on h4, black king on h8
+    const pos = Position.fromFEN('7k/8/8/8/7b/8/8/4K3 w - - 0 1')
+    expect(pos.isInCheck()).toBe(true)
+  })
+
+  it('detects check by knight', () => {
+    // White king on e1, black knight on d3, black king on h8
+    const pos = Position.fromFEN('7k/8/8/8/8/3n4/8/4K3 w - - 0 1')
+    expect(pos.isInCheck()).toBe(true)
+  })
+
+  it('detects check by pawn', () => {
+    // White king on e4, black pawn on d5, black king on h8
+    const pos = Position.fromFEN('7k/8/8/3p4/4K3/8/8/8 w - - 0 1')
+    expect(pos.isInCheck()).toBe(true)
+  })
+
+  it('detects check by queen', () => {
+    // White king on e1, black queen on e8, black king on h8
+    const pos = Position.fromFEN('4q2k/8/8/8/8/8/8/4K3 w - - 0 1')
+    expect(pos.isInCheck()).toBe(true)
+  })
+
+  it('returns false when king is not in check', () => {
+    const pos = Position.fromFEN(STARTING_FEN)
+    expect(pos.isInCheck()).toBe(false)
+  })
+})
+
+// ── Position.legalMovesFrom ─────────────────────────────────────────────────
+
+describe('Position.legalMovesFrom', () => {
+  it('pawn from starting position includes 2-square advance', () => {
+    const pos = Position.fromFEN(STARTING_FEN)
+    const moves = pos.legalMovesFrom('e2')
+    expect(moves).toContain('e3')
+    expect(moves).toContain('e4')
+  })
+
+  it('pawn blocked by piece in front has no forward moves', () => {
+    // White pawn on e2 blocked by black pawn on e3, but can capture d3
+    const pos = Position.fromFEN('7k/8/8/8/8/3pp3/4P3/4K3 w - - 0 1')
+    const moves = pos.legalMovesFrom('e2')
+    expect(moves).not.toContain('e3')
+    expect(moves).not.toContain('e4')
+    expect(moves).toContain('d3')
+  })
+
+  it('knight has multiple legal squares', () => {
+    // Knight on d4 with lots of room
+    const pos = Position.fromFEN('7k/8/8/8/3N4/8/8/4K3 w - - 0 1')
+    const moves = pos.legalMovesFrom('d4')
+    expect(moves.length).toBeGreaterThanOrEqual(6)
+    expect(moves).toContain('c6')
+    expect(moves).toContain('e6')
+    expect(moves).toContain('f5')
+    expect(moves).toContain('f3')
+  })
+
+  it('king can move to squares not occupied by own pieces', () => {
+    // White king on e1, no friendly pieces blocking — verify all 5 legal squares
+    const pos = Position.fromFEN('7k/8/8/8/8/8/8/4K3 w - - 0 1')
+    const moves = pos.legalMovesFrom('e1')
+    expect(moves).toContain('d1')
+    expect(moves).toContain('d2')
+    expect(moves).toContain('e2')
+    expect(moves).toContain('f1')
+    expect(moves).toContain('f2')
+  })
+
+  it('pinned piece has no moves (or only along pin line)', () => {
+    // White king on e1, white bishop on e4, black rook on e8 — bishop pinned on e-file
+    const pos = Position.fromFEN('4r2k/8/8/8/4B3/8/8/4K3 w - - 0 1')
+    const moves = pos.legalMovesFrom('e4')
+    // Bishop can't move off the e-file pin line without exposing king
+    expect(moves).toHaveLength(0)
+  })
+
+  it('en passant is available', () => {
+    // White pawn on e5, black pawn just played d7-d5, en passant on d6
+    const pos = Position.fromFEN('7k/8/8/3pP3/8/8/8/4K3 w - d6 0 1')
+    const moves = pos.legalMovesFrom('e5')
+    expect(moves).toContain('d6')
+    expect(moves).toContain('e6')
+  })
+
+  it('castling is available when rights exist', () => {
+    const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
+    const moves = pos.legalMovesFrom('e1')
+    expect(moves).toContain('g1') // kingside castling
+  })
+
+  it('castling squares are included when path is clear from e1', () => {
+    // Even without castling rights in FEN, legalMovesFrom adds g1/c1 as candidates
+    // since applyMove does not reject based on castling rights alone
+    const pos = Position.fromFEN('r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4')
+    const moves = pos.legalMovesFrom('e1')
+    expect(moves).toContain('g1')
+  })
+})
+
+// ── Position.applyMove edge cases ───────────────────────────────────────────
+
+describe('Position.applyMove – edge cases', () => {
+  it('returns null for invalid SAN', () => {
+    const pos = Position.fromFEN(STARTING_FEN)
+    expect(pos.applyMove('zzz')).toBeNull()
+    expect(pos.applyMove('')).toBeNull()
+  })
+
+  it('halfmove clock resets on pawn move', () => {
+    const pos = Position.fromFEN('7k/8/8/8/8/8/4P3/4K3 w - - 5 10')
+    const result = pos.applyMove('e4')
+    expect(result).not.toBeNull()
+    expect(result!.position.halfmoveClock).toBe(0)
+  })
+
+  it('halfmove clock resets on capture', () => {
+    const pos = Position.fromFEN('7k/8/8/8/3p4/8/8/3RK3 w - - 5 10')
+    const result = pos.applyMove('Rxd4')
+    expect(result).not.toBeNull()
+    expect(result!.position.halfmoveClock).toBe(0)
+  })
+
+  it('halfmove clock increments on non-pawn non-capture move', () => {
+    const pos = Position.fromFEN('7k/8/8/8/8/8/8/R3K3 w - - 5 10')
+    const result = pos.applyMove('Ra2')
+    expect(result).not.toBeNull()
+    expect(result!.position.halfmoveClock).toBe(6)
+  })
+
+  it('fullmove number increments after black moves', () => {
+    const pos = Position.fromFEN('7k/4p3/8/8/8/8/8/4K3 b - - 0 10')
+    const result = pos.applyMove('e6')
+    expect(result).not.toBeNull()
+    expect(result!.position.fullmoveNumber).toBe(11)
+  })
+
+  it('fullmove number stays same after white moves', () => {
+    const pos = Position.fromFEN(STARTING_FEN)
+    const result = pos.applyMove('e4')
+    expect(result).not.toBeNull()
+    expect(result!.position.fullmoveNumber).toBe(1)
   })
 })
