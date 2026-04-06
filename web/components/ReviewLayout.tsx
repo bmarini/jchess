@@ -13,6 +13,7 @@ import type { UseEngineResult } from '@/hooks/useEngine'
 import type { OpeningInfo } from '@/lib/openings'
 import type { AnalysisProgress } from '@/lib/analyze'
 import type { ParsedGame, TransitionCommand } from '@chess/types'
+import { useGameActions } from '@/hooks/useGameActions'
 
 type Props = {
   chess: ChessGameState
@@ -26,11 +27,6 @@ type Props = {
   onAnnotationBlur: (text: string) => void
   onAnalyze: () => void
   analysisProgress: AnalysisProgress | null
-  onShare: () => void
-  shareStatus: 'idle' | 'copied'
-  onCopyPGN: () => void
-  copyStatus: 'idle' | 'copied'
-  onDownloadPGN: () => void
   persistCurrentGame: () => void
 }
 
@@ -39,9 +35,10 @@ export default function ReviewLayout({
   lastCommands, bestMoveArrow, pvToSAN,
   onMove, onAnnotationBlur,
   onAnalyze, analysisProgress,
-  onShare, shareStatus, onCopyPGN, copyStatus, onDownloadPGN,
   persistCurrentGame,
 }: Props) {
+  const { handleShare, handleCopyPGN, handleDownloadPGN, shareStatus, copyStatus } =
+    useGameActions(game, chess.mainTransitions)
   const outOfBook = detectedOpening && detectedOpening.lastBookMove < chess.mainTransitions.length
     ? detectedOpening.lastBookMove + 1
     : undefined
@@ -177,15 +174,15 @@ export default function ReviewLayout({
             ].join(' ')}>
             <Icon name="cpu" size={18} className={engine.enabled ? '' : 'dark:invert opacity-40'} />
           </button>
-          <button onClick={onShare} title="Share"
+          <button onClick={handleShare} title="Share"
             className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <Icon name="share" size={18} className="dark:invert" />
           </button>
-          <button onClick={onCopyPGN} title="Copy PGN"
+          <button onClick={handleCopyPGN} title="Copy PGN"
             className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <Icon name="copy" size={18} className="dark:invert" />
           </button>
-          <button onClick={onDownloadPGN} title="Download PGN"
+          <button onClick={handleDownloadPGN} title="Download PGN"
             className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <Icon name="download" size={18} className="dark:invert" />
           </button>
@@ -221,15 +218,15 @@ export default function ReviewLayout({
             <Icon name="cpu" size={16} className={engine.enabled ? '' : 'dark:invert opacity-40'} />
           </button>
           <div className="flex-1" />
-          <button onClick={onShare} title={shareStatus === 'copied' ? 'Copied!' : 'Share link'}
+          <button onClick={handleShare} title={shareStatus === 'copied' ? 'Copied!' : 'Share link'}
             className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
             <Icon name="share" size={16} className="dark:invert" />
           </button>
-          <button onClick={onCopyPGN} title={copyStatus === 'copied' ? 'Copied!' : 'Copy PGN'}
+          <button onClick={handleCopyPGN} title={copyStatus === 'copied' ? 'Copied!' : 'Copy PGN'}
             className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
             <Icon name="copy" size={16} className="dark:invert" />
           </button>
-          <button onClick={onDownloadPGN} title="Download PGN"
+          <button onClick={handleDownloadPGN} title="Download PGN"
             className="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
             <Icon name="download" size={16} className="dark:invert" />
           </button>
