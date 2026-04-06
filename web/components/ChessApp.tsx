@@ -9,6 +9,7 @@ import PGNInput from './PGNInput'
 import GameInfo from './GameInfo'
 import Icon from './Icon'
 import EvalBar from './EvalBar'
+import EvalGraph from './EvalGraph'
 import { Position } from '@chess/board'
 import { useChessGame } from '@/hooks/useChessGame'
 import { useEngine } from '@/hooks/useEngine'
@@ -392,6 +393,15 @@ export default function ChessApp() {
                 </div>
               </div>
 
+              {/* Mobile eval graph */}
+              <div className="w-full lg:hidden">
+                <EvalGraph
+                  transitions={chess.mainTransitions}
+                  halfmove={chess.isInVariation ? 0 : chess.halfmove}
+                  onJump={chess.jumpTo}
+                />
+              </div>
+
               {/* Mobile move strip + annotation */}
               <div className="w-full lg:hidden">
                 <div className="border-y border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
@@ -526,6 +536,11 @@ export default function ChessApp() {
               </button>
             </div>
             <GameInfo game={activeGame.game} detectedOpening={detectedOpening} />
+            <EvalGraph
+              transitions={chess.mainTransitions}
+              halfmove={chess.isInVariation ? 0 : chess.halfmove}
+              onJump={chess.jumpTo}
+            />
             <div className="flex-1 overflow-hidden p-3">
               <MoveList
                 transitions={chess.mainTransitions}
