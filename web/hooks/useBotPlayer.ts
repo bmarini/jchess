@@ -85,12 +85,13 @@ export function useBotPlayer(
 
     const gen = ++genRef.current
     const fen = position.toFEN()
+    let cancelled = false
 
     setThinking(true)
 
     const timer = setTimeout(() => {
       engine.playBotMove(fen, config.skillLevel).then((uci) => {
-        if (gen !== genRef.current) return
+        if (cancelled || gen !== genRef.current) return
         setThinking(false)
         if (!uci) return
         const from = uci.slice(0, 2) as Square
@@ -101,7 +102,9 @@ export function useBotPlayer(
     }, 300)
 
     return () => {
+      cancelled = true
       clearTimeout(timer)
+      engine.stop()
       setThinking(false)
     }
   }, [config, position?.toFEN(), gameOver]) // eslint-disable-line react-hooks/exhaustive-deps
