@@ -6,7 +6,6 @@ import PlayLayout from './PlayLayout'
 import PGNInput from './PGNInput'
 import BotDialog from './BotDialog'
 import Icon from './Icon'
-import { Position } from '@chess/board'
 import { toSAN } from '@chess/movegen'
 import { useChessGame } from '@/hooks/useChessGame'
 import { useEngine } from '@/hooks/useEngine'
@@ -16,8 +15,7 @@ import { compressPGN, decompressPGN, buildShareUrl, getEncodedPGNFromHash } from
 import { loadLibrary, saveLibrary, loadActiveState, saveActiveState } from '@/lib/storage'
 import { exportPGN } from '@chess/export'
 import { identifyOpening } from '@/lib/openings'
-import { analyzeGame } from '@/lib/analyze'
-import type { AnalysisProgress } from '@/lib/analyze'
+import { useAnalysis } from '@/hooks/useAnalysis'
 import type { BotConfig } from '@/hooks/useBotPlayer'
 import type { GameEntry } from '@/lib/parseMultiPGN'
 
@@ -31,7 +29,6 @@ export default function ChessApp() {
   const [showBotDialog, setShowBotDialog] = useState(false)
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle')
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
-  const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress | null>(null)
   const [botConfig, setBotConfig] = useState<BotConfig>(null)
   const initializedRef = useRef(false)
 
@@ -39,14 +36,15 @@ export default function ChessApp() {
 
   // ── Hooks ──────────────────────────────────────────────────────────────────
   const chess = useChessGame(activeGame?.game ?? undefined)
+  const analysis = useAnalysis()
 
   const pvToSAN = useCallback((pv: string[]): string[] => {
     if (!chess.position) return pv
     const san: string[] = []
     let pos = chess.position
     for (const uci of pv) {
-      const from = uci.slice(0, 2)
-      const to = uci.slice(2, 4)
+      const from = uci.slice(0, 2) as import('@chess/types').Square
+      const to = uci.slice(2, 4) as import('@chess/types').Square
       const promo = uci.length > 4 ? uci[4]!.toUpperCase() as import('@chess/types').PieceType : undefined
       const s = toSAN(pos, from, to, promo)
       if (!s) break
@@ -158,21 +156,23 @@ export default function ChessApp() {
   const handleSelectGame = useCallback((index: number) => {
     const entry = savedGames[index]
     if (!entry) return
+    analysis.cancel()
     setActiveIndex(index)
     chess.loadGame(entry.game)
     setBotConfig(null)
     setDrawerOpen(false)
-  }, [savedGames, chess])
+  }, [savedGames, chess, analysis])
 
   const handleRemoveGame = useCallback((index: number) => {
+    if (activeIndex === index) analysis.cancel()
     setSavedPGNs(prev => { const next = prev.filter((_, i) => i !== index); saveLibrary(next); return next })
     setSavedGames(prev => prev.filter((_, i) => i !== index))
     if (activeIndex === index) { setActiveIndex(-1); setBotConfig(null) }
     else if (activeIndex > index) setActiveIndex(prev => prev - 1)
-  }, [activeIndex])
+  }, [activeIndex, analysis])
 
   const handleMove = useCallback((from: string, to: string, promotion?: import('@chess/types').PieceType) => {
-    chess.makeMove(from, to, promotion)
+    chess.makeMove(from as import('@chess/types').Square, to as import('@chess/types').Square, promotion)
     setTimeout(persistCurrentGame, 0)
   }, [chess, persistCurrentGame])
 
@@ -236,28 +236,17 @@ export default function ChessApp() {
     URL.revokeObjectURL(url)
   }, [activeGame, chess.mainTransitions])
 
-  const handleAnalyzeGame = useCallback(async () => {
-    const transitions = chess.mainTransitions
-    if (transitions.length === 0 || analysisProgress) return
-    const positions: Position[] = [Position.starting()]
-    let pos = positions[0]!
-    for (const t of transitions) {
-      const result = pos.applyMove(t.san)
-      if (result) pos = result.position
-      positions.push(pos)
-    }
-    setAnalysisProgress({ current: 0, total: transitions.length, done: false })
-    const result = await analyzeGame(transitions, (n) => positions[n]!, (progress) => {
-      setAnalysisProgress(progress)
+  const handleAnalyzeGame = useCallback(() => {
+    if (analysis.state === 'running') return
+    analysis.run(chess.mainTransitions, (result) => {
+      if (activeGame?.game) {
+        activeGame.game.headers['WhiteAccuracy'] = String(result.whiteAccuracy)
+        activeGame.game.headers['BlackAccuracy'] = String(result.blackAccuracy)
+      }
+      chess.refresh()
+      persistCurrentGame()
     })
-    if (activeGame?.game) {
-      activeGame.game.headers['WhiteAccuracy'] = String(result.whiteAccuracy)
-      activeGame.game.headers['BlackAccuracy'] = String(result.blackAccuracy)
-    }
-    setAnalysisProgress(null)
-    chess.refresh()
-    persistCurrentGame()
-  }, [chess, analysisProgress, persistCurrentGame, activeGame])
+  }, [chess, analysis, persistCurrentGame, activeGame])
 
   const handleDownloadAll = useCallback(() => {
     if (savedPGNs.length === 0) return
@@ -409,7 +398,7 @@ export default function ChessApp() {
               onMove={handleMove}
               onAnnotationBlur={handleAnnotationBlur}
               onAnalyze={handleAnalyzeGame}
-              analysisProgress={analysisProgress}
+              analysisProgress={analysis.progress}
               onShare={handleShare}
               shareStatus={shareStatus}
               onCopyPGN={handleCopyPGN}

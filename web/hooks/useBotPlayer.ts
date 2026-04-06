@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react'
 import { Position } from '@chess/board'
 import { legalMovesFrom } from '@chess/movegen'
 import { StockfishEngine } from '@/lib/engine'
-import type { PieceType } from '@chess/types'
+import type { PieceType, Square } from '@chess/types'
 
 export type BotConfig = {
   botColor: 'w' | 'b'
@@ -22,7 +22,7 @@ const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8']
 function hasAnyLegalMove(position: Position): boolean {
   for (const f of FILES) {
     for (const r of RANKS) {
-      if (legalMovesFrom(position, f + r).length > 0) return true
+      if (legalMovesFrom(position, (f + r) as Square).length > 0) return true
     }
   }
   return false
@@ -93,8 +93,8 @@ export function useBotPlayer(
         if (gen !== genRef.current) return
         setThinking(false)
         if (!uci) return
-        const from = uci.slice(0, 2)
-        const to = uci.slice(2, 4)
+        const from = uci.slice(0, 2) as Square
+        const to = uci.slice(2, 4) as Square
         const promo = uci.length > 4 ? uci[4]!.toUpperCase() as PieceType : undefined
         makeMove(from, to, promo)
       })

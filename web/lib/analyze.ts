@@ -1,6 +1,6 @@
 import { StockfishEngine } from './engine'
 import type { EngineEval } from './engine'
-import type { Transition } from '@chess/types'
+import type { Transition, Square } from '@chess/types'
 import { toSAN } from '@chess/movegen'
 import type { Position } from '@chess/board'
 
@@ -17,7 +17,6 @@ const BOOK_THRESHOLD = 30
 export type AnalysisProgress = {
   current: number
   total: number
-  done: boolean
 }
 
 export type AnalysisResult = {
@@ -56,8 +55,8 @@ function cpLossToAccuracy(cpLoss: number): number {
 /**
  * Convert a UCI long algebraic move to from/to squares.
  */
-function uciToSquares(uci: string): { from: string; to: string } {
-  return { from: uci.slice(0, 2), to: uci.slice(2, 4) }
+function uciToSquares(uci: string): { from: Square; to: Square } {
+  return { from: uci.slice(0, 2) as Square, to: uci.slice(2, 4) as Square }
 }
 
 /**
@@ -71,9 +70,13 @@ export async function analyzeGame(
   transitions: Transition[],
   positionAt: (n: number) => Position,
   onProgress: (progress: AnalysisProgress) => void,
+  signal?: AbortSignal,
 ): Promise<AnalysisResult> {
   const engine = new StockfishEngine()
   await engine.init()
+
+  // Abort tears down the engine immediately so the worker doesn't leak
+  signal?.addEventListener('abort', () => engine.destroy(), { once: true })
 
   const total = transitions.length
   let outOfBook: number | null = null
@@ -87,6 +90,8 @@ export async function analyzeGame(
   let prevBestMove = startEval.pv[0] ?? null
 
   for (let i = 0; i < total; i++) {
+    if (signal?.aborted) break
+
     const t = transitions[i]!
     const posAfter = positionAt(i + 1)
     const isBlackToMove = posAfter.activeColor === 'b'
@@ -139,10 +144,10 @@ export async function analyzeGame(
     prevWhiteScore = whiteScore
     prevBestMove = eval_.pv[0] ?? null
 
-    onProgress({ current: i + 1, total, done: i === total - 1 })
+    onProgress({ current: i + 1, total })
   }
 
-  engine.destroy()
+  if (!signal?.aborted) engine.destroy()
 
   const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 100
 
