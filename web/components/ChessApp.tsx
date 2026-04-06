@@ -395,15 +395,30 @@ export default function ChessApp() {
               {/* Mobile move strip + annotation */}
               <div className="w-full lg:hidden">
                 <div className="border-y border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
-                  <MoveStrip
-                    transitions={chess.mainTransitions}
-                    halfmove={chess.isInVariation ? 0 : chess.halfmove}
-                    onJump={chess.jumpTo}
-                    onPrev={chess.prev}
-                    onNext={chess.next}
-                    canPrev={chess.halfmove > 0}
-                    canNext={chess.halfmove < chess.totalMoves}
-                  />
+                  {(() => {
+                    // Compute variation data for mobile strip
+                    const mainHm = chess.isInVariation ? chess.mainHalfmove : chess.halfmove
+                    const currentTransition = chess.mainTransitions[mainHm]
+                    const variations = currentTransition?.variations ?? []
+                    return (
+                      <MoveStrip
+                        transitions={chess.mainTransitions}
+                        halfmove={chess.isInVariation ? -1 : chess.halfmove}
+                        onJump={chess.jumpTo}
+                        onPrev={chess.prev}
+                        onNext={chess.next}
+                        canPrev={chess.halfmove > 0}
+                        canNext={chess.halfmove < chess.totalMoves}
+                        currentVariations={variations.length > 0 ? variations : undefined}
+                        variationBranchHalfmove={mainHm}
+                        onJumpToVariation={chess.jumpToVariation}
+                        isInVariation={chess.isInVariation}
+                        onExitVariation={chess.exitVariation}
+                        variationTransitions={chess.isInVariation ? chess.transitions : undefined}
+                        variationHalfmove={chess.isInVariation ? chess.halfmove : undefined}
+                      />
+                    )
+                  })()}
                 </div>
                 {chess.annotation && (
                   <div className="px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400 italic">
