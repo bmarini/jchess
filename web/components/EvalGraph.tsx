@@ -39,10 +39,12 @@ export default function EvalGraph({ transitions, halfmove, onJump }: Props) {
 
   // Clamp evals to ±5 pawns for display
   const clamp = 5
+  // Positive eval (white winning) → line dips toward bottom (white's side)
+  // Negative eval (black winning) → line rises toward top (black's side)
   const toY = (val: number | null) => {
     if (val === null) return midY
     const clamped = Math.max(-clamp, Math.min(clamp, val))
-    return midY - (clamped / clamp) * (midY - 2)
+    return midY + (clamped / clamp) * (midY - 2)
   }
 
   // Build the area path — fill white advantage area
@@ -79,16 +81,16 @@ export default function EvalGraph({ transitions, halfmove, onJump }: Props) {
           onJump(Math.max(1, Math.min(n, move)))
         }}
       >
-        {/* Background */}
-        <rect x="0" y="0" width={viewW} height={midY} fill="rgba(0,0,0,0.06)" />
-        <rect x="0" y={midY} width={viewW} height={midY} fill="rgba(255,255,255,0.06)" />
+        {/* Background: top = black territory, bottom = white territory */}
+        <rect x="0" y="0" width={viewW} height={midY} fill="rgba(0,0,0,0.08)" />
+        <rect x="0" y={midY} width={viewW} height={midY} fill="rgba(0,0,0,0.02)" />
 
         {/* Center line */}
         <line x1="0" y1={midY} x2={viewW} y2={midY}
           stroke="currentColor" strokeWidth="0.5" opacity="0.2" />
 
-        {/* Eval area — white advantage is below midline (positive eval = white winning) */}
-        <path d={areaPath} fill="rgba(255,255,255,0.5)" />
+        {/* Eval area — fills toward white's side (bottom) when white is winning */}
+        <path d={areaPath} fill="rgba(120,120,120,0.3)" />
 
         {/* Eval line */}
         <polyline
