@@ -19,7 +19,11 @@ export default function BotDialog({ onStart, onCancel }: Props) {
   const [color, setColor] = useState<'w' | 'b'>('w')
   const [level, setLevel] = useState(5)
 
-  const preset = PRESETS.find(p => p.level === level) ?? PRESETS[1]!
+  // Interpolate ELO from level
+  const elo = Math.round(800 + (level / 20) * 2400)
+  const preset = PRESETS.reduce((best, p) =>
+    Math.abs(p.level - level) < Math.abs(best.level - level) ? p : best
+  )
 
   return (
     <div className="p-3 flex flex-col gap-3 text-sm">
@@ -57,7 +61,7 @@ export default function BotDialog({ onStart, onCancel }: Props) {
       {/* Difficulty */}
       <div>
         <div className="text-xs text-neutral-400 mb-1">
-          Difficulty: {preset?.label} <span className="text-neutral-300">({preset?.elo})</span>
+          Difficulty: {preset.label} <span className="text-neutral-300">(~{elo})</span>
         </div>
         <input
           type="range"
