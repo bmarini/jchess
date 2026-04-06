@@ -1,6 +1,5 @@
 'use client'
 
-import { useMemo } from 'react'
 import type { Transition } from '@chess/types'
 
 type Props = {
@@ -24,9 +23,7 @@ function parseEval(evalStr: string | undefined): number | null {
  * Click to jump to a specific move.
  */
 export default function EvalGraph({ transitions, halfmove, onJump }: Props) {
-  const evals = useMemo(() => {
-    return transitions.map(t => parseEval(t.metadata?.eval))
-  }, [transitions])
+  const evals = transitions.map(t => parseEval(t.metadata?.eval))
 
   // Only render if we have at least some eval data
   const hasData = evals.some(e => e !== null)
