@@ -468,8 +468,6 @@ export default function ChessApp() {
                   onPrev={chess.prev}
                   onNext={chess.next}
                   onFlip={chess.flip}
-                  onStart={() => chess.jumpTo(0)}
-                  onEnd={() => chess.jumpTo(chess.totalMoves)}
                   canPrev={chess.halfmove > 0}
                   canNext={chess.halfmove < chess.totalMoves}
                   isInVariation={chess.isInVariation}

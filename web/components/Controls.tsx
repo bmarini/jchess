@@ -7,8 +7,6 @@ type Props = {
   onPrev: () => void
   onNext: () => void
   onFlip: () => void
-  onStart: () => void
-  onEnd: () => void
   canPrev: boolean
   canNext: boolean
   isInVariation: boolean
@@ -16,7 +14,7 @@ type Props = {
 }
 
 export default function Controls({
-  onPrev, onNext, onFlip, onStart, onEnd,
+  onPrev, onNext, onFlip,
   canPrev, canNext, isInVariation, onExitVariation,
 }: Props) {
   useEffect(() => {
@@ -46,10 +44,8 @@ export default function Controls({
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex items-center justify-center gap-1.5 lg:gap-2">
-        {btn('skip-back', onStart, !canPrev, 'Start')}
         {btn('caret-left', onPrev, !canPrev, 'Previous (←)')}
         {btn('caret-right', onNext, !canNext, 'Next (→)')}
-        {btn('skip-forward', onEnd, !canNext, 'End')}
         {btn('arrows-counter-clockwise', onFlip, false, 'Flip board')}
       </div>
       {isInVariation && (
