@@ -233,7 +233,7 @@ describe('Position.toSAN', () => {
 
   it('converts promotion', () => {
     const pos = Position.fromFEN('8/P7/8/8/8/8/8/4K2k w - - 0 1')
-    expect(pos.toSAN('a7', 'a8', 'Q')).toBe('a8=Q')
+    expect(pos.toSAN('a7', 'a8', 'Q')).toBe('a8=Q+')
   })
 
   it('returns null for illegal moves', () => {

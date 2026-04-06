@@ -82,15 +82,17 @@ export class StockfishEngine {
     })
   }
 
-  /** Play a bot move: set skill level, think for moveTimeMs, return UCI move string. */
-  async playBotMove(fen: string, skillLevel: number, moveTimeMs = 1500): Promise<string | null> {
+  /** Play a bot move: set skill level, think briefly, return UCI move string. */
+  async playBotMove(fen: string, skillLevel: number): Promise<string | null> {
     if (!this.worker || this.state === 'idle' || this.state === 'loading') return null
     this.stop()
     this.send(`setoption name Skill Level value ${skillLevel}`)
+    // Limit depth for weaker play — low skill levels should also search shallowly
+    const depth = Math.max(1, Math.round(skillLevel * 0.6 + 2))
     this.lastEval = null
     this.state = 'analyzing'
     this.send(`position fen ${fen}`)
-    this.send(`go movetime ${moveTimeMs}`)
+    this.send(`go depth ${depth}`)
     return new Promise((resolve) => {
       this.onBestMove = (eval_) => {
         resolve(eval_?.pv[0] ?? null)

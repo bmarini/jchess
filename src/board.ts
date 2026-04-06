@@ -372,6 +372,56 @@ export class Position {
     return boardGet(this.board, sq)
   }
 
+  /** Check if the side to move's king is attacked. */
+  isInCheck(): boolean {
+    const color = this.activeColor
+    const opponent = color === 'w' ? 'b' : 'w'
+
+    // Find the king
+    let kingSq: Square | null = null
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = this.board[row]?.[col]
+        if (piece && piece.type === 'K' && piece.color === color) {
+          kingSq = coordToSquare(row, col)
+          break
+        }
+      }
+      if (kingSq) break
+    }
+    if (!kingSq) return false
+
+    // Check attacks using raw piece vectors (no legalMovesFrom to avoid circular calls)
+    const [kRow, kCol] = squareToCoord(kingSq)
+
+    // Check sliding pieces (R, B, Q) and knight/king
+    for (const pieceType of ['R', 'B', 'Q', 'N', 'K'] as PieceType[]) {
+      for (const vec of PIECE_VECTORS[pieceType]) {
+        for (let steps = 1; steps <= vec.limit; steps++) {
+          const nr = kRow - vec.y * steps
+          const nc = kCol + vec.x * steps
+          if (!isOnBoard(nr, nc)) break
+          const piece = this.board[nr]?.[nc]
+          if (!piece) continue
+          if (piece.color === opponent && piece.type === pieceType) return true
+          break // blocked
+        }
+      }
+    }
+
+    // Check pawn attacks
+    const pawnDir = color === 'w' ? -1 : 1 // pawns attack from this direction
+    for (const dc of [-1, 1]) {
+      const pr = kRow + pawnDir
+      const pc = kCol + dc
+      if (!isOnBoard(pr, pc)) continue
+      const piece = this.board[pr]?.[pc]
+      if (piece && piece.color === opponent && piece.type === 'P') return true
+    }
+
+    return false
+  }
+
   /** Serialize back to FEN notation. */
   toFEN(): string {
     const { K, Q, k, q } = this.castlingRights
@@ -473,10 +523,14 @@ export class Position {
     // Castling
     if (piece.type === 'K') {
       if (from === 'e' + rank && to === 'g' + rank) {
-        return this.applyMove('O-O') ? 'O-O' : null
+        const result = this.applyMove('O-O')
+        if (!result) return null
+        return 'O-O' + Position._checkSuffix(result.position)
       }
       if (from === 'e' + rank && to === 'c' + rank) {
-        return this.applyMove('O-O-O') ? 'O-O-O' : null
+        const result = this.applyMove('O-O-O')
+        if (!result) return null
+        return 'O-O-O' + Position._checkSuffix(result.position)
       }
     }
 
@@ -489,7 +543,9 @@ export class Position {
       const fileStr = isCapture ? from[0]! : ''
       const promoStr = promotion ? `=${promotion}` : ''
       const san = `${fileStr}${x}${to}${promoStr}`
-      return this.applyMove(san) ? san : null
+      const result = this.applyMove(san)
+      if (!result) return null
+      return san + Position._checkSuffix(result.position)
     }
 
     // Pieces — find minimal disambiguation
@@ -512,7 +568,8 @@ export class Position {
 
     const san = `${p}${disambig}${x}${to}`
     const result = this.applyMove(san)
-    return result && result.fromSquare === from ? san : null
+    if (!result || result.fromSquare !== from) return null
+    return san + Position._checkSuffix(result.position)
   }
 
   /** Return all legal destination squares for the piece on `from`. */
@@ -570,6 +627,16 @@ export class Position {
     }
 
     return candidates.filter(to => this.toSAN(from, to) !== null)
+  }
+
+  private static _checkSuffix(position: Position): string {
+    if (!position.isInCheck()) return ''
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        if (position.legalMovesFrom(coordToSquare(row, col)).length > 0) return '+'
+      }
+    }
+    return '#'
   }
 
   private _applyCastle(side: 'K' | 'Q'): Omit<MoveApplication, 'parsed'> {

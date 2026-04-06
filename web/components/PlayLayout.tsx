@@ -4,6 +4,7 @@ import Board from './Board'
 import MoveStrip from './MoveStrip'
 import Icon from './Icon'
 import type { ChessGameState } from '@/hooks/useChessGame'
+import type { GameOverState } from '@/hooks/useBotPlayer'
 import type { TransitionCommand } from '@chess/types'
 
 type Props = {
@@ -11,12 +12,14 @@ type Props = {
   lastCommands: TransitionCommand[] | undefined
   onMove: (from: string, to: string, promotion?: import('@chess/types').PieceType) => void
   thinking: boolean
+  gameOver: GameOverState
   onResign: () => void
 }
 
 export default function PlayLayout({
-  chess, lastCommands, onMove, thinking, onResign,
+  chess, lastCommands, onMove, thinking, gameOver, onResign,
 }: Props) {
+  const canMove = !thinking && !gameOver
   return (
     <>
       <main className="flex flex-col items-center flex-1 min-w-0 overflow-hidden
@@ -30,12 +33,21 @@ export default function PlayLayout({
               position={chess.position}
               flipped={chess.flipped}
               lastCommands={lastCommands}
-              onMove={thinking ? undefined : onMove}
+              onMove={canMove ? onMove : undefined}
             />
             {thinking && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="bg-black/40 text-white text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5">
                   <Icon name="cpu" size={14} /> Thinking...
+                </div>
+              </div>
+            )}
+            {gameOver && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-black/60 text-white text-sm font-semibold px-4 py-2 rounded-lg text-center">
+                  {gameOver.reason === 'checkmate'
+                    ? `Checkmate — ${gameOver.winner === 'w' ? 'White' : 'Black'} wins`
+                    : 'Stalemate — Draw'}
                 </div>
               </div>
             )}
@@ -59,11 +71,14 @@ export default function PlayLayout({
         <div className="flex items-center justify-center gap-2 w-full" style={{ maxWidth: '320px' }}>
           <button
             onClick={onResign}
-            className="px-4 py-2 rounded text-xs font-medium transition-colors
-              bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700
-              text-neutral-600 dark:text-neutral-400"
+            className={[
+              'px-4 py-2 rounded text-xs font-medium transition-colors',
+              gameOver
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400',
+            ].join(' ')}
           >
-            Resign
+            {gameOver ? 'Review Game' : 'Resign'}
           </button>
           <button
             onClick={chess.flip}

@@ -393,6 +393,7 @@ export default function ChessApp() {
               lastCommands={lastCommands}
               onMove={handleMove}
               thinking={botPlayer.thinking}
+              gameOver={botPlayer.gameOver}
               onResign={handleResign}
             />
           ) : (
