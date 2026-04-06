@@ -32,6 +32,8 @@ export function useEngine(fen: string | null): UseEngineResult {
 
   // Analyze when FEN changes — debounced to avoid spamming the engine during rapid navigation
   const genRef = useRef(0)
+  const busyRef = useRef(busy)
+  busyRef.current = busy
   useEffect(() => {
     if (!engine || !ready || !enabled || !fen || busy) return
 
@@ -52,7 +54,8 @@ export function useEngine(fen: string | null): UseEngineResult {
 
     return () => {
       clearTimeout(timer)
-      if (!busy) engine.stop()
+      // Read current busy via ref — stale closure would see old value
+      if (!busyRef.current) engine.stop()
     }
   }, [fen, enabled, engine, ready, busy])
 
