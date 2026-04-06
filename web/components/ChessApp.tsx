@@ -376,14 +376,14 @@ export default function ChessApp() {
               )}
 
               {/* Board + vertical eval bar */}
-              <div className="w-full flex justify-center gap-2" style={{ maxWidth: 'min(100%, 560px)' }}>
+              <div className="w-full flex justify-center gap-2" style={{ maxWidth: 'min(100%, 640px)' }}>
                 {/* Vertical eval bar — desktop only */}
                 {engine.enabled && (
                   <div className="hidden lg:block w-8 shrink-0">
                     <EvalBar eval_={engine.eval_} flipped={chess.flipped} />
                   </div>
                 )}
-                <div className="flex-1" style={{ maxWidth: '520px' }}>
+                <div className="flex-1" style={{ maxWidth: '600px' }}>
                   <Board
                     position={chess.position}
                     flipped={chess.flipped}

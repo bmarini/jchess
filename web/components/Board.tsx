@@ -171,10 +171,10 @@ export default function Board({
 
   return (
     <div className="relative select-none">
-      {/* Outer frame */}
-      <div className="bg-amber-950 rounded-md shadow-lg overflow-hidden">
-        {/* Top file labels */}
-        <div className="flex" style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+      {/* Outer frame — desktop only */}
+      <div className="lg:bg-amber-950 lg:rounded-md lg:shadow-lg overflow-hidden">
+        {/* Top file labels — desktop only */}
+        <div className="hidden lg:flex" style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
           {files.map(f => (
             <div key={f} className="flex-1 text-center text-[10px] text-amber-200/70 font-mono leading-5">
               {f}
@@ -183,8 +183,8 @@ export default function Board({
         </div>
 
         <div className="flex">
-          {/* Left rank labels */}
-          <div className="flex flex-col justify-around text-[10px] text-amber-200/70 font-mono" style={{ width: '1.5rem' }}>
+          {/* Left rank labels — desktop only */}
+          <div className="hidden lg:flex flex-col justify-around text-[10px] text-amber-200/70 font-mono" style={{ width: '1.5rem' }}>
             {ranks.map(r => (
               <div key={r} className="flex-1 flex items-center justify-center">{r}</div>
             ))}
@@ -200,14 +200,16 @@ export default function Board({
                 gridTemplateRows: 'repeat(8, 1fr)',
               }}
             >
-              {ranks.map(rank =>
-                files.map(file => {
+              {ranks.map((rank, ri) =>
+                files.map((file, fi) => {
                   const square = file + rank
                   const isLight = (FILES.indexOf(file) + RANKS.indexOf(rank)) % 2 === 0
                   const isHighlighted = highlightedSquares.has(square)
                   const isSelected = square === selectedSquare
                   const isLegalTarget = legalTargets.has(square)
                   const hasOccupant = position?.get(square) !== null
+                  const showRank = fi === 0 // left column
+                  const showFile = ri === 7 // bottom row
                   return (
                     <div
                       key={square}
@@ -220,6 +222,17 @@ export default function Board({
                             : isLight ? 'bg-amber-100' : 'bg-amber-800',
                       ].join(' ')}
                     >
+                      {/* Inline coordinates — mobile only */}
+                      {showRank && (
+                        <span className={`lg:hidden absolute top-0.5 left-0.5 text-[9px] font-mono font-bold leading-none ${isLight ? 'text-amber-800/50' : 'text-amber-100/50'}`}>
+                          {rank}
+                        </span>
+                      )}
+                      {showFile && (
+                        <span className={`lg:hidden absolute bottom-0.5 right-0.5 text-[9px] font-mono font-bold leading-none ${isLight ? 'text-amber-800/50' : 'text-amber-100/50'}`}>
+                          {file}
+                        </span>
+                      )}
                       {isLegalTarget && (
                         hasOccupant
                           ? <div className="absolute inset-0 rounded-full border-[3px] border-neutral-900/25 m-[4%]" />
@@ -346,16 +359,16 @@ export default function Board({
             )}
           </div>
 
-          {/* Right rank labels */}
-          <div className="flex flex-col justify-around text-[10px] text-amber-200/70 font-mono" style={{ width: '1.5rem' }}>
+          {/* Right rank labels — desktop only */}
+          <div className="hidden lg:flex flex-col justify-around text-[10px] text-amber-200/70 font-mono" style={{ width: '1.5rem' }}>
             {ranks.map(r => (
               <div key={r} className="flex-1 flex items-center justify-center">{r}</div>
             ))}
           </div>
         </div>
 
-        {/* Bottom file labels */}
-        <div className="flex" style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+        {/* Bottom file labels — desktop only */}
+        <div className="hidden lg:flex" style={{ paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
           {files.map(f => (
             <div key={f} className="flex-1 text-center text-[10px] text-amber-200/70 font-mono leading-5">
               {f}
