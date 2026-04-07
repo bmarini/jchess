@@ -1,15 +1,72 @@
 {
   "name": "jchess",
-  "version": "0.2.0",
-  "description": "Chess game viewer — renders PGN games with forward/backward navigation",
+  "version": "0.3.0",
+  "description": "Chess engine, PGN parser, and game viewer — TypeScript, zero dependencies",
   "type": "module",
-  "main": "dist/chess.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./board": {
+      "types": "./dist/board.d.ts",
+      "import": "./dist/board.js"
+    },
+    "./movegen": {
+      "types": "./dist/movegen.d.ts",
+      "import": "./dist/movegen.js"
+    },
+    "./pgn": {
+      "types": "./dist/pgn.d.ts",
+      "import": "./dist/pgn.js"
+    },
+    "./export": {
+      "types": "./dist/export.d.ts",
+      "import": "./dist/export.js"
+    },
+    "./transitions": {
+      "types": "./dist/transitions.d.ts",
+      "import": "./dist/transitions.js"
+    },
+    "./annotation": {
+      "types": "./dist/annotation.d.ts",
+      "import": "./dist/annotation.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./viewer": {
+      "types": "./dist/chess.d.ts",
+      "import": "./dist/chess.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "build:demo": "vite build --config vite.demo.config.ts",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm test && npm run build",
+    "dev:demo": "vite",
+    "build:demo": "vite build --config vite.demo.config.ts"
+  },
+  "keywords": [
+    "chess",
+    "pgn",
+    "chess-engine",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benmarini/jchess.git"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
