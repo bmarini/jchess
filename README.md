@@ -1,148 +1,201 @@
-# jChess
+# jchess
 
-A chess game viewer, annotator, and analysis tool. Load PGN games, review them with Stockfish, add annotations and variations, and play against a bot — all in the browser.
+A TypeScript chess library: PGN parser, move generator, position model, and a navigable game player. Zero runtime dependencies.
 
 **Live demo:** [bmarini.github.io/jchess](https://bmarini.github.io/jchess/)
 
 ## Features
 
-- **Game viewer** — navigate through games with animated piece transitions
-- **PGN support** — load, edit, and export PGN files (single or multi-game)
-- **Stockfish integration** — WASM engine runs entirely in the browser
-  - Live eval bar and principal variation display
-  - Full game review with accuracy scores and blunder/mistake/inaccuracy detection
-  - Clickable PV line to explore engine suggestions
-- **Interactive board** — click pieces to create moves, variations, and new games
-  - Legal move indicators (dots on valid squares)
-  - Promotion dialog
-  - Best move arrows from analysis
-- **Annotations** — add text annotations to any move, NAG symbols (?? ? ?! !? ! !!) displayed inline
-- **Variations** — create, navigate, and remove recursive variations (RAV)
-- **Opening detection** — 3,600+ openings identified automatically from moves (Lichess ECO database)
-- **Eval graph** — clickable sparkline showing evaluation across the whole game
-- **Play vs bot** — play against Stockfish at adjustable difficulty (Skill Level 0-20)
-- **Shareable links** — compress game into URL hash for sharing
-- **Local storage** — games persist across sessions
-- **Responsive** — mobile layout with horizontal move strip, swipe-friendly controls
-- **Clock times** — parse and display `[%clk]` metadata from chess.com PGNs
+- **PGN parser** — handles annotations, NAGs, recursive variations (RAV), and `[%clk]`/`[%eval]` metadata
+- **Position model** — FEN parsing, move application, en passant, castling, promotion, check detection
+- **SAN ↔ coordinates** — `toSAN()` for board moves, `parseSAN()` for SAN strings, full disambiguation
+- **Legal move generation** — `legalMovesFrom()`, pin detection, checkmate/stalemate
+- **Game navigation** — `GamePlayer` with forward/backward/jump, variation entry/exit, makeMove
+- **PGN export** — round-trip serialization with annotations, variations, and metadata
+- **Strict types** — `Square` is a template literal of all 64 valid squares; nothing slips past the type checker
+- **Zero dependencies** — pure TypeScript, ~38kB compressed
+
+## Installation
+
+```bash
+npm install jchess
+```
 
 ## Quick start
 
-```bash
-# Core library
-npm install
-npm test             # run all tests
+```ts
+import { Position, parsePGN, buildTransitions, GamePlayer } from 'jchess'
 
-# Web app (Next.js)
-cd web
-npm install
-npm run dev          # dev server at http://localhost:3000
+// Parse a PGN
+const game = parsePGN(`
+[White "Fischer"]
+[Black "Spassky"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *
+`)
+
+// Build a navigable player
+const result = buildTransitions(game, Position.starting())
+const player = new GamePlayer(result)
+
+// Navigate
+player.stepForward()        // play e4
+player.stepForward()        // play e5
+console.log(player.currentSAN)         // 'e5'
+console.log(player.positionAt(2).toFEN())
 ```
 
-## Tech stack
+### Apply a move directly
 
-- **Core library** — TypeScript, strict mode, no dependencies
-- **Web app** — Next.js (App Router, static export), React, Tailwind CSS v4
-- **Engine** — Stockfish 18 WASM (lite-single, 7MB)
-- **Tests** — Vitest, co-located as `*.test.ts`
-- **Icons** — Phosphor (bold SVG)
+```ts
+import { Position } from 'jchess'
 
-## Project structure
-
+const pos = Position.starting()
+const after = pos.applyMove('e4')
+console.log(after?.position.get('e4'))  // { color: 'w', type: 'P', id: ... }
 ```
-src/                    Core chess library (no framework dependencies)
-  board.ts              Position class, FEN parsing, move logic (applyMove, toSAN, legalMovesFrom, isInCheck)
-  pgn.ts                PGN tokenizer + parser
-  export.ts             PGN exporter (headers, moves, annotations, variations, metadata)
-  transitions.ts        Line class, GamePlayer class, transition builder
-  annotation.ts         Parse/serialize annotation metadata ([%clk], [%eval], etc.)
-  types.ts              Shared types
-  *.test.ts             Co-located tests
 
-web/                    Next.js web application
-  app/                  Next.js app router
-  components/
-    ChessApp.tsx        Main app — state coordinator, renders PlayLayout or ReviewLayout
-    PlayLayout.tsx      Bot game mode — board, move strip, resign
-    ReviewLayout.tsx    Analysis mode — eval bar, move list, annotations, engine PV
-    Board.tsx           Interactive board with piece selection, legal move dots, arrows
-    Controls.tsx        Navigation buttons (prev, next, flip)
-    MoveList.tsx        Vertical move list with variations, NAG symbols, book markers
-    MoveStrip.tsx       Horizontal scrolling move strip (mobile)
-    EvalBar.tsx         Vertical/horizontal eval bar (responsive)
-    EvalGraph.tsx       Clickable eval sparkline
-    GameInfo.tsx        Player names, ELO, accuracy, opening, event info
-    BotDialog.tsx       Color + difficulty picker for bot games
-    Icon.tsx            SVG icon component
-    PGNInput.tsx        PGN paste/file upload
-  hooks/
-    useChessGame.ts     React wrapper around GamePlayer
-    useEngine.ts        Live Stockfish analysis with debounce
-    useBotPlayer.ts     Bot move automation + game over detection
-  lib/
-    engine.ts           StockfishEngine UCI wrapper (Web Worker)
-    analyze.ts          Full game analysis (accuracy, NAGs, best moves)
-    openings.ts         ECO opening identification (3,663 entries)
-    eco.json            Lichess chess-openings database (CC0)
-    parseMultiPGN.ts    Multi-game PGN splitter
-    shareUrl.ts         Compress/decompress PGN for URL sharing
-    storage.ts          localStorage persistence
+### Check for checkmate
 
-examples/               Example PGN files (used by tests)
-public/
-  pieces/mpchess/       SVG piece images
-  icons/                Phosphor bold SVG icons
-  stockfish/            Stockfish 18 WASM engine files
+```ts
+import { Position } from 'jchess/board'
+import { hasAnyLegalMove } from 'jchess/movegen'
+
+// Fool's mate position (black to move, white just played Qh5#)
+const pos = Position.fromFEN('rnb1kbnr/pppp1Qpp/8/4p3/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 0 2')
+console.log(pos.isInCheck())          // true
+console.log(hasAnyLegalMove(pos))     // false → checkmate
+```
+
+### Convert board moves to SAN
+
+```ts
+import { Position } from 'jchess/board'
+import { toSAN } from 'jchess/movegen'
+
+const pos = Position.starting()
+console.log(toSAN(pos, 'g1', 'f3'))   // 'Nf3'
+console.log(toSAN(pos, 'e2', 'e4'))   // 'e4'
+```
+
+### Export back to PGN
+
+```ts
+import { parsePGN, buildTransitions, exportPGN, Position } from 'jchess'
+
+const game = parsePGN('1. e4 e5 2. Nf3 Nc6 *')
+const { transitions } = buildTransitions(game, Position.starting())
+console.log(exportPGN(game.headers, transitions, game.preAnnotation))
+```
+
+## Public API
+
+The package is organized into focused modules. Import from the barrel for everything, or from subpaths for clarity:
+
+```ts
+// Barrel — everything
+import { Position, parsePGN, GamePlayer } from 'jchess'
+
+// Subpaths
+import { Position, STARTING_FEN, opponent } from 'jchess/board'
+import { toSAN, legalMovesFrom, hasAnyLegalMove } from 'jchess/movegen'
+import { parsePGN, tokenize } from 'jchess/pgn'
+import { exportPGN } from 'jchess/export'
+import { buildTransitions, GamePlayer, Line } from 'jchess/transitions'
+import { parseAnnotation, serializeAnnotation, extractNAG } from 'jchess/annotation'
+import type { Square, Color, PieceType, Piece, Board, ParsedGame, Transition } from 'jchess/types'
+```
+
+| Module | Exports |
+|---|---|
+| `jchess/board` | `Position`, `STARTING_FEN`, `squareToCoord`, `coordToSquare`, `boardGet`, `boardSet`, `parseSAN`, `findMoveSource`, `opponent`, `toSquare` |
+| `jchess/movegen` | `toSAN`, `legalMovesFrom`, `hasAnyLegalMove` |
+| `jchess/pgn` | `parsePGN`, `tokenize` |
+| `jchess/export` | `exportPGN` |
+| `jchess/transitions` | `buildTransitions`, `GamePlayer`, `Line`, `buildSingleTransition` |
+| `jchess/annotation` | `parseAnnotation`, `serializeAnnotation`, `extractNAG`, `hasDisplayText` |
+| `jchess/types` | `Square`, `Color`, `PieceType`, `Piece`, `Board`, `CastlingRights`, `Transition`, `ParsedGame`, `ParsedMove`, `MoveMetadata` |
+
+### Optional DOM viewer
+
+The package also bundles a vanilla DOM-based viewer (`ChessViewer`) under a separate subpath. React/Vue consumers don't need it; tree-shaking keeps it out of your bundle unless you import it explicitly.
+
+```ts
+import { ChessViewer } from 'jchess/viewer'
+
+const viewer = new ChessViewer(document.getElementById('board')!, {
+  pgn: '1. e4 e5 2. Nf3 *',
+})
+viewer.next()
 ```
 
 ## Architecture
 
+### Layered design
+
+```
+types.ts        ← shared types (Square, Piece, Board, etc.)
+   ↑
+board.ts        ← Layer 1: Position class, FEN, applyMove, isInCheck
+   ↑
+movegen.ts      ← Layer 2: toSAN, legalMovesFrom, hasAnyLegalMove
+   ↑
+transitions.ts  ← Layer 3: buildTransitions, GamePlayer, Line
+```
+
+`pgn.ts`, `export.ts`, and `annotation.ts` are independent modules that work alongside the layers.
+
+### Position is a rich domain object
+
+`Position` owns all move logic and is **immutable** — `applyMove` returns a new `Position`. This makes testing straightforward and lets the transition list pre-compute every position in a game without worrying about shared state.
+
 ### Transition list
 
-The core design is a **pre-computed transition list**. When a PGN is loaded:
+When a PGN is loaded, `buildTransitions` walks every move and records `{ forward, backward }` command lists per half-move. Single-step navigation replays these in O(1). `GamePlayer` manages a stack of `Line` instances — the main line plus any variations the user has entered.
 
-1. `parsePGN` tokenizes the PGN into SAN move strings with annotations and variations
-2. `buildTransitions` walks the moves, applies each to the board state via `Position.applyMove`, and records `{ forward, backward }` transition commands per half-move
-3. `GamePlayer` navigates via a stack of `Line` instances — the main line plus any entered variations
+### Stable piece IDs
 
-### Position as domain object
-
-`Position` is a rich domain object (not an anemic data class). It owns all move logic:
-
-- `position.applyMove(san)` — apply a SAN move, return new position
-- `position.toSAN(from, to, promotion?)` — convert board coordinates to SAN (with check/checkmate suffixes)
-- `position.legalMovesFrom(square)` — all legal destinations for a piece
-- `position.isInCheck()` — check detection using raw piece vectors
+Each `Piece` has a stable numeric `id`. This lets a renderer track DOM elements across captures, promotions, and variation switches without re-rendering the whole board. Transitions carry piece IDs, so the renderer always knows which element to move/remove/add.
 
 ### Annotation metadata
 
-PGN annotation commands like `[%clk 0:30:00]` and `[%eval +1.5]` are parsed into structured `MoveMetadata` and stored separately from display text. The exporter re-embeds them for round-trip fidelity.
+PGN commands like `[%clk 0:30:00]` and `[%eval +1.5]` are parsed into structured `MoveMetadata` separately from display text. The exporter re-embeds them for round-trip fidelity.
 
-### Play vs Review modes
+## Coordinate system
 
-`ChessApp` is a state coordinator that renders one of two layout components:
+- `board[0]` = rank 8 (black's back rank)
+- `board[7]` = rank 1 (white's back rank)
+- `board[row][col]`, col 0 = a-file, col 7 = h-file
+- `squareToCoord('e4')` → `[4, 4]`
+- `coordToSquare(4, 4)` → `'e4'`
 
-- **PlayLayout** — clean board + move strip + resign. For bot games.
-- **ReviewLayout** — full analysis experience with eval bar, move list, annotations, engine PV, game actions.
+`Square` is a template literal type — `'a1' | 'a2' | ... | 'h8'`. Constructing a square from string concatenation requires `toSquare(file, rank)` or an explicit cast.
 
-## Commands
+## TypeScript
+
+jchess ships with `.d.ts` files generated from source. Strict mode and `noUncheckedIndexedAccess` are enabled — every public API is fully typed.
+
+## Development
+
+The repo also contains a Next.js demo app (`web/`) that consumes the library directly via path aliases. To work on jchess locally:
 
 ```bash
-# Core library
-npm test                # run all tests
-npm run test:watch      # watch mode
+git clone https://github.com/benmarini/jchess
+cd jchess
+npm install
+npm test                # run all 217 tests
 npm run build           # build to dist/
 
-# Web app
+# Run the demo
 cd web
-npm run dev             # dev server (webpack mode)
-npm run build           # static export to web/out/
+npm install
+npm run dev             # http://localhost:3000
 ```
 
-## Deployment
-
-The web app deploys to GitHub Pages via `.github/workflows/deploy.yml`. Push to `master` triggers a build from `web/` and deploys `web/out/` to [bmarini.github.io/jchess](https://bmarini.github.io/jchess/).
+The demo includes Stockfish WASM analysis, opening detection, full-game review, bot play, and PGN sharing — see [the live site](https://bmarini.github.io/jchess/) for what's possible on top of jchess.
 
 ## License
 
-Stockfish WASM: GPL-3.0. Lichess chess-openings: CC0. Phosphor Icons: MIT. Piece SVGs: see `public/pieces/`.
+MIT — see [LICENSE](LICENSE).
+
+The bundled demo additionally uses Stockfish (GPL-3.0), the Lichess chess-openings database (CC0), and Phosphor icons (MIT). These are not part of the npm package.
